@@ -1,29 +1,48 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Cross, LogOut } from "lucide-react";
+import {
+  Cross, LogOut, Radio, Music2, Film, HandHeart,
+  Users, Mic2, Video, MessageCircle, Sparkles, ArrowRight,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/dashboard")({
-  component: Dashboard,
+  head: () => ({
+    meta: [
+      { title: "Home — Warriors Media" },
+      { name: "description", content: "Your sanctuary of worship, community and Christian media." },
+    ],
+  }),
+  component: Home,
 });
 
-function Dashboard() {
+const modules = [
+  { icon: Radio,        title: "Live Streaming",  desc: "Worship services & events in HD",       tag: "LIVE NOW" },
+  { icon: Film,         title: "Reels",           desc: "Short-form Christian content feed",     tag: "TRENDING" },
+  { icon: Music2,       title: "Worship Music",   desc: "Telugu & global worship library",       tag: "NEW" },
+  { icon: HandHeart,    title: "Prayer Wall",     desc: "Share & lift up requests together",     tag: "" },
+  { icon: Users,        title: "Community",       desc: "Churches, teams & WhatsApp groups",     tag: "" },
+  { icon: Mic2,         title: "Studio Booking",  desc: "Recording, video & live production",    tag: "" },
+  { icon: Video,        title: "Video Editor",    desc: "AI-assisted reels & sermon edits",      tag: "SOON" },
+  { icon: MessageCircle,title: "WhatsApp Bridge", desc: "Sync ministry chats seamlessly",        tag: "BETA" },
+];
+
+function Home() {
   const navigate = useNavigate();
   const [profile, setProfile] = useState<{ full_name: string | null; email: string | null } | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const load = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        navigate({ to: "/" });
-        return;
-      }
+      if (!session) { navigate({ to: "/" }); return; }
       const { data } = await supabase
         .from("profiles")
         .select("full_name, email")
         .eq("id", session.user.id)
         .maybeSingle();
       setProfile(data ?? { full_name: null, email: session.user.email ?? null });
+      setLoading(false);
     };
     load();
   }, [navigate]);
@@ -33,22 +52,91 @@ function Dashboard() {
     navigate({ to: "/" });
   };
 
+  const firstName = profile?.full_name?.split(" ")[0] ?? "Warrior";
+
   return (
-    <main className="min-h-screen flex items-center justify-center px-6">
-      <div className="max-w-md w-full p-10 rounded-2xl border border-border bg-card/60 backdrop-blur-xl text-center">
-        <Cross className="w-8 h-8 text-[color:var(--gold)] mx-auto mb-5" strokeWidth={1.4} />
-        <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground mb-3">Sanctuary</p>
-        <h1 className="font-display text-3xl mb-2">
-          Welcome, <span className="text-gold-gradient">{profile?.full_name ?? "Warrior"}</span>
-        </h1>
-        <p className="text-sm text-muted-foreground mb-8">{profile?.email}</p>
+    <main className="min-h-screen relative overflow-hidden">
+      <div className="absolute inset-0 -z-10">
+        <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[800px] h-[800px] rounded-full bg-[radial-gradient(circle,oklch(0.78_0.16_80/0.12),transparent_70%)]" />
+      </div>
+
+      {/* Header */}
+      <header className="px-6 md:px-10 pt-6 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-full border border-[color:var(--gold)]/40 flex items-center justify-center bg-card/40">
+            <Cross className="w-4 h-4 text-[color:var(--gold)]" strokeWidth={1.5} />
+          </div>
+          <span className="font-display tracking-wide">
+            Warriors <span className="text-gold-gradient">Media</span>
+          </span>
+        </div>
         <button
           onClick={signOut}
-          className="inline-flex items-center gap-2 px-6 py-3 rounded-full border border-border hover:border-[color:var(--gold)]/50 text-sm transition"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-border hover:border-[color:var(--gold)]/50 text-xs transition"
         >
-          <LogOut className="w-4 h-4" /> Sign out
+          <LogOut className="w-3.5 h-3.5" /> Sign out
         </button>
-      </div>
+      </header>
+
+      {/* Hero / welcome */}
+      <section className="px-6 md:px-10 pt-12 pb-10 max-w-5xl mx-auto">
+        <p className="text-[10px] uppercase tracking-[0.4em] text-[color:var(--gold-soft)] mb-4">
+          Sanctuary · Home
+        </p>
+        <h1 className="font-display text-4xl md:text-6xl leading-tight">
+          Welcome back, <span className="text-gold-gradient">{loading ? "…" : firstName}</span>
+        </h1>
+        <p className="text-muted-foreground mt-4 max-w-xl">
+          Step into worship, community, and Christian creativity — all in one cinematic place.
+        </p>
+
+        <div className="mt-8 p-5 rounded-2xl border border-[color:var(--gold)]/30 bg-card/60 backdrop-blur-xl flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
+            <div>
+              <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">On Air</p>
+              <p className="font-medium">Sunday Worship · Hyderabad Live</p>
+            </div>
+          </div>
+          <button className="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gold-gradient text-[color:var(--primary-foreground)] text-sm font-medium glow-gold">
+            Join <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
+      </section>
+
+      {/* Modules grid */}
+      <section className="px-6 md:px-10 pb-20 max-w-5xl mx-auto">
+        <div className="flex items-end justify-between mb-6">
+          <h2 className="font-display text-2xl">Your Modules</h2>
+          <span className="text-xs uppercase tracking-[0.3em] text-muted-foreground inline-flex items-center gap-1.5">
+            <Sparkles className="w-3 h-3 text-[color:var(--gold)]" /> Premium
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {modules.map(({ icon: Icon, title, desc, tag }) => (
+            <article
+              key={title}
+              className="group relative p-5 rounded-2xl border border-border bg-card/50 backdrop-blur hover:border-[color:var(--gold)]/50 transition cursor-pointer"
+            >
+              {tag && (
+                <span className="absolute top-4 right-4 text-[9px] uppercase tracking-[0.2em] px-2 py-1 rounded-full border border-[color:var(--gold)]/40 text-[color:var(--gold-soft)]">
+                  {tag}
+                </span>
+              )}
+              <div className="w-10 h-10 rounded-xl border border-[color:var(--gold)]/30 flex items-center justify-center mb-4 bg-background/40 group-hover:bg-gold-gradient group-hover:border-transparent transition">
+                <Icon className="w-5 h-5 text-[color:var(--gold)] group-hover:text-[color:var(--primary-foreground)] transition" strokeWidth={1.5} />
+              </div>
+              <h3 className="font-medium mb-1">{title}</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">{desc}</p>
+            </article>
+          ))}
+        </div>
+
+        <p className="text-center text-xs text-muted-foreground mt-12">
+          Signed in as <span className="text-[color:var(--gold-soft)]">{profile?.email}</span>
+        </p>
+      </section>
     </main>
   );
 }
