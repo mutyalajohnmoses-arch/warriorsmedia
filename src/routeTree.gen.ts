@@ -9,168 +9,38 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AppIndexRouteImport } from './routes/app.index'
-import { Route as AppWorshipRouteImport } from './routes/app.worship'
-import { Route as AppStudioRouteImport } from './routes/app.studio'
-import { Route as AppReelsRouteImport } from './routes/app.reels'
-import { Route as AppProfileRouteImport } from './routes/app.profile'
-import { Route as AppPrayerRouteImport } from './routes/app.prayer'
-import { Route as AppLiveRouteImport } from './routes/app.live'
-import { Route as AppCommunityRouteImport } from './routes/app.community'
-import { Route as AppAdminRouteImport } from './routes/app.admin'
 
-const AppRoute = AppRouteImport.update({
-  id: '/app',
-  path: '/app',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AppIndexRoute = AppIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppWorshipRoute = AppWorshipRouteImport.update({
-  id: '/worship',
-  path: '/worship',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppStudioRoute = AppStudioRouteImport.update({
-  id: '/studio',
-  path: '/studio',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppReelsRoute = AppReelsRouteImport.update({
-  id: '/reels',
-  path: '/reels',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppProfileRoute = AppProfileRouteImport.update({
-  id: '/profile',
-  path: '/profile',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppPrayerRoute = AppPrayerRouteImport.update({
-  id: '/prayer',
-  path: '/prayer',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppLiveRoute = AppLiveRouteImport.update({
-  id: '/live',
-  path: '/live',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppCommunityRoute = AppCommunityRouteImport.update({
-  id: '/community',
-  path: '/community',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppAdminRoute = AppAdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
-  getParentRoute: () => AppRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/app': typeof AppRouteWithChildren
-  '/app/admin': typeof AppAdminRoute
-  '/app/community': typeof AppCommunityRoute
-  '/app/live': typeof AppLiveRoute
-  '/app/prayer': typeof AppPrayerRoute
-  '/app/profile': typeof AppProfileRoute
-  '/app/reels': typeof AppReelsRoute
-  '/app/studio': typeof AppStudioRoute
-  '/app/worship': typeof AppWorshipRoute
-  '/app/': typeof AppIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/app/admin': typeof AppAdminRoute
-  '/app/community': typeof AppCommunityRoute
-  '/app/live': typeof AppLiveRoute
-  '/app/prayer': typeof AppPrayerRoute
-  '/app/profile': typeof AppProfileRoute
-  '/app/reels': typeof AppReelsRoute
-  '/app/studio': typeof AppStudioRoute
-  '/app/worship': typeof AppWorshipRoute
-  '/app': typeof AppIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/app': typeof AppRouteWithChildren
-  '/app/admin': typeof AppAdminRoute
-  '/app/community': typeof AppCommunityRoute
-  '/app/live': typeof AppLiveRoute
-  '/app/prayer': typeof AppPrayerRoute
-  '/app/profile': typeof AppProfileRoute
-  '/app/reels': typeof AppReelsRoute
-  '/app/studio': typeof AppStudioRoute
-  '/app/worship': typeof AppWorshipRoute
-  '/app/': typeof AppIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    | '/'
-    | '/app'
-    | '/app/admin'
-    | '/app/community'
-    | '/app/live'
-    | '/app/prayer'
-    | '/app/profile'
-    | '/app/reels'
-    | '/app/studio'
-    | '/app/worship'
-    | '/app/'
+  fullPaths: '/'
   fileRoutesByTo: FileRoutesByTo
-  to:
-    | '/'
-    | '/app/admin'
-    | '/app/community'
-    | '/app/live'
-    | '/app/prayer'
-    | '/app/profile'
-    | '/app/reels'
-    | '/app/studio'
-    | '/app/worship'
-    | '/app'
-  id:
-    | '__root__'
-    | '/'
-    | '/app'
-    | '/app/admin'
-    | '/app/community'
-    | '/app/live'
-    | '/app/prayer'
-    | '/app/profile'
-    | '/app/reels'
-    | '/app/studio'
-    | '/app/worship'
-    | '/app/'
+  to: '/'
+  id: '__root__' | '/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AppRoute: typeof AppRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/app': {
-      id: '/app'
-      path: '/app'
-      fullPath: '/app'
-      preLoaderRoute: typeof AppRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/': {
       id: '/'
       path: '/'
@@ -178,101 +48,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/app/': {
-      id: '/app/'
-      path: '/'
-      fullPath: '/app/'
-      preLoaderRoute: typeof AppIndexRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/worship': {
-      id: '/app/worship'
-      path: '/worship'
-      fullPath: '/app/worship'
-      preLoaderRoute: typeof AppWorshipRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/studio': {
-      id: '/app/studio'
-      path: '/studio'
-      fullPath: '/app/studio'
-      preLoaderRoute: typeof AppStudioRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/reels': {
-      id: '/app/reels'
-      path: '/reels'
-      fullPath: '/app/reels'
-      preLoaderRoute: typeof AppReelsRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/profile': {
-      id: '/app/profile'
-      path: '/profile'
-      fullPath: '/app/profile'
-      preLoaderRoute: typeof AppProfileRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/prayer': {
-      id: '/app/prayer'
-      path: '/prayer'
-      fullPath: '/app/prayer'
-      preLoaderRoute: typeof AppPrayerRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/live': {
-      id: '/app/live'
-      path: '/live'
-      fullPath: '/app/live'
-      preLoaderRoute: typeof AppLiveRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/community': {
-      id: '/app/community'
-      path: '/community'
-      fullPath: '/app/community'
-      preLoaderRoute: typeof AppCommunityRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/admin': {
-      id: '/app/admin'
-      path: '/admin'
-      fullPath: '/app/admin'
-      preLoaderRoute: typeof AppAdminRouteImport
-      parentRoute: typeof AppRoute
-    }
   }
 }
 
-interface AppRouteChildren {
-  AppAdminRoute: typeof AppAdminRoute
-  AppCommunityRoute: typeof AppCommunityRoute
-  AppLiveRoute: typeof AppLiveRoute
-  AppPrayerRoute: typeof AppPrayerRoute
-  AppProfileRoute: typeof AppProfileRoute
-  AppReelsRoute: typeof AppReelsRoute
-  AppStudioRoute: typeof AppStudioRoute
-  AppWorshipRoute: typeof AppWorshipRoute
-  AppIndexRoute: typeof AppIndexRoute
-}
-
-const AppRouteChildren: AppRouteChildren = {
-  AppAdminRoute: AppAdminRoute,
-  AppCommunityRoute: AppCommunityRoute,
-  AppLiveRoute: AppLiveRoute,
-  AppPrayerRoute: AppPrayerRoute,
-  AppProfileRoute: AppProfileRoute,
-  AppReelsRoute: AppReelsRoute,
-  AppStudioRoute: AppStudioRoute,
-  AppWorshipRoute: AppWorshipRoute,
-  AppIndexRoute: AppIndexRoute,
-}
-
-const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AppRoute: AppRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
