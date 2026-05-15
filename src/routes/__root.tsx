@@ -82,16 +82,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:site", content: "@Lovable" },
       { name: "twitter:title", content: "Warriors Media" },
       { name: "twitter:description", content: "warrios studios for you" },
-      {
-        property: "og:image",
-        content:
-          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/d7076270-fc05-477f-83ec-2cd8efd2c109/id-preview-3cd09935--5136ccc5-9bb3-407b-aa86-d5e6c8bfdb27.lovable.app-1778834671226.png",
-      },
-      {
-        name: "twitter:image",
-        content:
-          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/d7076270-fc05-477f-83ec-2cd8efd2c109/id-preview-3cd09935--5136ccc5-9bb3-407b-aa86-d5e6c8bfdb27.lovable.app-1778834671226.png",
-      },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/d7076270-fc05-477f-83ec-2cd8efd2c109/id-preview-3cd09935--5136ccc5-9bb3-407b-aa86-d5e6c8bfdb27.lovable.app-1778834671226.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/d7076270-fc05-477f-83ec-2cd8efd2c109/id-preview-3cd09935--5136ccc5-9bb3-407b-aa86-d5e6c8bfdb27.lovable.app-1778834671226.png" },
     ],
     links: [
       {

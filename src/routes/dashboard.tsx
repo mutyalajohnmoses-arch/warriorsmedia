@@ -1,18 +1,8 @@
-import { createFileRoute, useNavigate, Link, useRouter } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
-  Cross,
-  LogOut,
-  Radio,
-  Music2,
-  Film,
-  HandHeart,
-  Users,
-  Mic2,
-  Video,
-  MessageCircle,
-  Sparkles,
-  ArrowRight,
+  Cross, LogOut, Radio, Music2, Film, HandHeart,
+  Users, Mic2, Video, MessageCircle, Sparkles, ArrowRight,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -27,51 +17,25 @@ export const Route = createFileRoute("/dashboard")({
 });
 
 const modules = [
-  {
-    icon: Radio,
-    title: "Live Streaming",
-    desc: "Worship services & events in HD",
-    tag: "LIVE NOW",
-  },
-  { icon: Film, title: "Reels", desc: "Short-form Christian content feed", tag: "TRENDING" },
-  { icon: Music2, title: "Worship Music", desc: "Telugu & global worship library", tag: "NEW" },
-  { icon: HandHeart, title: "Prayer Wall", desc: "Share & lift up requests together", tag: "" },
-  { icon: Users, title: "Community", desc: "Churches, teams & WhatsApp groups", tag: "" },
-  { icon: Mic2, title: "Studio Booking", desc: "Recording, video & live production", tag: "" },
-  { icon: Video, title: "Video Editor", desc: "AI-assisted reels & sermon edits", tag: "SOON" },
-  {
-    icon: MessageCircle,
-    title: "WhatsApp Bridge",
-    desc: "Sync ministry chats seamlessly",
-    tag: "BETA",
-  },
+  { icon: Radio,        title: "Live Streaming",  desc: "Worship services & events in HD",       tag: "LIVE NOW" },
+  { icon: Film,         title: "Reels",           desc: "Short-form Christian content feed",     tag: "TRENDING" },
+  { icon: Music2,       title: "Worship Music",   desc: "Telugu & global worship library",       tag: "NEW" },
+  { icon: HandHeart,    title: "Prayer Wall",     desc: "Share & lift up requests together",     tag: "" },
+  { icon: Users,        title: "Community",       desc: "Churches, teams & WhatsApp groups",     tag: "" },
+  { icon: Mic2,         title: "Studio Booking",  desc: "Recording, video & live production",    tag: "" },
+  { icon: Video,        title: "Video Editor",    desc: "AI-assisted reels & sermon edits",      tag: "SOON" },
+  { icon: MessageCircle,title: "WhatsApp Bridge", desc: "Sync ministry chats seamlessly",        tag: "BETA" },
 ];
 
 function Home() {
   const navigate = useNavigate();
-  const router = useRouter();
-  const [profile, setProfile] = useState<{ full_name: string | null; email: string | null } | null>(
-    null,
-  );
+  const [profile, setProfile] = useState<{ full_name: string | null; email: string | null } | null>(null);
   const [loading, setLoading] = useState(true);
-
-  const handleModuleClick = (title: string) => {
-    if (title === "Live Streaming") {
-      navigate({ to: "/live-streaming-setup" });
-    } else {
-      // Handle other modules as needed
-    }
-  };
 
   useEffect(() => {
     const load = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (!session) {
-        navigate({ to: "/" });
-        return;
-      }
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { navigate({ to: "/" }); return; }
       const { data } = await supabase
         .from("profiles")
         .select("full_name, email")
@@ -153,7 +117,6 @@ function Home() {
           {modules.map(({ icon: Icon, title, desc, tag }) => (
             <article
               key={title}
-              onClick={() => handleModuleClick(title)}
               className="group relative p-5 rounded-2xl border border-border bg-card/50 backdrop-blur hover:border-[color:var(--gold)]/50 transition cursor-pointer"
             >
               {tag && (
@@ -162,10 +125,7 @@ function Home() {
                 </span>
               )}
               <div className="w-10 h-10 rounded-xl border border-[color:var(--gold)]/30 flex items-center justify-center mb-4 bg-background/40 group-hover:bg-gold-gradient group-hover:border-transparent transition">
-                <Icon
-                  className="w-5 h-5 text-[color:var(--gold)] group-hover:text-[color:var(--primary-foreground)] transition"
-                  strokeWidth={1.5}
-                />
+                <Icon className="w-5 h-5 text-[color:var(--gold)] group-hover:text-[color:var(--primary-foreground)] transition" strokeWidth={1.5} />
               </div>
               <h3 className="font-medium mb-1">{title}</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">{desc}</p>
