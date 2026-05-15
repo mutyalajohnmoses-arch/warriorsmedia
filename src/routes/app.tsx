@@ -8,11 +8,11 @@ export const Route = createFileRoute("/app")({
 
 const tabs = [
   { to: "/app", label: "Home", icon: Home, exact: true },
-  { to: "/app/reels", label: "Reels", icon: Film },
-  { to: "/app/live", label: "Live", icon: Radio },
-  { to: "/app/worship", label: "Worship", icon: Music },
-  { to: "/app/profile", label: "You", icon: User },
-] as const;
+  { to: "/app/reels", label: "Reels", icon: Film, exact: false },
+  { to: "/app/live", label: "Live", icon: Radio, exact: false },
+  { to: "/app/worship", label: "Worship", icon: Music, exact: false },
+  { to: "/app/profile", label: "You", icon: User, exact: false },
+];
 
 const more = [
   { to: "/app/prayer", label: "Prayer", icon: Heart },
