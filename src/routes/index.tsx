@@ -9,12 +9,18 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Sign In — Warriors Media" },
-      { name: "description", content: "Sign in to Warriors Media — the cinematic Christian media ecosystem." },
+      {
+        name: "description",
+        content: "Sign in to Warriors Media — the cinematic Christian media ecosystem.",
+      },
     ],
     links: [
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap",
+      },
     ],
   }),
   component: LoginPage,
@@ -58,8 +64,8 @@ function LoginPage() {
         toast.success("Welcome back.");
         navigate({ to: "/dashboard" });
       }
-    } catch (err: any) {
-      const msg = err?.message ?? "Something went wrong.";
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Something went wrong.";
       if (mode === "signin" && /invalid login credentials/i.test(msg)) {
         toast.error("No account found. Switching to sign up.");
         setMode("signup");
@@ -156,8 +162,13 @@ function LoginPage() {
               disabled={loading}
               className="w-full mt-2 py-3.5 rounded-lg bg-gold-gradient text-[color:var(--primary-foreground)] font-medium glow-gold flex items-center justify-center gap-2 hover:scale-[1.01] transition disabled:opacity-60"
             >
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : (
-                <>{mode === "signin" ? "Sign In" : "Create Account"} <ArrowRight className="w-4 h-4" /></>
+              {loading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <>
+                  {mode === "signin" ? "Sign In" : "Create Account"}{" "}
+                  <ArrowRight className="w-4 h-4" />
+                </>
               )}
             </button>
           </form>
@@ -191,7 +202,15 @@ function LoginPage() {
   );
 }
 
-function Field({ label, icon: Icon, children }: { label: string; icon: React.ElementType; children: React.ReactNode }) {
+function Field({
+  label,
+  icon: Icon,
+  children,
+}: {
+  label: string;
+  icon: React.ElementType;
+  children: React.ReactNode;
+}) {
   return (
     <div className="relative">
       <label className="text-xs uppercase tracking-[0.2em] text-[color:var(--gold-soft)] mb-2 block">
