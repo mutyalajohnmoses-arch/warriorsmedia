@@ -59,7 +59,13 @@ function LoginPage() {
         navigate({ to: "/dashboard" });
       }
     } catch (err: any) {
-      toast.error(err?.message ?? "Something went wrong.");
+      const msg = err?.message ?? "Something went wrong.";
+      if (mode === "signin" && /invalid login credentials/i.test(msg)) {
+        toast.error("No account found. Switching to sign up.");
+        setMode("signup");
+      } else {
+        toast.error(msg);
+      }
     } finally {
       setLoading(false);
     }
