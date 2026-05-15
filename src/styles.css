@@ -98,3 +98,4 @@
     opacity: 0.08; pointer-events: none; mix-blend-mode: overlay;
   }
 }
+@layer utilities { .scrollbar-hide::-webkit-scrollbar { display: none; } .scrollbar-hide { scrollbar-width: none; } }
