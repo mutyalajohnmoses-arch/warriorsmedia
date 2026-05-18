@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      live_streams: {
+        Row: {
+          broadcast_id: string | null
+          channel_id: string | null
+          created_at: string
+          description: string | null
+          hashtags: string[] | null
+          id: string
+          privacy_status: string | null
+          status: string | null
+          stream_id: string | null
+          thumbnail_url: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          broadcast_id?: string | null
+          channel_id?: string | null
+          created_at?: string
+          description?: string | null
+          hashtags?: string[] | null
+          id?: string
+          privacy_status?: string | null
+          status?: string | null
+          stream_id?: string | null
+          thumbnail_url?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          broadcast_id?: string | null
+          channel_id?: string | null
+          created_at?: string
+          description?: string | null
+          hashtags?: string[] | null
+          id?: string
+          privacy_status?: string | null
+          status?: string | null
+          stream_id?: string | null
+          thumbnail_url?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
