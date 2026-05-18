@@ -81,6 +81,12 @@ function LoginPage() {
     setLoading(true);
     const result = await lovable.auth.signInWithOAuth("google", {
       redirect_uri: window.location.origin,
+      extraParams: {
+        scope:
+          "openid email profile https://www.googleapis.com/auth/youtube https://www.googleapis.com/auth/youtube.upload",
+        access_type: "offline",
+        prompt: "consent",
+      },
     });
     if (result.error) {
       toast.error(result.error.message ?? "Google sign-in failed.");
