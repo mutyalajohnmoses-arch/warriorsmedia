@@ -23,6 +23,7 @@ import {
   bindStreamToBroadcast,
 } from "@/lib/youtube";
 import { generateThumbnail, generateHashtags } from "@/lib/ai.functions";
+import { lovable } from "@/integrations/lovable";
 
 export const Route = createFileRoute("/live-streaming-setup")({
   head: () => ({
@@ -127,20 +128,27 @@ function LiveStreamingSetup() {
   }, [navigate]);
 
   const reconnectYouTube = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: window.location.href,
+    const result = await lovable.auth.signInWithOAuth("google", {
+      redirect_uri: window.location.href,
+      extraParams: {
         scopes:
           "openid email profile https://www.googleapis.com/auth/youtube https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/youtube.upload",
-        queryParams: {
-          access_type: "offline",
-          prompt: "consent",
-          include_granted_scopes: "true",
-        },
+        access_type: "offline",
+        prompt: "consent",
+        include_granted_scopes: "true",
       },
     });
-    if (error) toast.error(error.message ?? "Reconnect failed.");
+    if (result.error) {
+      toast.error(result.error.message ?? "YouTube connection failed.");
+      return;
+    }
+    if (result.redirected) return;
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    const token = session?.provider_token ?? null;
+    setProviderToken(token);
+    if (token) await loadChannels(token);
   };
 
   // Debounced hashtag generation on title change
