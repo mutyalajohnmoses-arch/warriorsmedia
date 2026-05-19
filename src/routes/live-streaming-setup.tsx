@@ -127,16 +127,20 @@ function LiveStreamingSetup() {
   }, [navigate]);
 
   const reconnectYouTube = async () => {
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.href,
-      extraParams: {
-        scope:
-          "openid email profile https://www.googleapis.com/auth/youtube https://www.googleapis.com/auth/youtube.upload",
-        access_type: "offline",
-        prompt: "consent",
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: window.location.href,
+        scopes:
+          "openid email profile https://www.googleapis.com/auth/youtube https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/youtube.upload",
+        queryParams: {
+          access_type: "offline",
+          prompt: "consent",
+          include_granted_scopes: "true",
+        },
       },
     });
-    if (result.error) toast.error(result.error.message ?? "Reconnect failed.");
+    if (error) toast.error(error.message ?? "Reconnect failed.");
   };
 
   // Debounced hashtag generation on title change
