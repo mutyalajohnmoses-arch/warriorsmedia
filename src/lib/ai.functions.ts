@@ -26,9 +26,9 @@ export const generateThumbnail = createServerFn({ method: "POST" })
     z.object({ prompt: z.string().min(3).max(500), title: z.string().max(200).optional() }).parse(input),
   )
   .handler(async ({ data }) => {
-    const fullPrompt = `Create a stunning, cinematic YouTube thumbnail (16:9 aspect ratio, 1280x720) for a Christian worship / ministry live stream. Style: premium black and gold, dramatic lighting, high contrast, bold visual focal point, no watermark. ${data.title ? `Stream title: "${data.title}". ` : ""}Concept: ${data.prompt}`;
+    const fullPrompt = `Cinematic 16:9 YouTube thumbnail, 1280x720, premium black & gold, dramatic lighting, bold focal point, no watermark. ${data.title ? `Title: "${data.title}". ` : ""}Concept: ${data.prompt}`;
     const json = await callGateway({
-      model: "google/gemini-3-pro-image-preview",
+      model: "google/gemini-2.5-flash-image",
       messages: [{ role: "user", content: fullPrompt }],
       modalities: ["image", "text"],
     });
