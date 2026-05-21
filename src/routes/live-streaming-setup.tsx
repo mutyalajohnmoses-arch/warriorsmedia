@@ -273,17 +273,8 @@ function LiveStreamingSetup() {
             <div>
               <div className="flex items-center justify-between mb-3">
                 <label className="text-xs uppercase tracking-[0.2em] text-[color:var(--gold-soft)] flex items-center gap-2">
-                  <Youtube className="w-3.5 h-3.5" /> YouTube Channels
+                  <Youtube className="w-3.5 h-3.5" /> YouTube Stream Details
                 </label>
-                {providerToken && (
-                  <button
-                    type="button"
-                    onClick={() => providerToken && loadChannels(providerToken)}
-                    className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground hover:text-[color:var(--gold)] inline-flex items-center gap-1"
-                  >
-                    <RefreshCw className="w-3 h-3" /> Refresh
-                  </button>
-                )}
               </div>
 
               {userEmail && (
@@ -292,73 +283,61 @@ function LiveStreamingSetup() {
                 </p>
               )}
 
-              {channelsLoading ? (
-                <div className="p-6 rounded-lg border border-border bg-card/40 flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="w-4 h-4 animate-spin" /> Fetching your YouTube channels…
+              <div className="space-y-4 p-5 rounded-lg border border-[color:var(--gold)]/40 bg-card/40">
+                <p className="text-sm text-muted-foreground">
+                  Google blocks unverified apps that request YouTube channel access. This setup now uses
+                  your YouTube Studio stream details, so sign-in stays safe and the stream data still saves.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs uppercase tracking-[0.2em] text-[color:var(--gold-soft)] mb-2 block">
+                      Channel Name
+                    </label>
+                    <input
+                      value={channelName}
+                      onChange={(e) => setChannelName(e.target.value)}
+                      placeholder="Warriors Media"
+                      className="w-full bg-background/60 border border-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-[color:var(--gold)]/60 transition"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs uppercase tracking-[0.2em] text-[color:var(--gold-soft)] mb-2 block">
+                      Channel ID
+                    </label>
+                    <input
+                      value={channelId}
+                      onChange={(e) => setChannelId(e.target.value)}
+                      placeholder="Optional"
+                      className="w-full bg-background/60 border border-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-[color:var(--gold)]/60 transition"
+                    />
+                  </div>
                 </div>
-              ) : !providerToken ? (
-                <div className="p-5 rounded-lg border border-[color:var(--gold)]/40 bg-card/40">
-                  <p className="text-sm mb-3">
-                    To access your YouTube channels, connect your Google account with YouTube
-                    permissions.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={reconnectYouTube}
-                    className="text-sm px-4 py-2 rounded-lg bg-gold-gradient text-[color:var(--primary-foreground)] font-medium"
-                  >
-                    Connect YouTube
-                  </button>
+                <div>
+                  <label className="text-xs uppercase tracking-[0.2em] text-[color:var(--gold-soft)] mb-2 block">
+                    RTMP URL
+                  </label>
+                  <input
+                    required
+                    value={rtmpUrl}
+                    onChange={(e) => setRtmpUrl(e.target.value)}
+                    placeholder="rtmp://a.rtmp.youtube.com/live2"
+                    className="w-full bg-background/60 border border-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-[color:var(--gold)]/60 transition"
+                  />
                 </div>
-              ) : channels.length === 0 ? (
-                <div className="p-5 rounded-lg border border-red-500/40 bg-red-500/5">
-                  <p className="text-sm text-red-300 mb-1 font-medium">
-                    No YouTube channels found
-                  </p>
-                  <p className="text-xs text-muted-foreground mb-3">
-                    {channelError ??
-                      `The account ${userEmail ?? ""} does not have any YouTube channels. Create one on YouTube, or reconnect with a different Google account.`}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={reconnectYouTube}
-                    className="text-xs px-3 py-1.5 rounded border border-[color:var(--gold)]/40 hover:bg-card transition"
-                  >
-                    Reconnect Google
-                  </button>
+                <div>
+                  <label className="text-xs uppercase tracking-[0.2em] text-[color:var(--gold-soft)] mb-2 block">
+                    Stream Key
+                  </label>
+                  <input
+                    required
+                    type="password"
+                    value={streamKey}
+                    onChange={(e) => setStreamKey(e.target.value)}
+                    placeholder="Paste stream key"
+                    className="w-full bg-background/60 border border-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-[color:var(--gold)]/60 transition"
+                  />
                 </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {channels.map((ch) => {
-                    const active = selectedChannel === ch.id;
-                    return (
-                      <button
-                        key={ch.id}
-                        type="button"
-                        onClick={() => setSelectedChannel(ch.id)}
-                        className={`flex items-center gap-3 p-3 rounded-lg border text-left transition ${
-                          active
-                            ? "border-[color:var(--gold)] bg-[color:var(--gold)]/10"
-                            : "border-border bg-card/40 hover:border-[color:var(--gold)]/40"
-                        }`}
-                      >
-                        <img
-                          src={ch.thumbnail}
-                          alt={ch.title}
-                          className="w-10 h-10 rounded-full object-cover"
-                        />
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium truncate">{ch.title}</p>
-                          <p className="text-[10px] text-muted-foreground truncate">{ch.id}</p>
-                        </div>
-                        {active && (
-                          <CheckCircle2 className="w-4 h-4 text-[color:var(--gold)] flex-shrink-0" />
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
+              </div>
             </div>
 
             {/* TITLE */}
@@ -545,7 +524,7 @@ function LiveStreamingSetup() {
 
             <button
               type="submit"
-              disabled={submitting || !selectedChannel || !title || !providerToken}
+              disabled={submitting || !title || !rtmpUrl.trim() || !streamKey.trim()}
               className="w-full py-3.5 rounded-lg bg-gold-gradient text-[color:var(--primary-foreground)] font-medium glow-gold flex items-center justify-center gap-2 disabled:opacity-60"
             >
               {submitting ? (
