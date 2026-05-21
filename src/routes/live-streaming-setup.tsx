@@ -16,14 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
-import {
-  fetchYouTubeChannels,
-  createYouTubeBroadcast,
-  createYouTubeStream,
-  bindStreamToBroadcast,
-} from "@/lib/youtube";
 import { generateThumbnail, generateHashtags } from "@/lib/ai.functions";
-import { lovable } from "@/integrations/lovable";
 
 export const Route = createFileRoute("/live-streaming-setup")({
   head: () => ({
@@ -35,24 +28,9 @@ export const Route = createFileRoute("/live-streaming-setup")({
   component: LiveStreamingSetup,
 });
 
-interface YTChannel {
-  id: string;
-  title: string;
-  thumbnail: string;
-}
-
 interface StreamInfo {
   rtmpUrl: string;
   streamKey: string;
-}
-
-function dataUrlToBlob(dataUrl: string): Blob {
-  const [meta, b64] = dataUrl.split(",");
-  const mime = /data:(.*?);base64/.exec(meta)?.[1] ?? "image/png";
-  const bin = atob(b64);
-  const arr = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
-  return new Blob([arr], { type: mime });
 }
 
 function LiveStreamingSetup() {
@@ -62,13 +40,12 @@ function LiveStreamingSetup() {
 
   const [userId, setUserId] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
-  const [providerToken, setProviderToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [channelsLoading, setChannelsLoading] = useState(false);
-  const [channels, setChannels] = useState<YTChannel[]>([]);
-  const [channelError, setChannelError] = useState<string | null>(null);
-  const [selectedChannel, setSelectedChannel] = useState<string>("");
+  const [channelName, setChannelName] = useState("");
+  const [channelId, setChannelId] = useState("");
+  const [rtmpUrl, setRtmpUrl] = useState("");
+  const [streamKey, setStreamKey] = useState("");
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -94,21 +71,6 @@ function LiveStreamingSetup() {
   const [success, setSuccess] = useState(false);
   const [streamInfo, setStreamInfo] = useState<StreamInfo | null>(null);
 
-  const loadChannels = async (token: string) => {
-    setChannelsLoading(true);
-    setChannelError(null);
-    try {
-      const list = await fetchYouTubeChannels(token);
-      setChannels(list);
-      if (list.length > 0) setSelectedChannel(list[0].id);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Failed to load channels";
-      setChannelError(msg);
-    } finally {
-      setChannelsLoading(false);
-    }
-  };
-
   useEffect(() => {
     (async () => {
       const {
@@ -120,36 +82,9 @@ function LiveStreamingSetup() {
       }
       setUserId(session.user.id);
       setUserEmail(session.user.email ?? null);
-      const token = session.provider_token ?? null;
-      setProviderToken(token);
-      if (token) await loadChannels(token);
       setLoading(false);
     })();
   }, [navigate]);
-
-  const reconnectYouTube = async () => {
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.href,
-      extraParams: {
-        scopes:
-          "openid email profile https://www.googleapis.com/auth/youtube https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/youtube.upload",
-        access_type: "offline",
-        prompt: "consent",
-        include_granted_scopes: "true",
-      },
-    });
-    if (result.error) {
-      toast.error(result.error.message ?? "YouTube connection failed.");
-      return;
-    }
-    if (result.redirected) return;
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    const token = session?.provider_token ?? null;
-    setProviderToken(token);
-    if (token) await loadChannels(token);
-  };
 
   // Debounced hashtag generation on title change
   useEffect(() => {
