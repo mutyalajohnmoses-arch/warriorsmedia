@@ -9,21 +9,13 @@ import {
   Sparkles,
   Hash,
   Youtube,
-  RefreshCw,
   ImageIcon,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
-import {
-  fetchYouTubeChannels,
-  createYouTubeBroadcast,
-  createYouTubeStream,
-  bindStreamToBroadcast,
-} from "@/lib/youtube";
 import { generateThumbnail, generateHashtags } from "@/lib/ai.functions";
-import { lovable } from "@/integrations/lovable";
 
 export const Route = createFileRoute("/live-streaming-setup")({
   head: () => ({
@@ -35,24 +27,9 @@ export const Route = createFileRoute("/live-streaming-setup")({
   component: LiveStreamingSetup,
 });
 
-interface YTChannel {
-  id: string;
-  title: string;
-  thumbnail: string;
-}
-
 interface StreamInfo {
   rtmpUrl: string;
   streamKey: string;
-}
-
-function dataUrlToBlob(dataUrl: string): Blob {
-  const [meta, b64] = dataUrl.split(",");
-  const mime = /data:(.*?);base64/.exec(meta)?.[1] ?? "image/png";
-  const bin = atob(b64);
-  const arr = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
-  return new Blob([arr], { type: mime });
 }
 
 function LiveStreamingSetup() {
@@ -62,13 +39,12 @@ function LiveStreamingSetup() {
 
   const [userId, setUserId] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
-  const [providerToken, setProviderToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [channelsLoading, setChannelsLoading] = useState(false);
-  const [channels, setChannels] = useState<YTChannel[]>([]);
-  const [channelError, setChannelError] = useState<string | null>(null);
-  const [selectedChannel, setSelectedChannel] = useState<string>("");
+  const [channelName, setChannelName] = useState("");
+  const [channelId, setChannelId] = useState("");
+  const [rtmpUrl, setRtmpUrl] = useState("");
+  const [streamKey, setStreamKey] = useState("");
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -94,21 +70,6 @@ function LiveStreamingSetup() {
   const [success, setSuccess] = useState(false);
   const [streamInfo, setStreamInfo] = useState<StreamInfo | null>(null);
 
-  const loadChannels = async (token: string) => {
-    setChannelsLoading(true);
-    setChannelError(null);
-    try {
-      const list = await fetchYouTubeChannels(token);
-      setChannels(list);
-      if (list.length > 0) setSelectedChannel(list[0].id);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Failed to load channels";
-      setChannelError(msg);
-    } finally {
-      setChannelsLoading(false);
-    }
-  };
-
   useEffect(() => {
     (async () => {
       const {
@@ -120,36 +81,9 @@ function LiveStreamingSetup() {
       }
       setUserId(session.user.id);
       setUserEmail(session.user.email ?? null);
-      const token = session.provider_token ?? null;
-      setProviderToken(token);
-      if (token) await loadChannels(token);
       setLoading(false);
     })();
   }, [navigate]);
-
-  const reconnectYouTube = async () => {
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.href,
-      extraParams: {
-        scopes:
-          "openid email profile https://www.googleapis.com/auth/youtube https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/youtube.upload",
-        access_type: "offline",
-        prompt: "consent",
-        include_granted_scopes: "true",
-      },
-    });
-    if (result.error) {
-      toast.error(result.error.message ?? "YouTube connection failed.");
-      return;
-    }
-    if (result.redirected) return;
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    const token = session?.provider_token ?? null;
-    setProviderToken(token);
-    if (token) await loadChannels(token);
-  };
 
   // Debounced hashtag generation on title change
   useEffect(() => {
@@ -193,27 +127,11 @@ function LiveStreamingSetup() {
     try {
       const res = await genThumb({ data: { prompt: thumbPrompt.trim(), title } });
       setThumbDataUrl(res.imageDataUrl);
-      toast.success("Thumbnail generated! It will be uploaded with the stream.");
+      toast.success("Thumbnail generated. Save it with your stream setup.");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Generation failed");
     } finally {
       setThumbLoading(false);
-    }
-  };
-
-  const uploadThumbnail = async (token: string, videoId: string, dataUrl: string) => {
-    const blob = dataUrlToBlob(dataUrl);
-    const res = await fetch(
-      `https://www.googleapis.com/upload/youtube/v3/thumbnails/set?videoId=${videoId}&uploadType=media`,
-      {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": blob.type },
-        body: blob,
-      },
-    );
-    if (!res.ok) {
-      const t = await res.text();
-      throw new Error(`Thumbnail upload failed: ${t.slice(0, 200)}`);
     }
   };
 
@@ -226,54 +144,35 @@ function LiveStreamingSetup() {
 
   const handleCreateStream = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!providerToken || !selectedChannel || !userId) {
-      toast.error("Connect YouTube and select a channel first");
+    if (!userId) {
+      toast.error("Please sign in again");
+      return;
+    }
+    if (!rtmpUrl.trim() || !streamKey.trim()) {
+      toast.error("Enter your YouTube RTMP URL and stream key");
       return;
     }
     setSubmitting(true);
     setError(null);
     try {
       const desc = finalDescription();
-      const broadcastId = await createYouTubeBroadcast(
-        providerToken,
-        title,
-        desc,
-        privacy,
-        scheduledStart || undefined,
-        scheduledEnd || undefined,
-        { enableAutoStart: autoStart, enableAutoStop: autoStop, enableDvr, enableEmbedding, isReusable },
-      );
-      const { streamId, rtmpUrl, streamKey } = await createYouTubeStream(
-        providerToken,
-        selectedChannel,
-        title,
-        desc,
-        isReusable,
-      );
-      await bindStreamToBroadcast(providerToken, broadcastId, streamId);
+      const savedRtmpUrl = rtmpUrl.trim();
+      const savedStreamKey = streamKey.trim();
 
-      if (thumbDataUrl) {
-        try {
-          await uploadThumbnail(providerToken, broadcastId, thumbDataUrl);
-        } catch (err) {
-          toast.error(err instanceof Error ? err.message : "Thumbnail upload failed");
-        }
-      }
-
-      setStreamInfo({ rtmpUrl, streamKey });
+      setStreamInfo({ rtmpUrl: savedRtmpUrl, streamKey: savedStreamKey });
       setSuccess(true);
-      toast.success("Live stream created!");
+      toast.success("Stream setup saved!");
 
       await supabase.from("live_streams").insert({
         user_id: userId,
-        broadcast_id: broadcastId,
-        stream_id: streamId,
-        channel_id: selectedChannel,
+        broadcast_id: null,
+        stream_id: null,
+        channel_id: channelId.trim() || channelName.trim() || "manual-youtube",
         title,
         description: desc,
         privacy_status: privacy,
-        status: "ready",
-        thumbnail_url: thumbDataUrl ? "uploaded" : null,
+        status: "manual-ready",
+        thumbnail_url: thumbDataUrl ? "generated" : null,
         hashtags: Array.from(selectedTags),
       });
     } catch (err) {
@@ -374,17 +273,8 @@ function LiveStreamingSetup() {
             <div>
               <div className="flex items-center justify-between mb-3">
                 <label className="text-xs uppercase tracking-[0.2em] text-[color:var(--gold-soft)] flex items-center gap-2">
-                  <Youtube className="w-3.5 h-3.5" /> YouTube Channels
+                  <Youtube className="w-3.5 h-3.5" /> YouTube Stream Details
                 </label>
-                {providerToken && (
-                  <button
-                    type="button"
-                    onClick={() => providerToken && loadChannels(providerToken)}
-                    className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground hover:text-[color:var(--gold)] inline-flex items-center gap-1"
-                  >
-                    <RefreshCw className="w-3 h-3" /> Refresh
-                  </button>
-                )}
               </div>
 
               {userEmail && (
@@ -393,73 +283,61 @@ function LiveStreamingSetup() {
                 </p>
               )}
 
-              {channelsLoading ? (
-                <div className="p-6 rounded-lg border border-border bg-card/40 flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="w-4 h-4 animate-spin" /> Fetching your YouTube channels…
+              <div className="space-y-4 p-5 rounded-lg border border-[color:var(--gold)]/40 bg-card/40">
+                <p className="text-sm text-muted-foreground">
+                  Google blocks unverified apps that request YouTube channel access. This setup now uses
+                  your YouTube Studio stream details, so sign-in stays safe and the stream data still saves.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs uppercase tracking-[0.2em] text-[color:var(--gold-soft)] mb-2 block">
+                      Channel Name
+                    </label>
+                    <input
+                      value={channelName}
+                      onChange={(e) => setChannelName(e.target.value)}
+                      placeholder="Warriors Media"
+                      className="w-full bg-background/60 border border-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-[color:var(--gold)]/60 transition"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs uppercase tracking-[0.2em] text-[color:var(--gold-soft)] mb-2 block">
+                      Channel ID
+                    </label>
+                    <input
+                      value={channelId}
+                      onChange={(e) => setChannelId(e.target.value)}
+                      placeholder="Optional"
+                      className="w-full bg-background/60 border border-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-[color:var(--gold)]/60 transition"
+                    />
+                  </div>
                 </div>
-              ) : !providerToken ? (
-                <div className="p-5 rounded-lg border border-[color:var(--gold)]/40 bg-card/40">
-                  <p className="text-sm mb-3">
-                    To access your YouTube channels, connect your Google account with YouTube
-                    permissions.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={reconnectYouTube}
-                    className="text-sm px-4 py-2 rounded-lg bg-gold-gradient text-[color:var(--primary-foreground)] font-medium"
-                  >
-                    Connect YouTube
-                  </button>
+                <div>
+                  <label className="text-xs uppercase tracking-[0.2em] text-[color:var(--gold-soft)] mb-2 block">
+                    RTMP URL
+                  </label>
+                  <input
+                    required
+                    value={rtmpUrl}
+                    onChange={(e) => setRtmpUrl(e.target.value)}
+                    placeholder="rtmp://a.rtmp.youtube.com/live2"
+                    className="w-full bg-background/60 border border-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-[color:var(--gold)]/60 transition"
+                  />
                 </div>
-              ) : channels.length === 0 ? (
-                <div className="p-5 rounded-lg border border-red-500/40 bg-red-500/5">
-                  <p className="text-sm text-red-300 mb-1 font-medium">
-                    No YouTube channels found
-                  </p>
-                  <p className="text-xs text-muted-foreground mb-3">
-                    {channelError ??
-                      `The account ${userEmail ?? ""} does not have any YouTube channels. Create one on YouTube, or reconnect with a different Google account.`}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={reconnectYouTube}
-                    className="text-xs px-3 py-1.5 rounded border border-[color:var(--gold)]/40 hover:bg-card transition"
-                  >
-                    Reconnect Google
-                  </button>
+                <div>
+                  <label className="text-xs uppercase tracking-[0.2em] text-[color:var(--gold-soft)] mb-2 block">
+                    Stream Key
+                  </label>
+                  <input
+                    required
+                    type="password"
+                    value={streamKey}
+                    onChange={(e) => setStreamKey(e.target.value)}
+                    placeholder="Paste stream key"
+                    className="w-full bg-background/60 border border-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-[color:var(--gold)]/60 transition"
+                  />
                 </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {channels.map((ch) => {
-                    const active = selectedChannel === ch.id;
-                    return (
-                      <button
-                        key={ch.id}
-                        type="button"
-                        onClick={() => setSelectedChannel(ch.id)}
-                        className={`flex items-center gap-3 p-3 rounded-lg border text-left transition ${
-                          active
-                            ? "border-[color:var(--gold)] bg-[color:var(--gold)]/10"
-                            : "border-border bg-card/40 hover:border-[color:var(--gold)]/40"
-                        }`}
-                      >
-                        <img
-                          src={ch.thumbnail}
-                          alt={ch.title}
-                          className="w-10 h-10 rounded-full object-cover"
-                        />
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium truncate">{ch.title}</p>
-                          <p className="text-[10px] text-muted-foreground truncate">{ch.id}</p>
-                        </div>
-                        {active && (
-                          <CheckCircle2 className="w-4 h-4 text-[color:var(--gold)] flex-shrink-0" />
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
+              </div>
             </div>
 
             {/* TITLE */}
@@ -646,7 +524,7 @@ function LiveStreamingSetup() {
 
             <button
               type="submit"
-              disabled={submitting || !selectedChannel || !title || !providerToken}
+              disabled={submitting || !title || !rtmpUrl.trim() || !streamKey.trim()}
               className="w-full py-3.5 rounded-lg bg-gold-gradient text-[color:var(--primary-foreground)] font-medium glow-gold flex items-center justify-center gap-2 disabled:opacity-60"
             >
               {submitting ? (
