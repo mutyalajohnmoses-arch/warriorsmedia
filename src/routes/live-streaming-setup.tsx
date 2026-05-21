@@ -9,7 +9,6 @@ import {
   Sparkles,
   Hash,
   Youtube,
-  RefreshCw,
   ImageIcon,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -128,27 +127,11 @@ function LiveStreamingSetup() {
     try {
       const res = await genThumb({ data: { prompt: thumbPrompt.trim(), title } });
       setThumbDataUrl(res.imageDataUrl);
-      toast.success("Thumbnail generated! It will be uploaded with the stream.");
+      toast.success("Thumbnail generated. Save it with your stream setup.");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Generation failed");
     } finally {
       setThumbLoading(false);
-    }
-  };
-
-  const uploadThumbnail = async (token: string, videoId: string, dataUrl: string) => {
-    const blob = dataUrlToBlob(dataUrl);
-    const res = await fetch(
-      `https://www.googleapis.com/upload/youtube/v3/thumbnails/set?videoId=${videoId}&uploadType=media`,
-      {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": blob.type },
-        body: blob,
-      },
-    );
-    if (!res.ok) {
-      const t = await res.text();
-      throw new Error(`Thumbnail upload failed: ${t.slice(0, 200)}`);
     }
   };
 
@@ -161,54 +144,35 @@ function LiveStreamingSetup() {
 
   const handleCreateStream = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!providerToken || !selectedChannel || !userId) {
-      toast.error("Connect YouTube and select a channel first");
+    if (!userId) {
+      toast.error("Please sign in again");
+      return;
+    }
+    if (!rtmpUrl.trim() || !streamKey.trim()) {
+      toast.error("Enter your YouTube RTMP URL and stream key");
       return;
     }
     setSubmitting(true);
     setError(null);
     try {
       const desc = finalDescription();
-      const broadcastId = await createYouTubeBroadcast(
-        providerToken,
-        title,
-        desc,
-        privacy,
-        scheduledStart || undefined,
-        scheduledEnd || undefined,
-        { enableAutoStart: autoStart, enableAutoStop: autoStop, enableDvr, enableEmbedding, isReusable },
-      );
-      const { streamId, rtmpUrl, streamKey } = await createYouTubeStream(
-        providerToken,
-        selectedChannel,
-        title,
-        desc,
-        isReusable,
-      );
-      await bindStreamToBroadcast(providerToken, broadcastId, streamId);
+      const savedRtmpUrl = rtmpUrl.trim();
+      const savedStreamKey = streamKey.trim();
 
-      if (thumbDataUrl) {
-        try {
-          await uploadThumbnail(providerToken, broadcastId, thumbDataUrl);
-        } catch (err) {
-          toast.error(err instanceof Error ? err.message : "Thumbnail upload failed");
-        }
-      }
-
-      setStreamInfo({ rtmpUrl, streamKey });
+      setStreamInfo({ rtmpUrl: savedRtmpUrl, streamKey: savedStreamKey });
       setSuccess(true);
-      toast.success("Live stream created!");
+      toast.success("Stream setup saved!");
 
       await supabase.from("live_streams").insert({
         user_id: userId,
-        broadcast_id: broadcastId,
-        stream_id: streamId,
-        channel_id: selectedChannel,
+        broadcast_id: null,
+        stream_id: null,
+        channel_id: channelId.trim() || channelName.trim() || "manual-youtube",
         title,
         description: desc,
         privacy_status: privacy,
-        status: "ready",
-        thumbnail_url: thumbDataUrl ? "uploaded" : null,
+        status: "manual-ready",
+        thumbnail_url: thumbDataUrl ? "generated" : null,
         hashtags: Array.from(selectedTags),
       });
     } catch (err) {
