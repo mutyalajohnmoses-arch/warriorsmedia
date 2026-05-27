@@ -1,5 +1,7 @@
 import { createFileRoute, useNavigate, Link, useRouter } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { useQuery } from "@tanstack/react-query";
 import {
   Cross,
   LogOut,
@@ -13,8 +15,11 @@ import {
   MessageCircle,
   Sparkles,
   ArrowRight,
+  Instagram,
+  RefreshCw,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { getInstagramStats } from "@/lib/instagram.functions";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
@@ -25,6 +30,9 @@ export const Route = createFileRoute("/dashboard")({
   }),
   component: Home,
 });
+
+const IG_USERNAME = "mutyala_john_moses";
+
 
 const modules = [
   {
@@ -90,6 +98,17 @@ function Home() {
 
   const firstName = profile?.full_name?.split(" ")[0] ?? "Warrior";
 
+  const fetchIg = useServerFn(getInstagramStats);
+  const igQuery = useQuery({
+    queryKey: ["ig-stats", IG_USERNAME],
+    queryFn: () => fetchIg({ data: { username: IG_USERNAME } }),
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: true,
+  });
+  const fmt = (n: number | null | undefined) =>
+    typeof n === "number" ? n.toLocaleString("en-IN") : "—";
+
+
   return (
     <main className="min-h-screen relative overflow-hidden">
       <div className="absolute inset-0 -z-10">
@@ -138,7 +157,40 @@ function Home() {
             Join <ArrowRight className="w-4 h-4" />
           </button>
         </div>
+
+        {/* Instagram live followers */}
+        <a
+          href={`https://instagram.com/${IG_USERNAME}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-4 p-5 rounded-2xl border border-[color:var(--gold)]/30 bg-card/60 backdrop-blur-xl flex items-center justify-between gap-4 hover:border-[color:var(--gold)]/60 transition group"
+        >
+          <div className="flex items-center gap-4 min-w-0">
+            <div className="w-11 h-11 rounded-xl flex items-center justify-center bg-gradient-to-tr from-[#f09433] via-[#dc2743] to-[#bc1888] shrink-0">
+              <Instagram className="w-5 h-5 text-white" strokeWidth={1.8} />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                Live · Instagram
+              </p>
+              <p className="font-medium truncate">@{IG_USERNAME}</p>
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="font-display text-2xl md:text-3xl text-gold-gradient leading-none">
+              {igQuery.isLoading ? "…" : fmt(igQuery.data?.followers)}
+            </p>
+            <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground mt-1 flex items-center justify-end gap-1.5">
+              Followers
+              <RefreshCw
+                className={`w-3 h-3 ${igQuery.isFetching ? "animate-spin" : "opacity-50"}`}
+              />
+            </p>
+          </div>
+        </a>
       </section>
+
 
       {/* Modules grid */}
       <section className="px-6 md:px-10 pb-20 max-w-5xl mx-auto">
