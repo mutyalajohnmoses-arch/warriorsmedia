@@ -98,6 +98,17 @@ function Home() {
 
   const firstName = profile?.full_name?.split(" ")[0] ?? "Warrior";
 
+  const fetchIg = useServerFn(getInstagramStats);
+  const igQuery = useQuery({
+    queryKey: ["ig-stats", IG_USERNAME],
+    queryFn: () => fetchIg({ data: { username: IG_USERNAME } }),
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: true,
+  });
+  const fmt = (n: number | null | undefined) =>
+    typeof n === "number" ? n.toLocaleString("en-IN") : "—";
+
+
   return (
     <main className="min-h-screen relative overflow-hidden">
       <div className="absolute inset-0 -z-10">
