@@ -1,5 +1,7 @@
 import { createFileRoute, useNavigate, Link, useRouter } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { useQuery } from "@tanstack/react-query";
 import {
   Cross,
   LogOut,
@@ -13,8 +15,11 @@ import {
   MessageCircle,
   Sparkles,
   ArrowRight,
+  Instagram,
+  RefreshCw,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { getInstagramStats } from "@/lib/instagram.functions";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
@@ -25,6 +30,9 @@ export const Route = createFileRoute("/dashboard")({
   }),
   component: Home,
 });
+
+const IG_USERNAME = "mutyala_john_moses";
+
 
 const modules = [
   {
