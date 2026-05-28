@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getInstagramStats } from "@/lib/instagram.functions";
+import { YouTubeDownloader, YouTubeMetaExtractor } from "@/components/youtube-tools";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
