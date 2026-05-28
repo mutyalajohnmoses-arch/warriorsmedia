@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getInstagramStats } from "@/lib/instagram.functions";
+import { YouTubeDownloader, YouTubeMetaExtractor } from "@/components/youtube-tools";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
@@ -190,6 +191,14 @@ function Home() {
           </div>
         </a>
       </section>
+
+      {/* YouTube tools */}
+      <section className="px-6 md:px-10 pb-4 max-w-5xl mx-auto space-y-4">
+        <YouTubeDownloader />
+        <YouTubeMetaExtractor />
+      </section>
+
+
 
 
       {/* Modules grid */}
