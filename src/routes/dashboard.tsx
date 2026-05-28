@@ -192,6 +192,14 @@ function Home() {
         </a>
       </section>
 
+      {/* YouTube tools */}
+      <section className="px-6 md:px-10 pb-4 max-w-5xl mx-auto space-y-4">
+        <YouTubeDownloader />
+        <YouTubeMetaExtractor />
+      </section>
+
+
+
 
       {/* Modules grid */}
       <section className="px-6 md:px-10 pb-20 max-w-5xl mx-auto">
