@@ -66,26 +66,43 @@ const teamMembers = [
     name: "Mutyala John Moses",
     roles: ["Music Producer", "Social Media Manager", "Singer", "Video Editor", "Test Engineer"],
     icon: Music,
+    instagram: "mutyala_john_moses",
+    instagramUrl: "https://www.instagram.com/mutyala_john_moses?igsh=MWdjbjg5ZnYwdGN2bQ==",
   },
   {
     name: "Akul Raju",
     roles: ["Voice Analyst", "Coordinator"],
     icon: Headphones,
+    instagram: "akula_adler",
+    instagramUrl: "https://www.instagram.com/akula_adler?igsh=MW5teDQ4Mzc4eTE=",
   },
   {
     name: "Stanley",
     roles: ["Developer"],
     icon: Mic,
+    instagram: "stanley_nuthalpati",
+    instagramUrl: "https://www.instagram.com/stanley_nuthalpati?igsh=MWVya2Vmejk2ZG13bw==",
   },
   {
     name: "Somesh Kumar",
     roles: ["Editor", "Social Media Analyst"],
     icon: Palette,
+    instagram: "broxx__one",
+    instagramUrl: "https://www.instagram.com/broxx__one?igsh=Ym1iY2s1bXVseDg2",
   },
   {
     name: "Anand",
-    roles: ["Video Editor", "Designer", "Social Media Manager", "Photographer"],
+    roles: ["Photographer"],
     icon: Camera,
+    instagram: "_nandhu_000.1_",
+    instagramUrl: "https://www.instagram.com/_nandhu_000.1_?igsh=M2QyNmhrY2kxc2x6",
+  },
+  {
+    name: "Karthick",
+    roles: ["Video Editor", "Designer", "Social Media Manager"],
+    icon: Camera,
+    instagram: "_karthik14_",
+    instagramUrl: "https://www.instagram.com/_karthik14_?igsh=YXFzZmhwajd4djQ4",
   },
 ];
 
@@ -96,6 +113,7 @@ function Home() {
     null,
   );
   const [loading, setLoading] = useState(true);
+  const [teamProfiles, setTeamProfiles] = useState<Record<string, any>>({});
 
   const handleModuleClick = (title: string) => {
     if (title === "Live Streaming") {
@@ -124,6 +142,40 @@ function Home() {
     };
     load();
   }, [navigate]);
+
+  useEffect(() => {
+    const fetchTeamProfiles = async () => {
+      const profiles: Record<string, any> = {};
+      for (const member of teamMembers) {
+        try {
+          const res = await fetch(
+            `https://i.instagram.com/api/v1/users/web_profile_info/?username=${encodeURIComponent(member.instagram)}`,
+            {
+              headers: {
+                "User-Agent": "Instagram 219.0.0.12.117 Android",
+                "x-ig-app-id": "936619743392459",
+                Accept: "application/json",
+              },
+            },
+          );
+          if (res.ok) {
+            const json = await res.json();
+            const user = json?.data?.user;
+            if (user) {
+              profiles[member.instagram] = {
+                profilePic: user.profile_pic_url ?? null,
+                fullName: user.full_name ?? null,
+              };
+            }
+          }
+        } catch (e) {
+          console.error(`Failed to fetch profile for ${member.instagram}:`, e);
+        }
+      }
+      setTeamProfiles(profiles);
+    };
+    fetchTeamProfiles();
+  }, []);
 
   const signOut = async () => {
     await supabase.auth.signOut();
@@ -280,31 +332,47 @@ function Home() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {teamMembers.map(({ name, roles, icon: Icon }) => (
-            <article
-              key={name}
-              className="p-6 rounded-2xl border border-border bg-card/50 backdrop-blur hover:border-[color:var(--gold)]/50 transition"
-            >
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-xl border border-[color:var(--gold)]/30 flex items-center justify-center bg-background/40 shrink-0">
-                  <Icon className="w-6 h-6 text-[color:var(--gold)]" strokeWidth={1.5} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-medium text-lg mb-2">{name}</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {roles.map((role) => (
-                      <span
-                        key={role}
-                        className="text-[11px] uppercase tracking-[0.15em] px-2.5 py-1 rounded-full border border-[color:var(--gold)]/30 text-[color:var(--gold-soft)] bg-background/40"
-                      >
-                        {role}
-                      </span>
-                    ))}
+          {teamMembers.map(({ name, roles, icon: Icon, instagram, instagramUrl }) => {
+            const profile = teamProfiles[instagram];
+            const profilePic = profile?.profilePic;
+            return (
+              <a
+                key={name}
+                href={instagramUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-6 rounded-2xl border border-border bg-card/50 backdrop-blur hover:border-[color:var(--gold)]/50 transition group cursor-pointer"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="w-14 h-14 rounded-xl border border-[color:var(--gold)]/30 flex items-center justify-center bg-background/40 shrink-0 overflow-hidden">
+                    {profilePic ? (
+                      <img
+                        src={profilePic}
+                        alt={name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <Icon className="w-6 h-6 text-[color:var(--gold)]" strokeWidth={1.5} />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-medium text-lg mb-1 group-hover:text-gold-gradient transition">{name}</h3>
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-[color:var(--gold-soft)] mb-2">@{instagram}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {roles.map((role) => (
+                        <span
+                          key={role}
+                          className="text-[10px] uppercase tracking-[0.15em] px-2 py-1 rounded-full border border-[color:var(--gold)]/30 text-[color:var(--gold-soft)] bg-background/40"
+                        >
+                          {role}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 </div>
-              </div>
-            </article>
-          ))}
+              </a>
+            );
+          })}
         </div>
       </section>
     </main>
