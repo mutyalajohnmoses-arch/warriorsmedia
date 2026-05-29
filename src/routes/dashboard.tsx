@@ -27,6 +27,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getInstagramStats, getInstagramProfiles } from "@/lib/instagram.functions";
 import { YouTubeDownloader, YouTubeMetaExtractor } from "@/components/youtube-tools";
 import { YouTubeCreateMenu } from "@/components/youtube-create-menu";
+import { YouTubeChannelStats } from "@/components/youtube-channel-stats";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
@@ -117,6 +118,7 @@ function Home() {
   const [loading, setLoading] = useState(true);
   const [teamProfiles, setTeamProfiles] = useState<Record<string, any>>({});
   const [youtubeConnected, setYoutubeConnected] = useState(false);
+  const [hasYouTubeChannel, setHasYouTubeChannel] = useState(false);
 
   const handleModuleClick = (title: string) => {
     if (title === "Live Streaming") {
@@ -160,6 +162,28 @@ function Home() {
     if (token) {
       setYoutubeConnected(true);
     }
+  }, []);
+
+  useEffect(() => {
+    // Check for YouTube channel in database
+    const checkChannel = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (session) {
+        const { data } = await supabase
+          .from("youtube_channels")
+          .select("id")
+          .eq("user_id", session.user.id)
+          .eq("is_connected", true)
+          .maybeSingle();
+
+        setHasYouTubeChannel(!!data);
+      }
+    };
+
+    checkChannel();
   }, []);
 
   useEffect(() => {
@@ -297,6 +321,17 @@ function Home() {
           </div>
         </a>
       </section>
+
+      {/* YouTube Channel Stats */}
+      {hasYouTubeChannel && (
+        <section className="px-6 md:px-10 pb-10 max-w-5xl mx-auto">
+          <div className="mb-6">
+            <h2 className="font-display text-2xl mb-2">YouTube Channel</h2>
+            <p className="text-muted-foreground text-sm">Your connected channel analytics and latest videos</p>
+          </div>
+          <YouTubeChannelStats onChannelFound={setHasYouTubeChannel} />
+        </section>
+      )}
 
       {/* YouTube tools */}
       <section className="px-6 md:px-10 pb-4 max-w-5xl mx-auto space-y-4">

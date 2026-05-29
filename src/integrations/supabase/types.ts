@@ -14,6 +14,120 @@ export type Database = {
   }
   public: {
     Tables: {
+      youtube_channels: {
+        Row: {
+          id: string
+          user_id: string
+          channel_id: string
+          title: string
+          description: string | null
+          custom_url: string | null
+          profile_image_url: string | null
+          banner_image_url: string | null
+          subscriber_count: string
+          view_count: string
+          video_count: string
+          published_at: string | null
+          access_token: string
+          refresh_token: string | null
+          token_expires_at: string | null
+          is_connected: boolean
+          last_synced_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          channel_id: string
+          title: string
+          description?: string | null
+          custom_url?: string | null
+          profile_image_url?: string | null
+          banner_image_url?: string | null
+          subscriber_count?: string
+          view_count?: string
+          video_count?: string
+          published_at?: string | null
+          access_token: string
+          refresh_token?: string | null
+          token_expires_at?: string | null
+          is_connected?: boolean
+          last_synced_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          channel_id?: string
+          title?: string
+          description?: string | null
+          custom_url?: string | null
+          profile_image_url?: string | null
+          banner_image_url?: string | null
+          subscriber_count?: string
+          view_count?: string
+          video_count?: string
+          published_at?: string | null
+          access_token?: string
+          refresh_token?: string | null
+          token_expires_at?: string | null
+          is_connected?: boolean
+          last_synced_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      youtube_videos: {
+        Row: {
+          id: string
+          channel_id: string
+          video_id: string
+          title: string
+          description: string | null
+          thumbnail_url: string | null
+          published_at: string | null
+          view_count: string
+          like_count: string
+          comment_count: string
+          duration: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          channel_id: string
+          video_id: string
+          title: string
+          description?: string | null
+          thumbnail_url?: string | null
+          published_at?: string | null
+          view_count?: string
+          like_count?: string
+          comment_count?: string
+          duration?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          channel_id?: string
+          video_id?: string
+          title?: string
+          description?: string | null
+          thumbnail_url?: string | null
+          published_at?: string | null
+          view_count?: string
+          like_count?: string
+          comment_count?: string
+          duration?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       live_streams: {
         Row: {
           broadcast_id: string | null

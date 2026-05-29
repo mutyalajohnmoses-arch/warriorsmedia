@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useServerFn } from "@tanstack/react-start";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Youtube,
   Loader2,
@@ -25,6 +26,11 @@ import {
   type YouTubeVideo,
   type YouTubeLiveStreamStatus,
 } from "@/lib/youtube-oauth.functions";
+import {
+  saveYouTubeChannel,
+  saveYouTubeVideos,
+  disconnectYouTubeChannel,
+} from "@/lib/youtube-persistence.functions";
 
 interface YouTubeChannelConnectProps {
   isOpen: boolean;
@@ -39,11 +45,15 @@ export function YouTubeChannelConnect({ isOpen, onOpenChange, onConnected }: You
   const [liveStatus, setLiveStatus] = useState<YouTubeLiveStreamStatus | null>(null);
   const [connecting, setConnecting] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [dbChannelId, setDbChannelId] = useState<string | null>(null);
 
   const exchangeCodeFn = useServerFn(exchangeOAuthCode);
   const getChannelInfoFn = useServerFn(getYouTubeChannelInfo);
   const getVideosFn = useServerFn(getYouTubeLatestVideos);
   const getLiveStatusFn = useServerFn(getYouTubeLiveStreamStatus);
+  const saveChannelFn = useServerFn(saveYouTubeChannel);
+  const saveVideosFn = useServerFn(saveYouTubeVideos);
+  const disconnectChannelFn = useServerFn(disconnectYouTubeChannel);
 
   const handleConnectClick = () => {
     const clientId = "796816914839-v0t7t9rd8vtcgns4pi6vq33sfkf44dvq.apps.googleusercontent.com";
@@ -124,6 +134,40 @@ export function YouTubeChannelConnect({ isOpen, onOpenChange, onConnected }: You
             setLiveStatus({ isLive: false });
           }
 
+          // Get current user
+          const {
+            data: { session },
+          } = await supabase.auth.getSession();
+
+          if (session?.user.id) {
+            try {
+              // Save channel to database
+              const saveResult = await saveChannelFn({
+                data: {
+                  userId: session.user.id,
+                  channelInfo: info,
+                  accessToken: tokens.access_token,
+                  refreshToken: tokens.refresh_token,
+                },
+              });
+
+              setDbChannelId(saveResult.channelId);
+
+              // Save videos to database
+              if (saveResult.channelId) {
+                await saveVideosFn({
+                  data: {
+                    channelId: saveResult.channelId,
+                    videos: videos,
+                  },
+                });
+              }
+            } catch (persistError) {
+              console.error("Failed to persist YouTube data:", persistError);
+              toast.warning("Channel connected but failed to save to database");
+            }
+          }
+
           setStep("connected");
           toast.success("YouTube channel connected successfully!");
           if (onConnected) onConnected(info);
@@ -167,6 +211,34 @@ export function YouTubeChannelConnect({ isOpen, onOpenChange, onConnected }: You
         setLiveStatus({ isLive: false });
       }
 
+      // Update database if we have a channel ID
+      if (dbChannelId) {
+        try {
+          const {
+            data: { session },
+          } = await supabase.auth.getSession();
+
+          if (session?.user.id) {
+            await saveChannelFn({
+              data: {
+                userId: session.user.id,
+                channelInfo: info,
+                accessToken: accessToken,
+              },
+            });
+
+            await saveVideosFn({
+              data: {
+                channelId: dbChannelId,
+                videos: videos,
+              },
+            });
+          }
+        } catch (persistError) {
+          console.error("Failed to update YouTube data in database:", persistError);
+        }
+      }
+
       toast.success("Channel data refreshed!");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to refresh channel data");
@@ -175,13 +247,23 @@ export function YouTubeChannelConnect({ isOpen, onOpenChange, onConnected }: You
     }
   };
 
-  const handleDisconnect = () => {
+  const handleDisconnect = async () => {
+    // Disconnect from database if we have a channel ID
+    if (dbChannelId) {
+      try {
+        await disconnectChannelFn({ data: { channelId: dbChannelId } });
+      } catch (error) {
+        console.error("Failed to disconnect channel from database:", error);
+      }
+    }
+
     localStorage.removeItem("youtube_access_token");
     localStorage.removeItem("youtube_refresh_token");
     localStorage.removeItem("youtube_token_expires");
     setChannelInfo(null);
     setLatestVideos([]);
     setLiveStatus(null);
+    setDbChannelId(null);
     setStep("connect");
     toast.success("YouTube channel disconnected");
     onOpenChange(false);
@@ -360,10 +442,7 @@ export function YouTubeChannelConnect({ isOpen, onOpenChange, onConnected }: You
                             {video.title}
                           </p>
                           <p className="text-[10px] text-muted-foreground mt-1">
-                            {formatNumber(video.viewCount)} views • {formatDuration(video.duration)}
-                          </p>
-                          <p className="text-[10px] text-muted-foreground">
-                            {new Date(video.publishedAt).toLocaleDateString()}
+                            {formatNumber(video.viewCount)} views • {new Date(video.publishedAt).toLocaleDateString()}
                           </p>
                         </div>
                       </a>
@@ -372,32 +451,34 @@ export function YouTubeChannelConnect({ isOpen, onOpenChange, onConnected }: You
                 </div>
               )}
 
-              {/* Description */}
+              {/* Channel Description */}
               {channelInfo.description && (
                 <div>
-                  <h3 className="font-medium mb-2 text-sm">About</h3>
-                  <p className="text-xs text-muted-foreground line-clamp-3">{channelInfo.description}</p>
+                  <h3 className="font-medium mb-3 text-sm">About Channel</h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3">
+                    {channelInfo.description}
+                  </p>
                 </div>
               )}
 
-              {/* Actions */}
-              <div className="flex gap-2 pt-4 border-t border-border">
-                <a
-                  href={`https://youtube.com/channel/${channelInfo.channelId}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex-1 py-2 rounded-lg border border-border hover:border-[color:var(--gold)]/50 text-sm text-center transition"
-                >
-                  View Channel
-                </a>
-                <button
-                  onClick={handleDisconnect}
-                  className="flex-1 py-2 rounded-lg border border-red-500/30 hover:border-red-500/60 text-sm text-red-400 transition flex items-center justify-center gap-2"
-                >
-                  <LogOut className="w-3 h-3" />
-                  Disconnect
-                </button>
-              </div>
+              {/* Channel Link */}
+              <a
+                href={`https://youtube.com/channel/${channelInfo.channelId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-2 rounded-lg border border-[color:var(--gold)]/50 hover:border-[color:var(--gold)] text-center text-sm font-medium transition"
+              >
+                View on YouTube
+              </a>
+
+              {/* Disconnect Button */}
+              <button
+                onClick={handleDisconnect}
+                className="w-full py-2 rounded-lg border border-red-500/50 hover:border-red-500 text-red-500 hover:bg-red-500/10 text-sm font-medium transition flex items-center justify-center gap-2"
+              >
+                <LogOut className="w-4 h-4" />
+                Disconnect Channel
+              </button>
             </div>
           </>
         )}
