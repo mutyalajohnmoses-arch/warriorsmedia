@@ -97,22 +97,29 @@ async function scrapeYouTubeWatch(videoId: string): Promise<MetaResult | null> {
     `https://m.youtube.com/watch?v=${videoId}&hl=en&gl=US`,
   ];
   const fallbackThumb = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+  const agents = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
+  ];
+
   for (const url of urls) {
-    try {
-      const res = await fetchWithTimeout(
-        url,
-        {
-          headers: {
-            "User-Agent":
-              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0 Safari/537.36",
-            "Accept-Language": "en-US,en;q=0.9",
-            Accept: "text/html",
+    for (const agent of agents) {
+      try {
+        const res = await fetchWithTimeout(
+          url,
+          {
+            headers: {
+              "User-Agent": agent,
+              "Accept-Language": "en-US,en;q=0.9",
+              Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            },
           },
-        },
-        8000,
-      );
-      if (!res.ok) continue;
-      const html = await res.text();
+          8000,
+        );
+        if (!res.ok) continue;
+        const html = await res.text();
       
       // Try multiple markers and extraction methods
       const markers = ["ytInitialPlayerResponse", "ytInitialData"];
@@ -218,8 +225,9 @@ async function scrapeYouTubeWatch(videoId: string): Promise<MetaResult | null> {
           error: null,
         };
       }
-    } catch {
-      // try next
+      } catch {
+        // try next agent
+      }
     }
   }
   return null;
@@ -306,7 +314,51 @@ export const getYouTubeMeta = createServerFn({ method: "GET" })
       }
     }
 
-    // 3) Last-ditch oEmbed (title + author only, no rate limit issues)
+    // 3) Try NoEmbed (reliable title/author)
+    try {
+      const res = await fetchWithTimeout(`https://noembed.com/embed?url=https://www.youtube.com/watch?v=${data.videoId}`);
+      if (res.ok) {
+        const j = await res.json();
+        if (j.title) {
+          return {
+            videoId: data.videoId,
+            title: j.title ?? null,
+            description: null,
+            tags: [],
+            thumbnail: j.thumbnail_url || fallbackThumb,
+            channel: j.author_name ?? null,
+            duration: null,
+            viewCount: null,
+            source: "noembed",
+            error: "Description/tags unavailable (providers busy). Title only.",
+          };
+        }
+      }
+    } catch { /* ignore */ }
+
+    // 4) Try Return YouTube Dislike API (often has metadata too)
+    try {
+      const res = await fetchWithTimeout(`https://returnyoutubedislikeapi.com/votes?videoId=${data.videoId}`);
+      if (res.ok) {
+        const j = await res.json();
+        if (j.title) {
+          return {
+            videoId: data.videoId,
+            title: j.title ?? null,
+            description: null,
+            tags: [],
+            thumbnail: fallbackThumb,
+            channel: j.author ?? null,
+            duration: null,
+            viewCount: j.viewCount ? String(j.viewCount) : null,
+            source: "ryd",
+            error: "Description/tags unavailable. Title only.",
+          };
+        }
+      }
+    } catch { /* ignore */ }
+
+    // 5) Last-ditch oEmbed
     try {
       const res = await fetchWithTimeout(
         `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${data.videoId}&format=json`,
