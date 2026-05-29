@@ -81,14 +81,29 @@ export const getInstagramProfiles = createServerFn({ method: "POST" })
             const json = await res.json();
             const user = json?.data?.user;
             if (user) {
+              const profilePicUrl = user.profile_pic_url;
               results[username] = {
-                profilePic: user.profile_pic_url ?? null,
+                profilePic: profilePicUrl && profilePicUrl.length > 0 ? profilePicUrl : null,
                 fullName: user.full_name ?? null,
               };
+            } else {
+              results[username] = {
+                profilePic: null,
+                fullName: null,
+              };
             }
+          } else {
+            results[username] = {
+              profilePic: null,
+              fullName: null,
+            };
           }
         } catch (e) {
           console.error(`Failed to fetch profile for ${username}:`, e);
+          results[username] = {
+            profilePic: null,
+            fullName: null,
+          };
         }
       })
     );
