@@ -84,10 +84,95 @@ type MetaResult = {
   error: string | null;
 };
 
+async function scrapeYouTubeWatch(videoId: string): Promise<MetaResult | null> {
+  const urls = [
+    `https://www.youtube.com/watch?v=${videoId}&hl=en&gl=US`,
+    `https://m.youtube.com/watch?v=${videoId}&hl=en&gl=US`,
+  ];
+  const fallbackThumb = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+  for (const url of urls) {
+    try {
+      const res = await fetchWithTimeout(
+        url,
+        {
+          headers: {
+            "User-Agent":
+              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0 Safari/537.36",
+            "Accept-Language": "en-US,en;q=0.9",
+            Accept: "text/html",
+          },
+        },
+        8000,
+      );
+      if (!res.ok) continue;
+      const html = await res.text();
+      const marker = "ytInitialPlayerResponse";
+      const idx = html.indexOf(marker);
+      if (idx < 0) continue;
+      const eq = html.indexOf("{", idx);
+      if (eq < 0) continue;
+      // Walk braces, respecting strings and escapes
+      let depth = 0;
+      let end = -1;
+      let inStr = false;
+      let esc = false;
+      for (let i = eq; i < html.length; i++) {
+        const c = html[i];
+        if (inStr) {
+          if (esc) esc = false;
+          else if (c === "\\") esc = true;
+          else if (c === '"') inStr = false;
+        } else {
+          if (c === '"') inStr = true;
+          else if (c === "{") depth++;
+          else if (c === "}") {
+            depth--;
+            if (depth === 0) {
+              end = i + 1;
+              break;
+            }
+          }
+        }
+      }
+      if (end < 0) continue;
+      let pr: any;
+      try {
+        pr = JSON.parse(html.slice(eq, end));
+      } catch {
+        continue;
+      }
+      const vd = pr?.videoDetails;
+      if (!vd?.title) continue;
+      const thumbs = vd.thumbnail?.thumbnails ?? [];
+      const thumb =
+        thumbs.sort((a: any, b: any) => (b.width || 0) - (a.width || 0))[0]?.url || fallbackThumb;
+      return {
+        videoId,
+        title: vd.title ?? null,
+        description: vd.shortDescription ?? null,
+        tags: Array.isArray(vd.keywords) ? vd.keywords : [],
+        thumbnail: thumb,
+        channel: vd.author ?? null,
+        duration: vd.lengthSeconds ?? null,
+        viewCount: vd.viewCount ?? null,
+        source: "youtube",
+        error: null,
+      };
+    } catch {
+      // try next
+    }
+  }
+  return null;
+}
+
 export const getYouTubeMeta = createServerFn({ method: "GET" })
   .inputValidator(validateUrl)
   .handler(async ({ data }): Promise<MetaResult> => {
     const fallbackThumb = `https://i.ytimg.com/vi/${data.videoId}/hqdefault.jpg`;
+
+    // 0) Direct YouTube watch-page scrape (most reliable for description + tags)
+    const direct = await scrapeYouTubeWatch(data.videoId);
+    if (direct) return direct;
 
     // 1) Try Invidious instances (JSON, no rate-limit on YouTube)
     for (const base of shuffle(INVIDIOUS_INSTANCES)) {
