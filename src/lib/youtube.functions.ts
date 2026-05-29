@@ -44,6 +44,9 @@ const INVIDIOUS_INSTANCES = [
   "https://invidious.tiekoetter.com",
   "https://inv.tux.pizza",
   "https://invidious.perennialte.ch",
+  "https://invidious.lunar.icu",
+  "https://inv.n8pjl.ca",
+  "https://invidious.drgns.space",
 ];
 
 const PIPED_INSTANCES = [
@@ -206,16 +209,33 @@ async function scrapeYouTubeWatch(videoId: string): Promise<MetaResult | null> {
         };
       }
       
-      // Fallback to meta tags if JSON extraction fails
+      // Fallback to meta tags and regex if JSON extraction fails or is incomplete
       const titleMatch = html.match(/<meta name="title" content="(.*?)">/) || html.match(/<title>(.*?)<\/title>/);
       const descMatch = html.match(/<meta name="description" content="(.*?)">/);
       const keywordsMatch = html.match(/<meta name="keywords" content="(.*?)">/);
       
-      if (titleMatch || descMatch) {
+      // Filter out generic YouTube descriptions
+      let description = descMatch ? descMatch[1] : null;
+      if (description?.includes("Enjoy the videos and music that you love")) {
+        description = null;
+      }
+      
+      // Try to find description in ld+json if meta is generic
+      if (!description) {
+        const ldJsonMatch = html.match(/<script type="application\/ld\+json">(.*?)<\/script>/);
+        if (ldJsonMatch) {
+          try {
+            const ld = JSON.parse(ldJsonMatch[1]);
+            description = ld.description || null;
+          } catch { /* ignore */ }
+        }
+      }
+
+      if (titleMatch || description || keywordsMatch) {
         return {
           videoId,
           title: titleMatch ? titleMatch[1].replace(" - YouTube", "") : null,
-          description: descMatch ? descMatch[1] : null,
+          description: description,
           tags: keywordsMatch ? keywordsMatch[1].split(",").map((s: string) => s.trim()).filter(Boolean) : [],
           thumbnail: fallbackThumb,
           channel: null,
