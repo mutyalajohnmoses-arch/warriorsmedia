@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import { YouTubeChannelConnect } from "./youtube-channel-connect";
+import type { YouTubeChannelInfo } from "@/lib/youtube-oauth.functions";
 import {
   Upload,
   Radio,
@@ -23,7 +25,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 
 interface YouTubeCreateMenuProps {
   channelConnected?: boolean;
-  onChannelConnect?: () => void;
+  onChannelConnect?: (channelInfo: YouTubeChannelInfo) => void;
 }
 
 export function YouTubeCreateMenu({ channelConnected = false, onChannelConnect }: YouTubeCreateMenuProps) {
@@ -36,21 +38,10 @@ export function YouTubeCreateMenu({ channelConnected = false, onChannelConnect }
   const [uploading, setUploading] = useState(false);
   const [startingLive, setStartingLive] = useState(false);
   const [creatingPost, setCreatingPost] = useState(false);
+  const [showChannelConnectDialog, setShowChannelConnectDialog] = useState(false);
 
-  const handleConnectChannel = async () => {
-    setConnecting(true);
-    try {
-      // Simulate YouTube OAuth flow
-      // In production, this would open YouTube OAuth consent screen
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      toast.success("YouTube channel connected successfully!");
-      setShowConnectDialog(false);
-      if (onChannelConnect) onChannelConnect();
-    } catch (err) {
-      toast.error("Failed to connect YouTube channel");
-    } finally {
-      setConnecting(false);
-    }
+  const handleChannelConnected = (channelInfo: YouTubeChannelInfo) => {
+    if (onChannelConnect) onChannelConnect(channelInfo);
   };
 
   const handleUploadVideo = async () => {
@@ -140,7 +131,7 @@ export function YouTubeCreateMenu({ channelConnected = false, onChannelConnect }
 
           {!channelConnected && (
             <>
-              <DropdownMenuItem onClick={() => setShowConnectDialog(true)} className="cursor-pointer">
+              <DropdownMenuItem onClick={() => setShowChannelConnectDialog(true)} className="cursor-pointer">
                 <LinkIcon className="w-4 h-4 mr-2 text-[color:var(--gold)]" />
                 <span>Connect Channel</span>
               </DropdownMenuItem>
@@ -177,56 +168,12 @@ export function YouTubeCreateMenu({ channelConnected = false, onChannelConnect }
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* Connect Channel Dialog */}
-      <Dialog open={showConnectDialog} onOpenChange={setShowConnectDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Connect Your YouTube Channel</DialogTitle>
-            <DialogDescription>
-              Sign in with your Google account to connect your YouTube channel and unlock upload, live streaming, and post creation features.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="p-4 rounded-lg border border-[color:var(--gold)]/30 bg-card/40">
-              <div className="flex items-start gap-3">
-                <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
-                <div className="text-sm">
-                  <p className="font-medium mb-1">Benefits of connecting:</p>
-                  <ul className="text-xs text-muted-foreground space-y-1">
-                    <li>• Upload videos directly from Warriors Media</li>
-                    <li>• Start live streams with one click</li>
-                    <li>• Create posts for your community</li>
-                    <li>• Manage all content from one dashboard</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-            <button
-              onClick={handleConnectChannel}
-              disabled={connecting}
-              className="w-full py-2.5 rounded-lg bg-gold-gradient text-[color:var(--primary-foreground)] font-medium text-sm glow-gold disabled:opacity-60 flex items-center justify-center gap-2"
-            >
-              {connecting ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Connecting…
-                </>
-              ) : (
-                <>
-                  <LinkIcon className="w-4 h-4" />
-                  Connect with Google
-                </>
-              )}
-            </button>
-            <button
-              onClick={() => setShowConnectDialog(false)}
-              className="w-full py-2 rounded-lg border border-border hover:border-[color:var(--gold)]/50 text-sm transition"
-            >
-              Cancel
-            </button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* YouTube Channel Connect Dialog */}
+      <YouTubeChannelConnect
+        isOpen={showChannelConnectDialog}
+        onOpenChange={setShowChannelConnectDialog}
+        onConnected={handleChannelConnected}
+      />
 
       {/* Upload Video Dialog */}
       <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>

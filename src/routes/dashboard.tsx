@@ -120,6 +120,11 @@ function Home() {
 
   const handleModuleClick = (title: string) => {
     if (title === "Live Streaming") {
+      if (!youtubeConnected) {
+        // Show toast or notification to connect YouTube first
+        console.log("Please connect YouTube channel first");
+        return;
+      }
       navigate({ to: "/live-streaming-setup" });
     } else {
       // Handle other modules as needed
@@ -150,6 +155,14 @@ function Home() {
   }, [navigate]);
 
   useEffect(() => {
+    // Check if YouTube is already connected
+    const token = localStorage.getItem("youtube_access_token");
+    if (token) {
+      setYoutubeConnected(true);
+    }
+  }, []);
+
+  useEffect(() => {
     const load = async () => {
       try {
         const usernames = teamMembers.map((m) => m.instagram);
@@ -158,7 +171,7 @@ function Home() {
       } catch (e) {
         console.error("Failed to fetch team profiles:", e);
       }
-    };
+    }
     load();
   }, [fetchTeamProfilesServerFn]);
 
@@ -199,7 +212,9 @@ function Home() {
         <div className="flex items-center gap-2">
           <YouTubeCreateMenu 
             channelConnected={youtubeConnected}
-            onChannelConnect={() => setYoutubeConnected(true)}
+            onChannelConnect={() => {
+              setYoutubeConnected(true);
+            }}
           />
           <button
             onClick={() => {
