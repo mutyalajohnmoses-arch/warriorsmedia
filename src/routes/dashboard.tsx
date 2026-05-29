@@ -17,6 +17,11 @@ import {
   ArrowRight,
   Instagram,
   RefreshCw,
+  Music,
+  Headphones,
+  Mic,
+  Palette,
+  Camera,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getInstagramStats } from "@/lib/instagram.functions";
@@ -53,6 +58,34 @@ const modules = [
     title: "WhatsApp Bridge",
     desc: "Sync ministry chats seamlessly",
     tag: "BETA",
+  },
+];
+
+const teamMembers = [
+  {
+    name: "Mutyala John Moses",
+    roles: ["Music Producer", "Social Media Manager", "Singer", "Video Editor", "Test Engineer"],
+    icon: Music,
+  },
+  {
+    name: "Akul Raju",
+    roles: ["Voice Analyst", "Coordinator"],
+    icon: Headphones,
+  },
+  {
+    name: "Stanley",
+    roles: ["Developer"],
+    icon: Mic,
+  },
+  {
+    name: "Somesh Kumar",
+    roles: ["Editor", "Social Media Analyst"],
+    icon: Palette,
+  },
+  {
+    name: "Anand",
+    roles: ["Video Editor", "Designer", "Social Media Manager", "Photographer"],
+    icon: Camera,
   },
 ];
 
@@ -237,6 +270,42 @@ function Home() {
         <p className="text-center text-xs text-muted-foreground mt-12">
           Signed in as <span className="text-[color:var(--gold-soft)]">{profile?.email}</span>
         </p>
+      </section>
+
+      {/* Warriors Team Section */}
+      <section className="px-6 md:px-10 pb-20 max-w-5xl mx-auto">
+        <div className="mb-8">
+          <h2 className="font-display text-2xl mb-2">Warriors Team</h2>
+          <p className="text-muted-foreground text-sm">Meet the creative minds behind Warriors Media</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {teamMembers.map(({ name, roles, icon: Icon }) => (
+            <article
+              key={name}
+              className="p-6 rounded-2xl border border-border bg-card/50 backdrop-blur hover:border-[color:var(--gold)]/50 transition"
+            >
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-xl border border-[color:var(--gold)]/30 flex items-center justify-center bg-background/40 shrink-0">
+                  <Icon className="w-6 h-6 text-[color:var(--gold)]" strokeWidth={1.5} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-medium text-lg mb-2">{name}</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {roles.map((role) => (
+                      <span
+                        key={role}
+                        className="text-[11px] uppercase tracking-[0.15em] px-2.5 py-1 rounded-full border border-[color:var(--gold)]/30 text-[color:var(--gold-soft)] bg-background/40"
+                      >
+                        {role}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
       </section>
     </main>
   );
