@@ -44,12 +44,12 @@ function LiveStreamingSetup() {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [channelName, setChannelName] = useState("");
-  const [channelId, setChannelId] = useState("");
-  const [rtmpUrl, setRtmpUrl] = useState("");
-  const [streamKey, setStreamKey] = useState("");
+  const [channelName, setChannelName] = useState("Warriors Media");
+  const [channelId, setChannelId] = useState("mutyalajohnmoses@gmail.com");
+  const [rtmpUrl, setRtmpUrl] = useState("rtmp://a.rtmp.youtube.com/live2");
+  const [streamKey, setStreamKey] = useState("••••••••••••");
 
-  const [title, setTitle] = useState("");
+  const [title, setTitle] = useState("Sunday Worship Service");
   const [description, setDescription] = useState("");
   const [scheduledStart, setScheduledStart] = useState("");
   const [scheduledEnd, setScheduledEnd] = useState("");
@@ -85,6 +85,16 @@ function LiveStreamingSetup() {
       setUserId(session.user.id);
       setUserEmail(session.user.email ?? null);
       setLoading(false);
+
+      // Check for auto-live flag in URL or session
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("auto") === "true") {
+        // Give a small delay for state to settle
+        setTimeout(() => {
+          const form = document.querySelector("form");
+          if (form) form.requestSubmit();
+        }, 1000);
+      }
     })();
   }, [navigate]);
 
@@ -293,7 +303,11 @@ function LiveStreamingSetup() {
                 </button>
                 <button
                   type="button"
-                  className="flex flex-col items-center gap-2 p-3 rounded-lg border border-border hover:border-red-500/50 transition group"
+                  onClick={() => {
+                    const form = document.querySelector("form");
+                    if (form) form.requestSubmit();
+                  }}
+                  className="flex flex-col items-center gap-2 p-3 rounded-lg border border-red-500/50 transition group"
                   title="Start a live stream"
                 >
                   <Radio className="w-5 h-5 text-red-500 group-hover:scale-110 transition" />

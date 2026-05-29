@@ -82,9 +82,9 @@ export function YouTubeCreateMenu({ channelConnected = false, onChannelConnect }
     }
     setStartingLive(true);
     try {
-      // Navigate to live streaming setup with YouTube integration
+      // Navigate to live streaming setup with auto-live flag
       await new Promise((resolve) => setTimeout(resolve, 800));
-      navigate({ to: "/live-streaming-setup" });
+      navigate({ to: "/live-streaming-setup", search: { auto: "true" } });
       setShowLiveDialog(false);
     } catch (err) {
       toast.error("Failed to start live stream");
