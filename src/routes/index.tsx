@@ -92,9 +92,9 @@ function LoginPage() {
   };
 
   return (
-    <main className="min-h-screen relative flex items-center justify-center px-6 py-12 overflow-hidden">
+    <main className="min-h-screen relative flex items-center justify-center px-6 py-12 overflow-hidden bg-background">
       <div className="absolute inset-0 -z-10">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-[radial-gradient(circle,oklch(0.78_0.16_80/0.15),transparent_70%)]" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-accent/5 blur-[120px]" />
       </div>
 
       <div className="w-full max-w-md">
