@@ -7,6 +7,8 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
+import { useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 import appCss from "../styles.css?url";
 
@@ -108,7 +110,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className="theme-1">
       <head>
         <HeadContent />
       </head>
@@ -122,6 +124,60 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  useEffect(() => {
+    const updateTheme = () => {
+      // Get the current theme index from localStorage or start with 1
+      const currentThemeStr = localStorage.getItem("app-theme-index");
+      let currentTheme = currentThemeStr ? parseInt(currentThemeStr, 10) : 1;
+      
+      // Increment theme (1-6)
+      let nextTheme = (currentTheme % 6) + 1;
+      
+      // Apply the new theme class to the html element
+      const html = document.documentElement;
+      // Remove all potential theme classes
+      for (let i = 1; i <= 6; i++) {
+        html.classList.remove(`theme-${i}`);
+      }
+      // Add the next theme class
+      html.classList.add(`theme-${nextTheme}`);
+      
+      // Store the next theme index for the next login/session
+      localStorage.setItem("app-theme-index", nextTheme.toString());
+    };
+
+    // Load existing theme on mount
+    const savedTheme = localStorage.getItem("app-theme-index");
+    if (savedTheme) {
+      const html = document.documentElement;
+      for (let i = 1; i <= 6; i++) html.classList.remove(`theme-${i}`);
+      html.classList.add(`theme-${savedTheme}`);
+    }
+
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      // When a user signs in, rotate the theme
+      if (event === "SIGNED_IN") {
+        updateTheme();
+      }
+    });
+
+    // Also rotate theme on initial load if session exists, 
+    // to ensure it changes every time they "arrive" or "login"
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        // If already logged in, we can decide if we want to rotate now or only on explicit login.
+        // The user said "login avuthunna prathi sari", which usually implies the event of logging in.
+        // However, if they are already logged in and refresh, rotating might be nice too.
+        // To strictly follow "login avuthunna prathi sari", the SIGNED_IN event is best.
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>

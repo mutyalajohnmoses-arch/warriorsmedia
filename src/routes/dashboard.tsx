@@ -194,12 +194,29 @@ function Home() {
             Warriors <span className="text-gold-gradient">Media</span>
           </span>
         </div>
-        <button
-          onClick={signOut}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-border hover:border-[color:var(--gold)]/50 text-xs transition"
-        >
-          <LogOut className="w-3.5 h-3.5" /> Sign out
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              const currentThemeStr = localStorage.getItem("app-theme-index");
+              let currentTheme = currentThemeStr ? parseInt(currentThemeStr, 10) : 1;
+              let nextTheme = (currentTheme % 6) + 1;
+              const html = document.documentElement;
+              for (let i = 1; i <= 6; i++) html.classList.remove(`theme-${i}`);
+              html.classList.add(`theme-${nextTheme}`);
+              localStorage.setItem("app-theme-index", nextTheme.toString());
+            }}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-border hover:border-[color:var(--gold)]/50 text-xs transition"
+            title="Change Theme"
+          >
+            <Palette className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={signOut}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-border hover:border-[color:var(--gold)]/50 text-xs transition"
+          >
+            <LogOut className="w-3.5 h-3.5" /> Sign out
+          </button>
+        </div>
       </header>
 
       {/* Hero / welcome */}
