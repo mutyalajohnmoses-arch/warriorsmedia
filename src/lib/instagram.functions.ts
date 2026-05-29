@@ -80,30 +80,39 @@ export const getInstagramProfiles = createServerFn({ method: "POST" })
           if (res.ok) {
             const json = await res.json();
             const user = json?.data?.user;
-            if (user) {
-              const profilePicUrl = user.profile_pic_url;
-              results[username] = {
-                profilePic: profilePicUrl && profilePicUrl.length > 0 ? profilePicUrl : null,
-                fullName: user.full_name ?? null,
-              };
+            if (user && user.profile_pic_url) {
+              // Fetch the actual image data and convert to Base64
+              try {
+                const imgRes = await fetch(user.profile_pic_url, {
+                  headers: {
+                    "User-Agent": "Instagram 219.0.0.12.117 Android",
+                  }
+                });
+                if (imgRes.ok) {
+                  const arrayBuffer = await imgRes.arrayBuffer();
+                  const buffer = Buffer.from(arrayBuffer);
+                  const base64 = buffer.toString('base64');
+                  const contentType = imgRes.headers.get('content-type') || 'image/jpeg';
+                  results[username] = {
+                    profilePic: `data:${contentType};base64,${base64}`,
+                    fullName: user.full_name ?? null,
+                  };
+                } else {
+                  results[username] = { profilePic: null, fullName: user.full_name ?? null };
+                }
+              } catch (imgError) {
+                console.error(`Failed to fetch image for ${username}:`, imgError);
+                results[username] = { profilePic: null, fullName: user.full_name ?? null };
+              }
             } else {
-              results[username] = {
-                profilePic: null,
-                fullName: null,
-              };
+              results[username] = { profilePic: null, fullName: user?.full_name ?? null };
             }
           } else {
-            results[username] = {
-              profilePic: null,
-              fullName: null,
-            };
+            results[username] = { profilePic: null, fullName: null };
           }
         } catch (e) {
           console.error(`Failed to fetch profile for ${username}:`, e);
-          results[username] = {
-            profilePic: null,
-            fullName: null,
-          };
+          results[username] = { profilePic: null, fullName: null };
         }
       })
     );
