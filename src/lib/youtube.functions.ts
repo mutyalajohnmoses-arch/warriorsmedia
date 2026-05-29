@@ -40,6 +40,10 @@ const INVIDIOUS_INSTANCES = [
   "https://invidious.privacyredirect.com",
   "https://iv.melmac.space",
   "https://invidious.f5.si",
+  "https://invidious.projectsegfau.lt",
+  "https://invidious.tiekoetter.com",
+  "https://inv.tux.pizza",
+  "https://invidious.perennialte.ch",
 ];
 
 const PIPED_INSTANCES = [
@@ -50,6 +54,9 @@ const PIPED_INSTANCES = [
   "https://api.piped.private.coffee",
   "https://pipedapi.drgns.space",
   "https://pipedapi.reallyaweso.me",
+  "https://pipedapi.astre.lt",
+  "https://pipedapi.ducks.party",
+  "https://pipedapi.mha.fi",
 ];
 
 function shuffle<T>(arr: T[]): T[] {
@@ -106,58 +113,111 @@ async function scrapeYouTubeWatch(videoId: string): Promise<MetaResult | null> {
       );
       if (!res.ok) continue;
       const html = await res.text();
-      const marker = "ytInitialPlayerResponse";
-      const idx = html.indexOf(marker);
-      if (idx < 0) continue;
-      const eq = html.indexOf("{", idx);
-      if (eq < 0) continue;
-      // Walk braces, respecting strings and escapes
-      let depth = 0;
-      let end = -1;
-      let inStr = false;
-      let esc = false;
-      for (let i = eq; i < html.length; i++) {
-        const c = html[i];
-        if (inStr) {
-          if (esc) esc = false;
-          else if (c === "\\") esc = true;
-          else if (c === '"') inStr = false;
-        } else {
-          if (c === '"') inStr = true;
-          else if (c === "{") depth++;
-          else if (c === "}") {
-            depth--;
-            if (depth === 0) {
-              end = i + 1;
-              break;
+      
+      // Try multiple markers and extraction methods
+      const markers = ["ytInitialPlayerResponse", "ytInitialData"];
+      let pr: any = null;
+      let vd: any = null;
+      
+      for (const marker of markers) {
+        const idx = html.indexOf(marker);
+        if (idx < 0) continue;
+        const eq = html.indexOf("{", idx);
+        if (eq < 0) continue;
+        
+        let depth = 0;
+        let end = -1;
+        let inStr = false;
+        let esc = false;
+        for (let i = eq; i < html.length; i++) {
+          const c = html[i];
+          if (inStr) {
+            if (esc) esc = false;
+            else if (c === "\\") esc = true;
+            else if (c === '"') inStr = false;
+          } else {
+            if (c === '"') inStr = true;
+            else if (c === "{") depth++;
+            else if (c === "}") {
+              depth--;
+              if (depth === 0) {
+                end = i + 1;
+                break;
+              }
             }
           }
         }
+        
+        if (end > 0) {
+          try {
+            const parsed = JSON.parse(html.slice(eq, end));
+            if (marker === "ytInitialPlayerResponse") {
+              pr = parsed;
+              vd = parsed.videoDetails;
+            } else if (marker === "ytInitialData") {
+              // Extract from ytInitialData if player response fails
+              const contents = parsed.contents?.twoColumnWatchNextResults?.results?.results?.contents;
+              const primary = contents?.find((c: any) => c.videoPrimaryInfoRenderer)?.videoPrimaryInfoRenderer;
+              const secondary = contents?.find((c: any) => c.videoSecondaryInfoRenderer)?.videoSecondaryInfoRenderer;
+              
+              if (primary || secondary) {
+                return {
+                  videoId,
+                  title: primary?.title?.runs?.[0]?.text || null,
+                  description: secondary?.description?.runs?.map((r: any) => r.text).join("") || null,
+                  tags: primary?.tags?.map((t: any) => t.metadataBadgeRenderer?.label).filter(Boolean) || [],
+                  thumbnail: fallbackThumb,
+                  channel: secondary?.owner?.videoOwnerRenderer?.title?.runs?.[0]?.text || null,
+                  duration: null,
+                  viewCount: primary?.viewCount?.videoViewCountRenderer?.viewCount?.simpleText || null,
+                  source: "youtube-data",
+                  error: null,
+                };
+              }
+            }
+          } catch {
+            continue;
+          }
+        }
       }
-      if (end < 0) continue;
-      let pr: any;
-      try {
-        pr = JSON.parse(html.slice(eq, end));
-      } catch {
-        continue;
+
+      if (vd?.title) {
+        const thumbs = vd.thumbnail?.thumbnails ?? [];
+        const thumb =
+          thumbs.sort((a: any, b: any) => (b.width || 0) - (a.width || 0))[0]?.url || fallbackThumb;
+        return {
+          videoId,
+          title: vd.title ?? null,
+          description: vd.shortDescription ?? null,
+          tags: Array.isArray(vd.keywords) ? vd.keywords : [],
+          thumbnail: thumb,
+          channel: vd.author ?? null,
+          duration: vd.lengthSeconds ?? null,
+          viewCount: vd.viewCount ?? null,
+          source: "youtube",
+          error: null,
+        };
       }
-      const vd = pr?.videoDetails;
-      if (!vd?.title) continue;
-      const thumbs = vd.thumbnail?.thumbnails ?? [];
-      const thumb =
-        thumbs.sort((a: any, b: any) => (b.width || 0) - (a.width || 0))[0]?.url || fallbackThumb;
-      return {
-        videoId,
-        title: vd.title ?? null,
-        description: vd.shortDescription ?? null,
-        tags: Array.isArray(vd.keywords) ? vd.keywords : [],
-        thumbnail: thumb,
-        channel: vd.author ?? null,
-        duration: vd.lengthSeconds ?? null,
-        viewCount: vd.viewCount ?? null,
-        source: "youtube",
-        error: null,
-      };
+      
+      // Fallback to meta tags if JSON extraction fails
+      const titleMatch = html.match(/<meta name="title" content="(.*?)">/) || html.match(/<title>(.*?)<\/title>/);
+      const descMatch = html.match(/<meta name="description" content="(.*?)">/);
+      const keywordsMatch = html.match(/<meta name="keywords" content="(.*?)">/);
+      
+      if (titleMatch || descMatch) {
+        return {
+          videoId,
+          title: titleMatch ? titleMatch[1].replace(" - YouTube", "") : null,
+          description: descMatch ? descMatch[1] : null,
+          tags: keywordsMatch ? keywordsMatch[1].split(",").map((s: string) => s.trim()).filter(Boolean) : [],
+          thumbnail: fallbackThumb,
+          channel: null,
+          duration: null,
+          viewCount: null,
+          source: "youtube-scrape",
+          error: null,
+        };
+      }
     } catch {
       // try next
     }
