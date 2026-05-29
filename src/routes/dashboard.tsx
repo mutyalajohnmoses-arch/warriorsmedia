@@ -24,7 +24,7 @@ import {
   Camera,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { getInstagramStats } from "@/lib/instagram.functions";
+import { getInstagramStats, getInstagramProfiles } from "@/lib/instagram.functions";
 import { YouTubeDownloader, YouTubeMetaExtractor } from "@/components/youtube-tools";
 
 export const Route = createFileRoute("/dashboard")({
@@ -123,6 +123,9 @@ function Home() {
     }
   };
 
+  const fetchIg = useServerFn(getInstagramStats);
+  const fetchTeamProfilesServerFn = useServerFn(getInstagramProfiles);
+
   useEffect(() => {
     const load = async () => {
       const {
@@ -144,38 +147,18 @@ function Home() {
   }, [navigate]);
 
   useEffect(() => {
-    const fetchTeamProfiles = async () => {
-      const profiles: Record<string, any> = {};
-      for (const member of teamMembers) {
-        try {
-          const res = await fetch(
-            `https://i.instagram.com/api/v1/users/web_profile_info/?username=${encodeURIComponent(member.instagram)}`,
-            {
-              headers: {
-                "User-Agent": "Instagram 219.0.0.12.117 Android",
-                "x-ig-app-id": "936619743392459",
-                Accept: "application/json",
-              },
-            },
-          );
-          if (res.ok) {
-            const json = await res.json();
-            const user = json?.data?.user;
-            if (user) {
-              profiles[member.instagram] = {
-                profilePic: user.profile_pic_url ?? null,
-                fullName: user.full_name ?? null,
-              };
-            }
-          }
-        } catch (e) {
-          console.error(`Failed to fetch profile for ${member.instagram}:`, e);
-        }
+    const load = async () => {
+      try {
+        const usernames = teamMembers.map((m) => m.instagram);
+        const profiles = await fetchTeamProfilesServerFn({ data: usernames });
+        setTeamProfiles(profiles);
+      } catch (e) {
+        console.error("Failed to fetch team profiles:", e);
       }
-      setTeamProfiles(profiles);
     };
-    fetchTeamProfiles();
-  }, []);
+    load();
+  }, [fetchTeamProfilesServerFn]);
+
 
   const signOut = async () => {
     await supabase.auth.signOut();
@@ -184,7 +167,6 @@ function Home() {
 
   const firstName = profile?.full_name?.split(" ")[0] ?? "Warrior";
 
-  const fetchIg = useServerFn(getInstagramStats);
   const igQuery = useQuery({
     queryKey: ["ig-stats", IG_USERNAME],
     queryFn: () => fetchIg({ data: { username: IG_USERNAME } }),

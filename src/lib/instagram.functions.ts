@@ -55,3 +55,43 @@ export const getInstagramStats = createServerFn({ method: "GET" })
       };
     }
   });
+
+export const getInstagramProfiles = createServerFn({ method: "POST" })
+  .inputValidator((usernames: string[]) => {
+    if (!Array.isArray(usernames)) throw new Error("Expected array of usernames");
+    return usernames;
+  })
+  .handler(async ({ data: usernames }) => {
+    const results: Record<string, { profilePic: string | null; fullName: string | null }> = {};
+    
+    await Promise.all(
+      usernames.map(async (username) => {
+        try {
+          const res = await fetch(
+            `https://i.instagram.com/api/v1/users/web_profile_info/?username=${encodeURIComponent(username)}`,
+            {
+              headers: {
+                "User-Agent": "Instagram 219.0.0.12.117 Android",
+                "x-ig-app-id": "936619743392459",
+                Accept: "application/json",
+              },
+            },
+          );
+          if (res.ok) {
+            const json = await res.json();
+            const user = json?.data?.user;
+            if (user) {
+              results[username] = {
+                profilePic: user.profile_pic_url ?? null,
+                fullName: user.full_name ?? null,
+              };
+            }
+          }
+        } catch (e) {
+          console.error(`Failed to fetch profile for ${username}:`, e);
+        }
+      })
+    );
+    
+    return results;
+  });
