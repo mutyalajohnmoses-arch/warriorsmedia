@@ -106,11 +106,38 @@ async function scrapeYouTubeWatch(videoId: string): Promise<MetaResult | null> {
       );
       if (!res.ok) continue;
       const html = await res.text();
-      const m = html.match(/ytInitialPlayerResponse\s*=\s*(\{.+?\})\s*;\s*(?:var|<\/script>)/s);
-      if (!m) continue;
+      const marker = "ytInitialPlayerResponse";
+      const idx = html.indexOf(marker);
+      if (idx < 0) continue;
+      const eq = html.indexOf("{", idx);
+      if (eq < 0) continue;
+      // Walk braces, respecting strings and escapes
+      let depth = 0;
+      let end = -1;
+      let inStr = false;
+      let esc = false;
+      for (let i = eq; i < html.length; i++) {
+        const c = html[i];
+        if (inStr) {
+          if (esc) esc = false;
+          else if (c === "\\") esc = true;
+          else if (c === '"') inStr = false;
+        } else {
+          if (c === '"') inStr = true;
+          else if (c === "{") depth++;
+          else if (c === "}") {
+            depth--;
+            if (depth === 0) {
+              end = i + 1;
+              break;
+            }
+          }
+        }
+      }
+      if (end < 0) continue;
       let pr: any;
       try {
-        pr = JSON.parse(m[1]);
+        pr = JSON.parse(html.slice(eq, end));
       } catch {
         continue;
       }
