@@ -26,6 +26,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { getInstagramStats, getInstagramProfiles } from "@/lib/instagram.functions";
 import { YouTubeDownloader, YouTubeMetaExtractor } from "@/components/youtube-tools";
+import { YouTubeCreateMenu } from "@/components/youtube-create-menu";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
@@ -115,6 +116,7 @@ function Home() {
   );
   const [loading, setLoading] = useState(true);
   const [teamProfiles, setTeamProfiles] = useState<Record<string, any>>({});
+  const [youtubeConnected, setYoutubeConnected] = useState(false);
 
   const handleModuleClick = (title: string) => {
     if (title === "Live Streaming") {
@@ -195,6 +197,10 @@ function Home() {
           </span>
         </div>
         <div className="flex items-center gap-2">
+          <YouTubeCreateMenu 
+            channelConnected={youtubeConnected}
+            onChannelConnect={() => setYoutubeConnected(true)}
+          />
           <button
             onClick={() => {
               const currentThemeStr = localStorage.getItem("app-theme-index");

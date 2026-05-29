@@ -10,9 +10,12 @@ import {
   Hash,
   Youtube,
   ImageIcon,
+  Upload,
+  Radio,
+  FileText,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-
+import { YouTubeCreateMenu } from "@/components/youtube-create-menu";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { generateThumbnail, generateHashtags } from "@/lib/ai.functions";
@@ -198,14 +201,17 @@ function LiveStreamingSetup() {
         <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[800px] h-[800px] rounded-full bg-[radial-gradient(circle,oklch(0.78_0.16_80/0.12),transparent_70%)]" />
       </div>
 
-      <header className="px-6 md:px-10 pt-6 flex items-center gap-4">
-        <button
-          onClick={() => navigate({ to: "/dashboard" })}
-          className="p-2 hover:bg-card rounded-lg transition"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <h1 className="font-display text-2xl">YouTube Live Streaming Setup</h1>
+      <header className="px-6 md:px-10 pt-6 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => navigate({ to: "/dashboard" })}
+            className="p-2 hover:bg-card rounded-lg transition"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <h1 className="font-display text-2xl">YouTube Live Streaming Setup</h1>
+        </div>
+        <YouTubeCreateMenu channelConnected={true} />
       </header>
 
       <section className="px-6 md:px-10 py-10 max-w-2xl mx-auto">
@@ -269,6 +275,41 @@ function LiveStreamingSetup() {
 
         {!success && (
           <form onSubmit={handleCreateStream} className="space-y-8">
+            {/* QUICK ACTIONS */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <label className="text-xs uppercase tracking-[0.2em] text-[color:var(--gold-soft)] flex items-center gap-2">
+                  <Sparkles className="w-3.5 h-3.5" /> Quick Actions
+                </label>
+              </div>
+              <div className="grid grid-cols-3 gap-3 mb-8 p-4 rounded-lg border border-[color:var(--gold)]/30 bg-card/30">
+                <button
+                  type="button"
+                  className="flex flex-col items-center gap-2 p-3 rounded-lg border border-border hover:border-[color:var(--gold)]/50 transition group"
+                  title="Upload a video to YouTube"
+                >
+                  <Upload className="w-5 h-5 text-[color:var(--gold)] group-hover:scale-110 transition" />
+                  <span className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground group-hover:text-[color:var(--gold-soft)] transition">Upload</span>
+                </button>
+                <button
+                  type="button"
+                  className="flex flex-col items-center gap-2 p-3 rounded-lg border border-border hover:border-red-500/50 transition group"
+                  title="Start a live stream"
+                >
+                  <Radio className="w-5 h-5 text-red-500 group-hover:scale-110 transition" />
+                  <span className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground group-hover:text-red-400 transition">Go Live</span>
+                </button>
+                <button
+                  type="button"
+                  className="flex flex-col items-center gap-2 p-3 rounded-lg border border-border hover:border-[color:var(--gold)]/50 transition group"
+                  title="Create a community post"
+                >
+                  <FileText className="w-5 h-5 text-[color:var(--gold)] group-hover:scale-110 transition" />
+                  <span className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground group-hover:text-[color:var(--gold-soft)] transition">Post</span>
+                </button>
+              </div>
+            </div>
+
             {/* CHANNELS */}
             <div>
               <div className="flex items-center justify-between mb-3">
