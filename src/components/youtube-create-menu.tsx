@@ -165,6 +165,19 @@ export function YouTubeCreateMenu({ channelConnected = false, onChannelConnect }
             <FileText className="w-4 h-4 mr-2 text-[color:var(--gold)]" />
             <span>Create Post</span>
           </DropdownMenuItem>
+          {channelConnected && (
+  <DropdownMenuItem
+    onClick={() => {
+      localStorage.removeItem("youtube_channel");
+      localStorage.removeItem("youtube_tokens");
+      toast.success("YouTube channel disconnected");
+      window.location.reload();
+    }}
+    className="cursor-pointer text-red-500"
+  >
+    Disconnect Channel
+  </DropdownMenuItem>
+)}
         </DropdownMenuContent>
       </DropdownMenu>
 
