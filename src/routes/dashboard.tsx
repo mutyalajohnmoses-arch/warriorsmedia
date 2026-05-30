@@ -22,6 +22,7 @@ import {
   Mic,
   Palette,
   Camera,
+  Prayer,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getInstagramStats, getInstagramProfiles } from "@/lib/instagram.functions";
@@ -52,7 +53,7 @@ const modules = [
   },
   { icon: Film, title: "Reels", desc: "Short-form Christian content feed", tag: "TRENDING" },
   { icon: Music2, title: "Worship Music", desc: "Telugu & global worship library", tag: "NEW" },
-  { icon: HandHeart, title: "Prayer Wall", desc: "Share & lift up requests together", tag: "" },
+  { icon: HandHeart, title: "Prayer Wall", desc: "Share & lift up requests together", tag: "", route: "/prayer-wall" },
   { icon: Users, title: "Community", desc: "Churches, teams & WhatsApp groups", tag: "" },
   { icon: Mic2, title: "Studio Booking", desc: "Recording, video & live production", tag: "" },
   { icon: Video, title: "Video Editor", desc: "AI-assisted reels & sermon edits", tag: "SOON" },
@@ -120,7 +121,11 @@ function Home() {
   const [youtubeConnected, setYoutubeConnected] = useState(false);
   const [hasYouTubeChannel, setHasYouTubeChannel] = useState(false);
 
-  const handleModuleClick = (title: string) => {
+  const handleModuleClick = (title: string, route?: string) => {
+    if (route) {
+      navigate({ to: route as any });
+      return;
+    }
     if (title === "Live Streaming") {
       if (!youtubeConnected) {
         // Show toast or notification to connect YouTube first
@@ -294,7 +299,8 @@ function Home() {
           href={`https://instagram.com/${IG_USERNAME}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-4 p-5 rounded-2xl border border-[color:var(--gold)]/30 bg-card/60 backdrop-blur-xl flex items-center justify-between gap-4 hover:border-[color:var(--gold)]/60 transition group"
+          className="mt-4 p-5 rounded-2xl border border-[color:var(--gold)]/30 bg-card/60 backdrop-blur-xl flex items-center justify-between gap-4 hover:border-[color:var(--gold)]/60 transition g[...]
+        "
         >
           <div className="flex items-center gap-4 min-w-0">
             <div className="w-11 h-11 rounded-xl flex items-center justify-center bg-gradient-to-tr from-[#f09433] via-[#dc2743] to-[#bc1888] shrink-0">
@@ -352,10 +358,10 @@ function Home() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {modules.map(({ icon: Icon, title, desc, tag }) => (
+          {modules.map(({ icon: Icon, title, desc, tag, route }) => (
             <article
               key={title}
-              onClick={() => handleModuleClick(title)}
+              onClick={() => handleModuleClick(title, route)}
               className="group relative p-5 rounded-2xl border border-border bg-card/50 backdrop-blur hover:border-[color:var(--gold)]/50 transition cursor-pointer"
             >
               {tag && (
@@ -363,7 +369,7 @@ function Home() {
                   {tag}
                 </span>
               )}
-              <div className="w-10 h-10 rounded-xl border border-[color:var(--gold)]/30 flex items-center justify-center mb-4 bg-background/40 group-hover:bg-gold-gradient group-hover:border-transparent transition">
+              <div className="w-10 h-10 rounded-xl border border-[color:var(--gold)]/30 flex items-center justify-center mb-4 bg-background/40 group-hover:bg-gold-gradient group-hover:border-tran[...]
                 <Icon
                   className="w-5 h-5 text-[color:var(--gold)] group-hover:text-[color:var(--primary-foreground)] transition"
                   strokeWidth={1.5}
