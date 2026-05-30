@@ -9,11 +9,17 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as PrayerWallRouteImport } from './routes/prayer-wall'
 import { Route as LiveStreamingSetupRouteImport } from './routes/live-streaming-setup'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthGoogleCallbackRouteImport } from './routes/auth.google.callback'
 
+const PrayerWallRoute = PrayerWallRouteImport.update({
+  id: '/prayer-wall',
+  path: '/prayer-wall',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LiveStreamingSetupRoute = LiveStreamingSetupRouteImport.update({
   id: '/live-streaming-setup',
   path: '/live-streaming-setup',
@@ -39,12 +45,14 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/live-streaming-setup': typeof LiveStreamingSetupRoute
+  '/prayer-wall': typeof PrayerWallRoute
   '/auth/google/callback': typeof AuthGoogleCallbackRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/live-streaming-setup': typeof LiveStreamingSetupRoute
+  '/prayer-wall': typeof PrayerWallRoute
   '/auth/google/callback': typeof AuthGoogleCallbackRoute
 }
 export interface FileRoutesById {
@@ -52,6 +60,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/live-streaming-setup': typeof LiveStreamingSetupRoute
+  '/prayer-wall': typeof PrayerWallRoute
   '/auth/google/callback': typeof AuthGoogleCallbackRoute
 }
 export interface FileRouteTypes {
@@ -60,14 +69,21 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/live-streaming-setup'
+    | '/prayer-wall'
     | '/auth/google/callback'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard' | '/live-streaming-setup' | '/auth/google/callback'
+  to:
+    | '/'
+    | '/dashboard'
+    | '/live-streaming-setup'
+    | '/prayer-wall'
+    | '/auth/google/callback'
   id:
     | '__root__'
     | '/'
     | '/dashboard'
     | '/live-streaming-setup'
+    | '/prayer-wall'
     | '/auth/google/callback'
   fileRoutesById: FileRoutesById
 }
@@ -75,11 +91,19 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRoute: typeof DashboardRoute
   LiveStreamingSetupRoute: typeof LiveStreamingSetupRoute
+  PrayerWallRoute: typeof PrayerWallRoute
   AuthGoogleCallbackRoute: typeof AuthGoogleCallbackRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/prayer-wall': {
+      id: '/prayer-wall'
+      path: '/prayer-wall'
+      fullPath: '/prayer-wall'
+      preLoaderRoute: typeof PrayerWallRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/live-streaming-setup': {
       id: '/live-streaming-setup'
       path: '/live-streaming-setup'
@@ -115,6 +139,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRoute: DashboardRoute,
   LiveStreamingSetupRoute: LiveStreamingSetupRoute,
+  PrayerWallRoute: PrayerWallRoute,
   AuthGoogleCallbackRoute: AuthGoogleCallbackRoute,
 }
 export const routeTree = rootRouteImport

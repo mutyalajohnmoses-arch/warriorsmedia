@@ -82,6 +82,8 @@ export function YouTubeCreateMenu({
       localStorage.removeItem("youtube_access_token");
       localStorage.removeItem("youtube_refresh_token");
       localStorage.removeItem("youtube_token_expires");
+      localStorage.removeItem("youtube_channel");
+      localStorage.removeItem("youtube_tokens");
       
       setChannelConnected(false);
       setDbChannelId(null);

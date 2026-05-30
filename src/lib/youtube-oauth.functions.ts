@@ -264,17 +264,17 @@ export const getYouTubeLatestVideos = createServerFn({ method: "GET" })
     const statsMap = new Map(statsData.items.map((item: any) => [item.id, item]));
 
     return videosData.items.map((item: any) => {
-      const stats = statsMap.get(item.contentDetails.videoId);
+      const stats = statsMap.get(item.contentDetails.videoId) as any;
       return {
         videoId: item.contentDetails.videoId,
         title: item.snippet.title,
         description: item.snippet.description || "",
         thumbnailUrl: item.snippet.thumbnails.medium.url,
         publishedAt: item.snippet.publishedAt,
-        viewCount: stats?.statistics.viewCount || "0",
-        likeCount: stats?.statistics.likeCount || "0",
-        commentCount: stats?.statistics.commentCount || "0",
-        duration: stats?.contentDetails.duration || "PT0S",
+        viewCount: stats?.statistics?.viewCount || "0",
+        likeCount: stats?.statistics?.likeCount || "0",
+        commentCount: stats?.statistics?.commentCount || "0",
+        duration: stats?.contentDetails?.duration || "PT0S",
       };
     });
   });
