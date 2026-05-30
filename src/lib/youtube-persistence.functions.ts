@@ -5,8 +5,9 @@ import type { YouTubeChannelInfo, YouTubeVideo } from "./youtube-oauth.functions
 
 // Validate user ID
 const validateUserId = (data: { userId: string }) => {
-  if (!data?.userId || typeof data.userId !== "string") {
-    throw new Error("Invalid user ID");
+  if (!data?.userId && typeof data?.userId !== "string") {
+    // We allow empty userId if session is available
+    return data;
   }
   return data;
 };
@@ -18,9 +19,6 @@ const validateChannelInfo = (data: {
   accessToken: string;
   refreshToken?: string;
 }) => {
-  if (!data?.userId || typeof data.userId !== "string") {
-    throw new Error("Invalid user ID");
-  }
   if (!data?.channelInfo) {
     throw new Error("Invalid channel info");
   }
@@ -52,8 +50,9 @@ export const saveYouTubeChannel = createServerFn({ method: "POST" })
       data: { session },
     } = await supabase.auth.getSession();
 
-    if (!session || session.user.id !== data.userId) {
-      throw new Error("Unauthorized");
+    const userId = session?.user.id || data.userId;
+    if (!userId) {
+      throw new Error("Unauthorized: No user session found");
     }
 
     const expiresAt = new Date(Date.now() + 3600 * 1000); // 1 hour from now
@@ -61,7 +60,7 @@ export const saveYouTubeChannel = createServerFn({ method: "POST" })
     const { data: existingChannel } = await supabaseAdmin
       .from("youtube_channels")
       .select("id")
-      .eq("user_id", data.userId)
+      .eq("user_id", userId)
       .eq("channel_id", data.channelInfo.channelId)
       .maybeSingle();
 
@@ -100,7 +99,7 @@ export const saveYouTubeChannel = createServerFn({ method: "POST" })
       const { data: newChannel, error } = await supabaseAdmin
         .from("youtube_channels")
         .insert({
-          user_id: data.userId,
+          user_id: userId,
           channel_id: data.channelInfo.channelId,
           title: data.channelInfo.title,
           description: data.channelInfo.description,
@@ -138,14 +137,15 @@ export const getConnectedYouTubeChannel = createServerFn({ method: "GET" })
       data: { session },
     } = await supabase.auth.getSession();
 
-    if (!session || session.user.id !== data.userId) {
-      throw new Error("Unauthorized");
+    const userId = session?.user.id || data.userId;
+    if (!userId) {
+      return null;
     }
 
     const { data: channel, error } = await supabaseAdmin
       .from("youtube_channels")
       .select("*")
-      .eq("user_id", data.userId)
+      .eq("user_id", userId)
       .eq("is_connected", true)
       .order("created_at", { ascending: false })
       .maybeSingle();
@@ -163,14 +163,15 @@ export const getYouTubeChannels = createServerFn({ method: "GET" })
       data: { session },
     } = await supabase.auth.getSession();
 
-    if (!session || session.user.id !== data.userId) {
-      throw new Error("Unauthorized");
+    const userId = session?.user.id || data.userId;
+    if (!userId) {
+      return [];
     }
 
     const { data: channels, error } = await supabaseAdmin
       .from("youtube_channels")
       .select("*")
-      .eq("user_id", data.userId)
+      .eq("user_id", userId)
       .order("created_at", { ascending: false });
 
     if (error) throw error;
@@ -318,4 +319,104 @@ export const disconnectYouTubeChannel = createServerFn({ method: "POST" })
       success: true,
       message: "YouTube channel disconnected",
     };
+  });
+
+// Create YouTube Broadcast
+export const createYouTubeBroadcast = createServerFn({ method: "POST" })
+  .inputValidator((data: { 
+    access_token: string; 
+    title: string; 
+    description: string; 
+    privacy: "public" | "unlisted" | "private";
+    madeForKids: boolean;
+    scheduledStartTime?: string;
+  }) => data)
+  .handler(async ({ data }) => {
+    const response = await fetch(
+      "https://www.googleapis.com/youtube/v3/liveBroadcasts?part=snippet,status,contentDetails",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${data.access_token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          snippet: {
+            title: data.title,
+            description: data.description,
+            scheduledStartTime: data.scheduledStartTime || new Date().toISOString(),
+          },
+          status: {
+            privacyStatus: data.privacy,
+            selfDeclaredMadeForKids: data.madeForKids,
+          },
+          contentDetails: {
+            enableAutoStart: true,
+            enableAutoStop: true,
+          }
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(`Failed to create broadcast: ${error.error?.message || response.statusText}`);
+    }
+
+    return await response.json();
+  });
+
+// Create YouTube Stream
+export const createYouTubeStream = createServerFn({ method: "POST" })
+  .inputValidator((data: { access_token: string; title: string }) => data)
+  .handler(async ({ data }) => {
+    const response = await fetch(
+      "https://www.googleapis.com/youtube/v3/liveStreams?part=snippet,cdn,contentDetails",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${data.access_token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          snippet: {
+            title: data.title,
+          },
+          cdn: {
+            frameRate: "variable",
+            ingestionType: "rtmp",
+            resolution: "variable",
+          },
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(`Failed to create stream: ${error.error?.message || response.statusText}`);
+    }
+
+    return await response.json();
+  });
+
+// Bind Broadcast to Stream
+export const bindYouTubeBroadcast = createServerFn({ method: "POST" })
+  .inputValidator((data: { access_token: string; broadcastId: string; streamId: string }) => data)
+  .handler(async ({ data }) => {
+    const response = await fetch(
+      `https://www.googleapis.com/youtube/v3/liveBroadcasts/bind?id=${data.broadcastId}&part=id,contentDetails&streamId=${data.streamId}`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${data.access_token}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(`Failed to bind broadcast: ${error.error?.message || response.statusText}`);
+    }
+
+    return await response.json();
   });

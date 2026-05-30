@@ -334,3 +334,103 @@ export function formatNumber(num: string | number): string {
   if (isNaN(n)) return "0";
   return n.toLocaleString("en-IN");
 }
+
+// Create YouTube Broadcast
+export const createYouTubeBroadcast = createServerFn({ method: "POST" })
+  .inputValidator((data: { 
+    access_token: string; 
+    title: string; 
+    description: string; 
+    privacy: "public" | "unlisted" | "private";
+    madeForKids: boolean;
+    scheduledStartTime?: string;
+  }) => data)
+  .handler(async ({ data }) => {
+    const response = await fetch(
+      "https://www.googleapis.com/youtube/v3/liveBroadcasts?part=snippet,status,contentDetails",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${data.access_token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          snippet: {
+            title: data.title,
+            description: data.description,
+            scheduledStartTime: data.scheduledStartTime || new Date().toISOString(),
+          },
+          status: {
+            privacyStatus: data.privacy,
+            selfDeclaredMadeForKids: data.madeForKids,
+          },
+          contentDetails: {
+            enableAutoStart: true,
+            enableAutoStop: true,
+          }
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(`Failed to create broadcast: ${error.error?.message || response.statusText}`);
+    }
+
+    return await response.json();
+  });
+
+// Create YouTube Stream
+export const createYouTubeStream = createServerFn({ method: "POST" })
+  .inputValidator((data: { access_token: string; title: string }) => data)
+  .handler(async ({ data }) => {
+    const response = await fetch(
+      "https://www.googleapis.com/youtube/v3/liveStreams?part=snippet,cdn,contentDetails",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${data.access_token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          snippet: {
+            title: data.title,
+          },
+          cdn: {
+            frameRate: "variable",
+            ingestionType: "rtmp",
+            resolution: "variable",
+          },
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(`Failed to create stream: ${error.error?.message || response.statusText}`);
+    }
+
+    return await response.json();
+  });
+
+// Bind Broadcast to Stream
+export const bindYouTubeBroadcast = createServerFn({ method: "POST" })
+  .inputValidator((data: { access_token: string; broadcastId: string; streamId: string }) => data)
+  .handler(async ({ data }) => {
+    const response = await fetch(
+      `https://www.googleapis.com/youtube/v3/liveBroadcasts/bind?id=${data.broadcastId}&part=id,contentDetails&streamId=${data.streamId}`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${data.access_token}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(`Failed to bind broadcast: ${error.error?.message || response.statusText}`);
+    }
+
+    return await response.json();
+  });

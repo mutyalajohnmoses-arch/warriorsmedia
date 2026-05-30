@@ -4,14 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Youtube,
   Loader2,
-  AlertCircle,
   CheckCircle2,
-  Eye,
-  Users,
-  Video,
-  Radio,
   RefreshCw,
-  LogOut,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -20,16 +14,11 @@ import {
   getYouTubeChannelInfo,
   getYouTubeLatestVideos,
   getYouTubeLiveStreamStatus,
-  formatNumber,
-  formatDuration,
   type YouTubeChannelInfo,
-  type YouTubeVideo,
-  type YouTubeLiveStreamStatus,
 } from "@/lib/youtube-oauth.functions";
 import {
   saveYouTubeChannel,
   saveYouTubeVideos,
-  disconnectYouTubeChannel,
 } from "@/lib/youtube-persistence.functions";
 
 interface YouTubeChannelConnectProps {
@@ -40,12 +29,7 @@ interface YouTubeChannelConnectProps {
 
 export function YouTubeChannelConnect({ isOpen, onOpenChange, onConnected }: YouTubeChannelConnectProps) {
   const [step, setStep] = useState<"connect" | "loading" | "connected">("connect");
-  const [channelInfo, setChannelInfo] = useState<YouTubeChannelInfo | null>(null);
-  const [latestVideos, setLatestVideos] = useState<YouTubeVideo[]>([]);
-  const [liveStatus, setLiveStatus] = useState<YouTubeLiveStreamStatus | null>(null);
   const [connecting, setConnecting] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
-  const [dbChannelId, setDbChannelId] = useState<string | null>(null);
 
   const exchangeCodeFn = useServerFn(exchangeOAuthCode);
   const getChannelInfoFn = useServerFn(getYouTubeChannelInfo);
@@ -53,7 +37,6 @@ export function YouTubeChannelConnect({ isOpen, onOpenChange, onConnected }: You
   const getLiveStatusFn = useServerFn(getYouTubeLiveStreamStatus);
   const saveChannelFn = useServerFn(saveYouTubeChannel);
   const saveVideosFn = useServerFn(saveYouTubeVideos);
-  const disconnectChannelFn = useServerFn(disconnectYouTubeChannel);
 
   const handleConnectClick = () => {
     const clientId = "796816914839-v0t7t9rd8vtcgns4pi6vq33sfkf44dvq.apps.googleusercontent.com";
@@ -72,10 +55,8 @@ export function YouTubeChannelConnect({ isOpen, onOpenChange, onConnected }: You
     authUrl.searchParams.set("access_type", "offline");
     authUrl.searchParams.set("prompt", "consent");
 
-    // Store the redirect URI in session storage for callback handling
     sessionStorage.setItem("youtube_oauth_redirect", redirectUri);
 
-    // Open OAuth consent screen
     const width = 500;
     const height = 600;
     const left = window.innerWidth / 2 - width / 2;
@@ -92,7 +73,6 @@ export function YouTubeChannelConnect({ isOpen, onOpenChange, onConnected }: You
       return;
     }
 
-    // Listen for OAuth code from callback
     const handleMessage = async (event: MessageEvent) => {
       if (event.origin !== window.location.origin) return;
 
@@ -111,37 +91,27 @@ export function YouTubeChannelConnect({ isOpen, onOpenChange, onConnected }: You
             },
           });
 
-          // Store tokens securely (in production, use httpOnly cookies or secure storage)
           localStorage.setItem("youtube_access_token", tokens.access_token);
           if (tokens.refresh_token) {
             localStorage.setItem("youtube_refresh_token", tokens.refresh_token);
           }
           localStorage.setItem("youtube_token_expires", String(Date.now() + tokens.expires_in * 1000));
 
-          // Fetch channel info
           const info = await getChannelInfoFn({ data: { access_token: tokens.access_token } });
-          setChannelInfo(info);
-
-          // Fetch latest videos
           const videos = await getVideosFn({ data: { access_token: tokens.access_token, maxResults: 5 } });
-          setLatestVideos(videos);
 
-          // Fetch live status
           try {
-            const live = await getLiveStatusFn({ data: { access_token: tokens.access_token } });
-            setLiveStatus(live);
+            await getLiveStatusFn({ data: { access_token: tokens.access_token } });
           } catch {
-            setLiveStatus({ isLive: false });
+            // Ignore live status errors
           }
 
-          // Get current user
           const {
             data: { session },
           } = await supabase.auth.getSession();
 
           if (session?.user.id) {
             try {
-              // Save channel to database
               const saveResult = await saveChannelFn({
                 data: {
                   userId: session.user.id,
@@ -151,9 +121,6 @@ export function YouTubeChannelConnect({ isOpen, onOpenChange, onConnected }: You
                 },
               });
 
-              setDbChannelId(saveResult.channelId);
-
-              // Save videos to database
               if (saveResult.channelId) {
                 await saveVideosFn({
                   data: {
@@ -164,13 +131,15 @@ export function YouTubeChannelConnect({ isOpen, onOpenChange, onConnected }: You
               }
             } catch (persistError) {
               console.error("Failed to persist YouTube data:", persistError);
-              toast.warning("Channel connected but failed to save to database");
             }
           }
 
           setStep("connected");
           toast.success("YouTube channel connected successfully!");
+          
+          // Trigger immediate refresh of parent components
           if (onConnected) onConnected(info);
+          onOpenChange(false);
         } catch (error) {
           toast.error(error instanceof Error ? error.message : "Failed to connect YouTube channel");
           setStep("connect");
@@ -182,102 +151,20 @@ export function YouTubeChannelConnect({ isOpen, onOpenChange, onConnected }: You
 
     window.addEventListener("message", handleMessage);
 
-    // Cleanup after 10 minutes
     setTimeout(() => {
       window.removeEventListener("message", handleMessage);
     }, 10 * 60 * 1000);
   };
 
-  const handleRefresh = async () => {
-    if (!channelInfo) return;
-
-    setRefreshing(true);
-    try {
-      const accessToken = localStorage.getItem("youtube_access_token");
-      if (!accessToken) {
-        throw new Error("No access token found");
-      }
-
-      const info = await getChannelInfoFn({ data: { access_token: accessToken } });
-      setChannelInfo(info);
-
-      const videos = await getVideosFn({ data: { access_token: accessToken, maxResults: 5 } });
-      setLatestVideos(videos);
-
-      try {
-        const live = await getLiveStatusFn({ data: { access_token: accessToken } });
-        setLiveStatus(live);
-      } catch {
-        setLiveStatus({ isLive: false });
-      }
-
-      // Update database if we have a channel ID
-      if (dbChannelId) {
-        try {
-          const {
-            data: { session },
-          } = await supabase.auth.getSession();
-
-          if (session?.user.id) {
-            await saveChannelFn({
-              data: {
-                userId: session.user.id,
-                channelInfo: info,
-                accessToken: accessToken,
-              },
-            });
-
-            await saveVideosFn({
-              data: {
-                channelId: dbChannelId,
-                videos: videos,
-              },
-            });
-          }
-        } catch (persistError) {
-          console.error("Failed to update YouTube data in database:", persistError);
-        }
-      }
-
-      toast.success("Channel data refreshed!");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to refresh channel data");
-    } finally {
-      setRefreshing(false);
-    }
-  };
-
-  const handleDisconnect = async () => {
-    // Disconnect from database if we have a channel ID
-    if (dbChannelId) {
-      try {
-        await disconnectChannelFn({ data: { channelId: dbChannelId } });
-      } catch (error) {
-        console.error("Failed to disconnect channel from database:", error);
-      }
-    }
-
-    localStorage.removeItem("youtube_access_token");
-    localStorage.removeItem("youtube_refresh_token");
-    localStorage.removeItem("youtube_token_expires");
-    setChannelInfo(null);
-    setLatestVideos([]);
-    setLiveStatus(null);
-    setDbChannelId(null);
-    setStep("connect");
-    toast.success("YouTube channel disconnected");
-    onOpenChange(false);
-  };
-
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-md">
         {step === "connect" && (
           <>
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Youtube className="w-5 h-5 text-red-500" />
-                Connect Your YouTube Channel
+                Connect YouTube Channel
               </DialogTitle>
               <DialogDescription>
                 Sign in with your Google account to access YouTube channel analytics, upload videos, and manage live streams.
@@ -327,158 +214,6 @@ export function YouTubeChannelConnect({ isOpen, onOpenChange, onConnected }: You
             <div className="flex flex-col items-center justify-center py-12 gap-4">
               <Loader2 className="w-8 h-8 animate-spin text-[color:var(--gold)]" />
               <p className="text-sm text-muted-foreground">Fetching your channel information...</p>
-            </div>
-          </>
-        )}
-
-        {step === "connected" && channelInfo && (
-          <>
-            <DialogHeader>
-              <div className="flex items-start justify-between">
-                <div className="flex items-start gap-3">
-                  <img
-                    src={channelInfo.profileImageUrl}
-                    alt={channelInfo.title}
-                    className="w-12 h-12 rounded-full border border-[color:var(--gold)]/30"
-                  />
-                  <div>
-                    <DialogTitle>{channelInfo.title}</DialogTitle>
-                    <p className="text-xs text-muted-foreground mt-1">Channel ID: {channelInfo.channelId}</p>
-                  </div>
-                </div>
-                <button
-                  onClick={handleRefresh}
-                  disabled={refreshing}
-                  className="p-2 rounded-lg border border-border hover:border-[color:var(--gold)]/50 transition disabled:opacity-60"
-                  title="Refresh data"
-                >
-                  <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
-                </button>
-              </div>
-            </DialogHeader>
-
-            <div className="space-y-6">
-              {/* Channel Statistics */}
-              <div>
-                <h3 className="font-medium mb-3 text-sm">Channel Statistics</h3>
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="p-3 rounded-lg border border-[color:var(--gold)]/20 bg-card/40">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Users className="w-4 h-4 text-[color:var(--gold)]" />
-                      <span className="text-xs text-muted-foreground">Subscribers</span>
-                    </div>
-                    <p className="font-display text-lg text-[color:var(--gold)]">
-                      {formatNumber(channelInfo.subscriberCount)}
-                    </p>
-                  </div>
-                  <div className="p-3 rounded-lg border border-[color:var(--gold)]/20 bg-card/40">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Eye className="w-4 h-4 text-[color:var(--gold)]" />
-                      <span className="text-xs text-muted-foreground">Total Views</span>
-                    </div>
-                    <p className="font-display text-lg text-[color:var(--gold)]">
-                      {formatNumber(channelInfo.viewCount)}
-                    </p>
-                  </div>
-                  <div className="p-3 rounded-lg border border-[color:var(--gold)]/20 bg-card/40">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Video className="w-4 h-4 text-[color:var(--gold)]" />
-                      <span className="text-xs text-muted-foreground">Videos</span>
-                    </div>
-                    <p className="font-display text-lg text-[color:var(--gold)]">
-                      {formatNumber(channelInfo.videoCount)}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Live Stream Status */}
-              {liveStatus && (
-                <div>
-                  <h3 className="font-medium mb-3 text-sm">Live Stream Status</h3>
-                  {liveStatus.isLive ? (
-                    <div className="p-3 rounded-lg border border-red-500/30 bg-red-500/10">
-                      <div className="flex items-start gap-3">
-                        <div className="w-2 h-2 rounded-full bg-red-500 mt-1.5 flex-shrink-0 animate-pulse" />
-                        <div className="text-sm">
-                          <p className="font-medium text-red-400 mb-1">{liveStatus.title}</p>
-                          <p className="text-xs text-red-300">
-                            {liveStatus.viewerCount} viewers • Started {new Date(liveStatus.startTime!).toLocaleString()}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="p-3 rounded-lg border border-muted-foreground/20 bg-card/40">
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Radio className="w-4 h-4" />
-                        <span>No active live stream</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Latest Videos */}
-              {latestVideos.length > 0 && (
-                <div>
-                  <h3 className="font-medium mb-3 text-sm">Latest Videos</h3>
-                  <div className="space-y-2 max-h-64 overflow-y-auto">
-                    {latestVideos.map((video) => (
-                      <a
-                        key={video.videoId}
-                        href={`https://youtube.com/watch?v=${video.videoId}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex gap-3 p-2 rounded-lg border border-border hover:border-[color:var(--gold)]/50 bg-card/40 transition group"
-                      >
-                        <img
-                          src={video.thumbnailUrl}
-                          alt={video.title}
-                          className="w-16 h-16 rounded object-cover flex-shrink-0"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-medium group-hover:text-[color:var(--gold)] transition line-clamp-2">
-                            {video.title}
-                          </p>
-                          <p className="text-[10px] text-muted-foreground mt-1">
-                            {formatNumber(video.viewCount)} views • {new Date(video.publishedAt).toLocaleDateString()}
-                          </p>
-                        </div>
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Channel Description */}
-              {channelInfo.description && (
-                <div>
-                  <h3 className="font-medium mb-3 text-sm">About Channel</h3>
-                  <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3">
-                    {channelInfo.description}
-                  </p>
-                </div>
-              )}
-
-              {/* Channel Link */}
-              <a
-                href={`https://youtube.com/channel/${channelInfo.channelId}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full py-2 rounded-lg border border-[color:var(--gold)]/50 hover:border-[color:var(--gold)] text-center text-sm font-medium transition"
-              >
-                View on YouTube
-              </a>
-
-              {/* Disconnect Button */}
-              <button
-                onClick={handleDisconnect}
-                className="w-full py-2 rounded-lg border border-red-500/50 hover:border-red-500 text-red-500 hover:bg-red-500/10 text-sm font-medium transition flex items-center justify-center gap-2"
-              >
-                <LogOut className="w-4 h-4" />
-                Disconnect Channel
-              </button>
             </div>
           </>
         )}

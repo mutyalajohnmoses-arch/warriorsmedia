@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate, Link, useRouter } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
@@ -27,7 +27,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getInstagramStats, getInstagramProfiles } from "@/lib/instagram.functions";
 import { YouTubeDownloader, YouTubeMetaExtractor } from "@/components/youtube-tools";
 import { YouTubeCreateMenu } from "@/components/youtube-create-menu";
-import { YouTubeChannelStats } from "@/components/youtube-channel-stats";
+import { getConnectedYouTubeChannel } from "@/lib/youtube-persistence.functions";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
@@ -41,7 +41,6 @@ export const Route = createFileRoute("/dashboard")({
 });
 
 const IG_USERNAME = "mutyala_john_moses";
-
 
 const modules = [
   {
@@ -111,30 +110,16 @@ const teamMembers = [
 
 function Home() {
   const navigate = useNavigate();
-  const router = useRouter();
   const [profile, setProfile] = useState<{ full_name: string | null; email: string | null } | null>(
     null,
   );
   const [loading, setLoading] = useState(true);
   const [teamProfiles, setTeamProfiles] = useState<Record<string, any>>({});
   const [youtubeConnected, setYoutubeConnected] = useState(false);
-  const [hasYouTubeChannel, setHasYouTubeChannel] = useState(false);
-
-  const handleModuleClick = (title: string) => {
-    if (title === "Live Streaming") {
-      if (!youtubeConnected) {
-        // Show toast or notification to connect YouTube first
-        console.log("Please connect YouTube channel first");
-        return;
-      }
-      navigate({ to: "/live-streaming-setup" });
-    } else {
-      // Handle other modules as needed
-    }
-  };
 
   const fetchIg = useServerFn(getInstagramStats);
   const fetchTeamProfilesServerFn = useServerFn(getInstagramProfiles);
+  const getChannelFn = useServerFn(getConnectedYouTubeChannel);
 
   useEffect(() => {
     const load = async () => {
@@ -157,34 +142,16 @@ function Home() {
   }, [navigate]);
 
   useEffect(() => {
-    // Check if YouTube is already connected
-    const token = localStorage.getItem("youtube_access_token");
-    if (token) {
-      setYoutubeConnected(true);
-    }
-  }, []);
-
-  useEffect(() => {
-    // Check for YouTube channel in database
-    const checkChannel = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      if (session) {
-        const { data } = await supabase
-          .from("youtube_channels")
-          .select("id")
-          .eq("user_id", session.user.id)
-          .eq("is_connected", true)
-          .maybeSingle();
-
-        setHasYouTubeChannel(!!data);
+    const checkYouTube = async () => {
+      try {
+        const channel = await getChannelFn({ data: { userId: "" } });
+        setYoutubeConnected(!!channel);
+      } catch (err) {
+        console.error("Failed to check YouTube connection:", err);
       }
     };
-
-    checkChannel();
-  }, []);
+    checkYouTube();
+  }, [getChannelFn]);
 
   useEffect(() => {
     const load = async () => {
@@ -199,7 +166,6 @@ function Home() {
     load();
   }, [fetchTeamProfilesServerFn]);
 
-
   const signOut = async () => {
     await supabase.auth.signOut();
     navigate({ to: "/" });
@@ -213,9 +179,15 @@ function Home() {
     refetchInterval: 30_000,
     refetchOnWindowFocus: true,
   });
+  
   const fmt = (n: number | null | undefined) =>
     typeof n === "number" ? n.toLocaleString("en-IN") : "—";
 
+  const handleModuleClick = (title: string) => {
+    if (title === "Live Streaming") {
+      navigate({ to: "/live-streaming-setup" });
+    }
+  };
 
   return (
     <main className="min-h-screen relative overflow-hidden bg-background">
@@ -236,9 +208,8 @@ function Home() {
         <div className="flex items-center gap-2">
           <YouTubeCreateMenu 
             channelConnected={youtubeConnected}
-            onChannelConnect={() => {
-              setYoutubeConnected(true);
-            }}
+            onChannelConnect={() => setYoutubeConnected(true)}
+            onChannelDisconnect={() => setYoutubeConnected(false)}
           />
           <button
             onClick={() => {
@@ -322,25 +293,11 @@ function Home() {
         </a>
       </section>
 
-      {/* YouTube Channel Stats */}
-      {hasYouTubeChannel && (
-        <section className="px-6 md:px-10 pb-10 max-w-5xl mx-auto">
-          <div className="mb-6">
-            <h2 className="font-display text-2xl mb-2">YouTube Channel</h2>
-            <p className="text-muted-foreground text-sm">Your connected channel analytics and latest videos</p>
-          </div>
-          <YouTubeChannelStats onChannelFound={setHasYouTubeChannel} />
-        </section>
-      )}
-
       {/* YouTube tools */}
       <section className="px-6 md:px-10 pb-4 max-w-5xl mx-auto space-y-4">
         <YouTubeDownloader />
         <YouTubeMetaExtractor />
       </section>
-
-
-
 
       {/* Modules grid */}
       <section className="px-6 md:px-10 pb-20 max-w-5xl mx-auto">
@@ -388,47 +345,26 @@ function Home() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {teamMembers.map(({ name, roles, icon: Icon, instagram, instagramUrl }) => {
-            const profile = teamProfiles[instagram];
-            const profilePic = profile?.profilePic;
-            return (
-              <a
-                key={name}
-                href={instagramUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-6 rounded-2xl border border-border bg-card/50 backdrop-blur hover:border-[color:var(--gold)]/50 transition group cursor-pointer"
-              >
-                <div className="flex items-start gap-4">
-                  <div className="w-14 h-14 rounded-xl border border-[color:var(--gold)]/30 flex items-center justify-center bg-background/40 shrink-0 overflow-hidden">
-                    {profilePic ? (
-                      <img
-                        src={profilePic}
-                        alt={name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <Icon className="w-6 h-6 text-[color:var(--gold)]" strokeWidth={1.5} />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-medium text-lg mb-1 group-hover:text-gold-gradient transition">{name}</h3>
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-[color:var(--gold-soft)] mb-2">@{instagram}</p>
-                    <div className="flex flex-wrap gap-2">
-                      {roles.map((role) => (
-                        <span
-                          key={role}
-                          className="text-[10px] uppercase tracking-[0.15em] px-2 py-1 rounded-full border border-[color:var(--gold)]/30 text-[color:var(--gold-soft)] bg-background/40"
-                        >
-                          {role}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </a>
-            );
-          })}
+          {teamMembers.map(({ name, roles, instagram }) => (
+            <div
+              key={name}
+              className="p-5 rounded-2xl border border-border bg-card/40 backdrop-blur flex items-center gap-4"
+            >
+              <div className="w-12 h-12 rounded-full border border-[color:var(--gold)]/30 bg-background/60 flex items-center justify-center overflow-hidden">
+                {teamProfiles[instagram]?.profile_pic_url ? (
+                  <img src={teamProfiles[instagram].profile_pic_url} alt={name} className="w-full h-full object-cover" />
+                ) : (
+                  <Users className="w-6 h-6 text-[color:var(--gold)]/40" />
+                )}
+              </div>
+              <div>
+                <h3 className="font-medium text-sm">{name}</h3>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">
+                  {roles.join(" · ")}
+                </p>
+              </div>
+            </div>
+          ))}
         </div>
       </section>
     </main>
