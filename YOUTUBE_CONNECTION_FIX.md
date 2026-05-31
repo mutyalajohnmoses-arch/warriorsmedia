@@ -46,9 +46,28 @@ The `youtube_token_expires` field in localStorage was set but never checked befo
 - No proactive refresh before operations that required valid tokens
 - 401 errors only discovered at operation time, not at initialization
 
-## Solution Implementation
+## Deep Fix: OAuth Callback and Token Persistence
 
-### 1. **Centralized Token Manager** (`youtube-token-manager.functions.ts`)
+After further investigation into why the connection would fail even after granting Google access, several critical issues were identified and fixed in the OAuth flow itself.
+
+### 1. **Robust Message Communication**
+The communication between the OAuth popup and the main window was fragile.
+- **Issue**: The callback was only posting to one origin, which could fail if the environment (e.g., Lovable vs. local) caused origin mismatches.
+- **Fix**: Updated `auth.google.callback.tsx` to post messages to both the decoded `openerOrigin` and the current `window.location.origin` to ensure delivery.
+- **Fix**: Relaxed the origin check in `youtube-channel-connect.tsx` to accept messages from either the expected redirect origin or the current window origin.
+
+### 2. **Enhanced State Persistence and Logging**
+The flow would often "reset" to the initial state if any error occurred during the multi-step connection process.
+- **Issue**: Lack of detailed logging made it impossible to see where the flow broke (e.g., token exchange, channel fetch, or DB save).
+- **Fix**: Added numbered, sequential logging (1-7) to the entire `YouTubeChannelConnect` flow to track exactly how far the process gets.
+- **Fix**: Added explicit validation for every server function response to prevent "silent" failures that reset the UI.
+
+### 3. **Guaranteed Refresh Tokens**
+Google only returns a `refresh_token` the first time a user consents to the specific scopes.
+- **Issue**: If a user reconnected their channel, Google might not return a refresh token, causing future token refreshes to fail.
+- **Fix**: Added `prompt=consent select_account` to the OAuth URL parameters. This forces Google to show the consent screen and account picker, ensuring a `refresh_token` is returned even on reconnection.
+
+### 4. **Centralized Token Manager** (`youtube-token-manager.functions.ts`)
 Created a new server function `getOrRefreshYouTubeToken` that:
 - Queries the database for the connected YouTube channel
 - Checks if the token is expired or expiring soon (within 5 minutes)
