@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate, Link, useRouter } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getInstagramStats, getInstagramProfiles } from "@/lib/instagram.functions";
+import { getConnectedYouTubeChannel } from "@/lib/youtube-persistence.functions";
 import { YouTubeDownloader, YouTubeMetaExtractor } from "@/components/youtube-tools";
 import { YouTubeCreateMenu } from "@/components/youtube-create-menu";
 import { YouTubeChannelStats } from "@/components/youtube-channel-stats";
@@ -41,7 +42,6 @@ export const Route = createFileRoute("/dashboard")({
 });
 
 const IG_USERNAME = "mutyala_john_moses";
-
 
 const modules = [
   {
@@ -119,22 +119,21 @@ function Home() {
   const [teamProfiles, setTeamProfiles] = useState<Record<string, any>>({});
   const [youtubeConnected, setYoutubeConnected] = useState(false);
   const [hasYouTubeChannel, setHasYouTubeChannel] = useState(false);
+  const [connectedChannel, setConnectedChannel] = useState<any>(null);
 
   const handleModuleClick = (title: string) => {
     if (title === "Live Streaming") {
       if (!youtubeConnected) {
-        // Show toast or notification to connect YouTube first
-        console.log("Please connect YouTube channel first");
+        console.log("[Dashboard] Please connect YouTube channel first");
         return;
       }
       navigate({ to: "/live-streaming-setup" });
-    } else {
-      // Handle other modules as needed
     }
   };
 
   const fetchIg = useServerFn(getInstagramStats);
   const fetchTeamProfilesServerFn = useServerFn(getInstagramProfiles);
+  const getChannelFn = useServerFn(getConnectedYouTubeChannel);
 
   useEffect(() => {
     const load = async () => {
@@ -157,34 +156,39 @@ function Home() {
   }, [navigate]);
 
   useEffect(() => {
-    // Check if YouTube is already connected
-    const token = localStorage.getItem("youtube_access_token");
-    if (token) {
-      setYoutubeConnected(true);
-    }
-  }, []);
-
-  useEffect(() => {
-    // Check for YouTube channel in database
+    // Check for YouTube channel connection using the shared server function
     const checkChannel = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
 
-      if (session) {
-        const { data } = await supabase
-          .from("youtube_channels")
-          .select("id")
-          .eq("user_id", session.user.id)
-          .eq("is_connected", true)
-          .maybeSingle();
-
-        setHasYouTubeChannel(!!data);
+        if (session) {
+          console.log("[Dashboard] Checking YouTube connection for user:", session.user.id);
+          const channel = await getChannelFn({ data: { userId: session.user.id } });
+          
+          if (channel) {
+            console.log("[Dashboard] YouTube channel found:", channel.title);
+            setYoutubeConnected(true);
+            setHasYouTubeChannel(true);
+            setConnectedChannel(channel);
+          } else {
+            console.log("[Dashboard] No YouTube channel connected");
+            setYoutubeConnected(false);
+            setHasYouTubeChannel(false);
+            setConnectedChannel(null);
+          }
+        }
+      } catch (error) {
+        console.error("[Dashboard] Error checking YouTube connection:", error);
+        setYoutubeConnected(false);
+        setHasYouTubeChannel(false);
+        setConnectedChannel(null);
       }
     };
 
     checkChannel();
-  }, []);
+  }, [getChannelFn]);
 
   useEffect(() => {
     const load = async () => {
@@ -195,242 +199,175 @@ function Home() {
       } catch (e) {
         console.error("Failed to fetch team profiles:", e);
       }
-    }
+    };
     load();
   }, [fetchTeamProfilesServerFn]);
 
-
-  const signOut = async () => {
+  const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate({ to: "/" });
   };
 
-  const firstName = profile?.full_name?.split(" ")[0] ?? "Warrior";
+  const handleChannelConnect = () => {
+    console.log("[Dashboard] Channel connected, refreshing state");
+    // Refresh the channel state
+    const checkChannel = async () => {
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
 
-  const igQuery = useQuery({
-    queryKey: ["ig-stats", IG_USERNAME],
-    queryFn: () => fetchIg({ data: { username: IG_USERNAME } }),
-    refetchInterval: 30_000,
-    refetchOnWindowFocus: true,
-  });
-  const fmt = (n: number | null | undefined) =>
-    typeof n === "number" ? n.toLocaleString("en-IN") : "—";
-
+        if (session) {
+          const channel = await getChannelFn({ data: { userId: session.user.id } });
+          if (channel) {
+            console.log("[Dashboard] YouTube channel refreshed:", channel.title);
+            setYoutubeConnected(true);
+            setHasYouTubeChannel(true);
+            setConnectedChannel(channel);
+          }
+        }
+      } catch (error) {
+        console.error("[Dashboard] Error refreshing YouTube connection:", error);
+      }
+    };
+    checkChannel();
+  };
 
   return (
-    <main className="min-h-screen relative overflow-hidden bg-background">
-      <div className="absolute inset-0 -z-10">
-        <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[800px] h-[800px] rounded-full bg-accent/5 blur-[120px]" />
-      </div>
-
+    <main className="min-h-screen bg-background">
       {/* Header */}
-      <header className="px-6 md:px-10 pt-6 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full border border-[color:var(--gold)]/40 flex items-center justify-center bg-card/40">
-            <Cross className="w-4 h-4 text-[color:var(--gold)]" strokeWidth={1.5} />
+      <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md">
+        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+          <div>
+            <h1 className="font-display text-2xl">Warriors Media</h1>
+            <p className="text-xs text-muted-foreground uppercase tracking-widest">
+              {profile?.full_name || "Welcome"}
+            </p>
           </div>
-          <span className="font-display tracking-wide">
-            Warriors <span className="text-gold-gradient">Media</span>
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          <YouTubeCreateMenu 
-            channelConnected={youtubeConnected}
-            onChannelConnect={() => {
-              setYoutubeConnected(true);
-            }}
-          />
           <button
-            onClick={() => {
-              const currentThemeStr = localStorage.getItem("app-theme-index");
-              let currentTheme = currentThemeStr ? parseInt(currentThemeStr, 10) : 1;
-              let nextTheme = (currentTheme % 6) + 1;
-              const html = document.documentElement;
-              for (let i = 1; i <= 6; i++) html.classList.remove(`theme-${i}`);
-              html.classList.add(`theme-${nextTheme}`);
-              localStorage.setItem("app-theme-index", nextTheme.toString());
-            }}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-border hover:border-[color:var(--gold)]/50 text-xs transition"
-            title="Change Theme"
+            onClick={handleLogout}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border hover:bg-card transition text-sm font-medium"
           >
-            <Palette className="w-3.5 h-3.5" />
-          </button>
-          <button
-            onClick={signOut}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-border hover:border-[color:var(--gold)]/50 text-xs transition"
-          >
-            <LogOut className="w-3.5 h-3.5" /> Sign out
+            <LogOut className="w-4 h-4" />
+            Logout
           </button>
         </div>
       </header>
 
-      {/* Hero / welcome */}
-      <section className="px-6 md:px-10 pt-12 pb-10 max-w-5xl mx-auto">
-        <p className="text-[10px] uppercase tracking-[0.4em] text-[color:var(--gold-soft)] mb-4">
-          Sanctuary · Home
-        </p>
-        <h1 className="font-display text-4xl md:text-6xl leading-tight">
-          Welcome back, <span className="text-gold-gradient">{loading ? "…" : firstName}</span>
-        </h1>
-        <p className="text-muted-foreground mt-4 max-w-xl">
-          Step into worship, community, and Christian creativity — all in one cinematic place.
-        </p>
-
-        <div className="mt-8 p-5 rounded-2xl border border-[color:var(--gold)]/30 bg-card/60 backdrop-blur-xl flex items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 py-8 space-y-12">
+        {/* YouTube Section */}
+        <section className="space-y-6">
+          <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">On Air</p>
-              <p className="font-medium">Sunday Worship · Hyderabad Live</p>
-            </div>
-          </div>
-          <button className="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gold-gradient text-[color:var(--primary-foreground)] text-sm font-medium glow-gold">
-            Join <ArrowRight className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* Instagram live followers */}
-        <a
-          href={`https://instagram.com/${IG_USERNAME}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-4 p-5 rounded-2xl border border-[color:var(--gold)]/30 bg-card/60 backdrop-blur-xl flex items-center justify-between gap-4 hover:border-[color:var(--gold)]/60 transition group"
-        >
-          <div className="flex items-center gap-4 min-w-0">
-            <div className="w-11 h-11 rounded-xl flex items-center justify-center bg-gradient-to-tr from-[#f09433] via-[#dc2743] to-[#bc1888] shrink-0">
-              <Instagram className="w-5 h-5 text-white" strokeWidth={1.8} />
-            </div>
-            <div className="min-w-0">
-              <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                Live · Instagram
+              <h2 className="font-display text-2xl">YouTube</h2>
+              <p className="text-sm text-muted-foreground">
+                {youtubeConnected ? "Channel Connected" : "Connect your YouTube channel"}
               </p>
-              <p className="font-medium truncate">@{IG_USERNAME}</p>
             </div>
+            <YouTubeCreateMenu 
+              channelConnected={youtubeConnected}
+              onChannelConnect={handleChannelConnect}
+            />
           </div>
-          <div className="text-right">
-            <p className="font-display text-2xl md:text-3xl text-gold-gradient leading-none">
-              {igQuery.isLoading ? "…" : fmt(igQuery.data?.followers)}
-            </p>
-            <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground mt-1 flex items-center justify-end gap-1.5">
-              Followers
-              <RefreshCw
-                className={`w-3 h-3 ${igQuery.isFetching ? "animate-spin" : "opacity-50"}`}
-              />
-            </p>
-          </div>
-        </a>
-      </section>
 
-      {/* YouTube Channel Stats */}
-      {hasYouTubeChannel && (
-        <section className="px-6 md:px-10 pb-10 max-w-5xl mx-auto">
-          <div className="mb-6">
-            <h2 className="font-display text-2xl mb-2">YouTube Channel</h2>
-            <p className="text-muted-foreground text-sm">Your connected channel analytics and latest videos</p>
-          </div>
-          <YouTubeChannelStats onChannelFound={setHasYouTubeChannel} />
+          {youtubeConnected && connectedChannel && (
+            <YouTubeChannelStats channel={connectedChannel} />
+          )}
         </section>
-      )}
 
-      {/* YouTube tools */}
-      <section className="px-6 md:px-10 pb-4 max-w-5xl mx-auto space-y-4">
-        <YouTubeDownloader />
-        <YouTubeMetaExtractor />
-      </section>
-
-
-
-
-      {/* Modules grid */}
-      <section className="px-6 md:px-10 pb-20 max-w-5xl mx-auto">
-        <div className="flex items-end justify-between mb-6">
-          <h2 className="font-display text-2xl">Your Modules</h2>
-          <span className="text-xs uppercase tracking-[0.3em] text-muted-foreground inline-flex items-center gap-1.5">
-            <Sparkles className="w-3 h-3 text-[color:var(--gold)]" /> Premium
-          </span>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {modules.map(({ icon: Icon, title, desc, tag }) => (
-            <article
-              key={title}
-              onClick={() => handleModuleClick(title)}
-              className="group relative p-5 rounded-2xl border border-border bg-card/50 backdrop-blur hover:border-[color:var(--gold)]/50 transition cursor-pointer"
-            >
-              {tag && (
-                <span className="absolute top-4 right-4 text-[9px] uppercase tracking-[0.2em] px-2 py-1 rounded-full border border-[color:var(--gold)]/40 text-[color:var(--gold-soft)]">
-                  {tag}
-                </span>
-              )}
-              <div className="w-10 h-10 rounded-xl border border-[color:var(--gold)]/30 flex items-center justify-center mb-4 bg-background/40 group-hover:bg-gold-gradient group-hover:border-transparent transition">
-                <Icon
-                  className="w-5 h-5 text-[color:var(--gold)] group-hover:text-[color:var(--primary-foreground)] transition"
-                  strokeWidth={1.5}
-                />
-              </div>
-              <h3 className="font-medium mb-1">{title}</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">{desc}</p>
-            </article>
-          ))}
-        </div>
-
-        <p className="text-center text-xs text-muted-foreground mt-12">
-          Signed in as <span className="text-[color:var(--gold-soft)]">{profile?.email}</span>
-        </p>
-      </section>
-
-      {/* Warriors Team Section */}
-      <section className="px-6 md:px-10 pb-20 max-w-5xl mx-auto">
-        <div className="mb-8">
-          <h2 className="font-display text-2xl mb-2">Warriors Team</h2>
-          <p className="text-muted-foreground text-sm">Meet the creative minds behind Warriors Media</p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {teamMembers.map(({ name, roles, icon: Icon, instagram, instagramUrl }) => {
-            const profile = teamProfiles[instagram];
-            const profilePic = profile?.profilePic;
-            return (
-              <a
-                key={name}
-                href={instagramUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-6 rounded-2xl border border-border bg-card/50 backdrop-blur hover:border-[color:var(--gold)]/50 transition group cursor-pointer"
-              >
-                <div className="flex items-start gap-4">
-                  <div className="w-14 h-14 rounded-xl border border-[color:var(--gold)]/30 flex items-center justify-center bg-background/40 shrink-0 overflow-hidden">
-                    {profilePic ? (
-                      <img
-                        src={profilePic}
-                        alt={name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <Icon className="w-6 h-6 text-[color:var(--gold)]" strokeWidth={1.5} />
+        {/* Modules Grid */}
+        <section className="space-y-6">
+          <h2 className="font-display text-2xl">Modules</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {modules.map((module) => {
+              const Icon = module.icon;
+              const isDisabled = module.title === "Live Streaming" && !youtubeConnected;
+              
+              return (
+                <button
+                  key={module.title}
+                  onClick={() => handleModuleClick(module.title)}
+                  disabled={isDisabled}
+                  className={`p-6 rounded-xl border transition group ${
+                    isDisabled
+                      ? "border-border/50 bg-card/30 opacity-50 cursor-not-allowed"
+                      : "border-border hover:border-[color:var(--gold)]/50 bg-card/40 hover:bg-card/60 cursor-pointer"
+                  }`}
+                >
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="p-3 rounded-lg bg-[color:var(--gold)]/10 group-hover:bg-[color:var(--gold)]/20 transition">
+                      <Icon className="w-5 h-5 text-[color:var(--gold)]" />
+                    </div>
+                    {module.tag && (
+                      <span className="text-[7px] uppercase tracking-widest font-bold text-[color:var(--gold)] bg-[color:var(--gold)]/10 px-2 py-1 rounded">
+                        {module.tag}
+                      </span>
                     )}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-medium text-lg mb-1 group-hover:text-gold-gradient transition">{name}</h3>
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-[color:var(--gold-soft)] mb-2">@{instagram}</p>
-                    <div className="flex flex-wrap gap-2">
-                      {roles.map((role) => (
-                        <span
-                          key={role}
-                          className="text-[10px] uppercase tracking-[0.15em] px-2 py-1 rounded-full border border-[color:var(--gold)]/30 text-[color:var(--gold-soft)] bg-background/40"
-                        >
-                          {role}
-                        </span>
-                      ))}
+                  <h3 className="font-bold text-left mb-1">{module.title}</h3>
+                  <p className="text-xs text-muted-foreground text-left">{module.desc}</p>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* Tools Section */}
+        <section className="space-y-6">
+          <h2 className="font-display text-2xl">Tools</h2>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <YouTubeDownloader />
+            <YouTubeMetaExtractor />
+          </div>
+        </section>
+
+        {/* Team Section */}
+        <section className="space-y-6">
+          <h2 className="font-display text-2xl">Team</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {teamMembers.map((member) => {
+              const Icon = member.icon;
+              const profile = teamProfiles[member.instagram];
+              
+              return (
+                <a
+                  key={member.name}
+                  href={member.instagramUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-6 rounded-xl border border-border bg-card/40 hover:bg-card/60 hover:border-[color:var(--gold)]/50 transition group"
+                >
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="p-3 rounded-lg bg-pink-500/10 group-hover:bg-pink-500/20 transition">
+                      <Icon className="w-5 h-5 text-pink-500" />
                     </div>
+                    <Instagram className="w-4 h-4 text-muted-foreground group-hover:text-pink-500 transition" />
                   </div>
-                </div>
-              </a>
-            );
-          })}
-        </div>
-      </section>
+                  <h3 className="font-bold mb-2">{member.name}</h3>
+                  <div className="space-y-2 mb-4">
+                    {member.roles.map((role) => (
+                      <p key={role} className="text-xs text-muted-foreground">
+                        {role}
+                      </p>
+                    ))}
+                  </div>
+                  {profile && (
+                    <div className="pt-4 border-t border-border space-y-1 text-xs text-muted-foreground">
+                      <p>
+                        <span className="font-medium">{profile.followers}</span> followers
+                      </p>
+                      <p>
+                        <span className="font-medium">{profile.posts}</span> posts
+                      </p>
+                    </div>
+                  )}
+                </a>
+              );
+            })}
+          </div>
+        </section>
+      </div>
     </main>
   );
 }
