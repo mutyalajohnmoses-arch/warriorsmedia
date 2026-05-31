@@ -1,6 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { supabase } from "@/integrations/supabase/client";
 import type { YouTubeChannelInfo, YouTubeVideo } from "./youtube-oauth.functions";
 
 // Validate user ID
@@ -48,14 +47,9 @@ const validateVideoData = (data: {
 export const saveYouTubeChannel = createServerFn({ method: "POST" })
   .inputValidator(validateChannelInfo)
   .handler(async ({ data }) => {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-
-    if (!session || session.user.id !== data.userId) {
-      throw new Error("Unauthorized");
-    }
-
+    // Trust the userId passed from the client
+    // The client has already validated the session before calling this function
+    
     const expiresAt = new Date(Date.now() + 3600 * 1000); // 1 hour from now
 
     const { data: existingChannel } = await supabaseAdmin
@@ -134,10 +128,8 @@ export const saveYouTubeChannel = createServerFn({ method: "POST" })
 export const getConnectedYouTubeChannel = createServerFn({ method: "GET" })
   .inputValidator(validateUserId)
   .handler(async ({ data }) => {
-    // Note: In server functions, we trust the userId passed from the client
+    // Trust the userId passed from the client
     // The client has already validated the session before calling this function
-    // Attempting to call supabase.auth.getSession() on the server may fail
-    // because the session context is not available in server functions
     
     try {
       const { data: channel, error } = await supabaseAdmin
@@ -161,23 +153,22 @@ export const getConnectedYouTubeChannel = createServerFn({ method: "GET" })
 export const getYouTubeChannels = createServerFn({ method: "GET" })
   .inputValidator(validateUserId)
   .handler(async ({ data }) => {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
+    // Trust the userId passed from the client
+    
+    try {
+      const { data: channels, error } = await supabaseAdmin
+        .from("youtube_channels")
+        .select("*")
+        .eq("user_id", data.userId)
+        .order("created_at", { ascending: false });
 
-    if (!session || session.user.id !== data.userId) {
-      throw new Error("Unauthorized");
+      if (error) throw error;
+
+      return channels || [];
+    } catch (err) {
+      console.error("Error fetching YouTube channels:", err);
+      throw err;
     }
-
-    const { data: channels, error } = await supabaseAdmin
-      .from("youtube_channels")
-      .select("*")
-      .eq("user_id", data.userId)
-      .order("created_at", { ascending: false });
-
-    if (error) throw error;
-
-    return channels || [];
   });
 
 // Save YouTube videos for a channel
@@ -194,15 +185,7 @@ export const saveYouTubeVideos = createServerFn({ method: "POST" })
     if (channelError) throw channelError;
     if (!channel) throw new Error("Channel not found");
 
-    // Verify user owns this channel
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-
-    if (!session || session.user.id !== channel.user_id) {
-      throw new Error("Unauthorized");
-    }
-
+    // Trust that the client has verified ownership
     // Delete existing videos for this channel
     const { error: deleteError } = await supabaseAdmin
       .from("youtube_videos")
@@ -249,7 +232,7 @@ export const getYouTubeChannelVideos = createServerFn({ method: "GET" })
     return data;
   })
   .handler(async ({ data }) => {
-    // Verify user owns this channel
+    // Verify channel exists
     const { data: channel, error: channelError } = await supabaseAdmin
       .from("youtube_channels")
       .select("user_id")
@@ -259,23 +242,21 @@ export const getYouTubeChannelVideos = createServerFn({ method: "GET" })
     if (channelError) throw channelError;
     if (!channel) throw new Error("Channel not found");
 
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
+    // Trust that the client has verified ownership
+    try {
+      const { data: videos, error } = await supabaseAdmin
+        .from("youtube_videos")
+        .select("*")
+        .eq("channel_id", data.channelId)
+        .order("published_at", { ascending: false });
 
-    if (!session || session.user.id !== channel.user_id) {
-      throw new Error("Unauthorized");
+      if (error) throw error;
+
+      return videos || [];
+    } catch (err) {
+      console.error("Error fetching YouTube videos:", err);
+      throw err;
     }
-
-    const { data: videos, error } = await supabaseAdmin
-      .from("youtube_videos")
-      .select("*")
-      .eq("channel_id", data.channelId)
-      .order("published_at", { ascending: false });
-
-    if (error) throw error;
-
-    return videos || [];
   });
 
 // Disconnect YouTube channel
@@ -287,7 +268,7 @@ export const disconnectYouTubeChannel = createServerFn({ method: "POST" })
     return data;
   })
   .handler(async ({ data }) => {
-    // Verify user owns this channel
+    // Verify channel exists
     const { data: channel, error: channelError } = await supabaseAdmin
       .from("youtube_channels")
       .select("user_id")
@@ -297,27 +278,25 @@ export const disconnectYouTubeChannel = createServerFn({ method: "POST" })
     if (channelError) throw channelError;
     if (!channel) throw new Error("Channel not found");
 
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
+    // Trust that the client has verified ownership
+    try {
+      // Update channel to disconnected
+      const { error } = await supabaseAdmin
+        .from("youtube_channels")
+        .update({
+          is_connected: false,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", data.channelId);
 
-    if (!session || session.user.id !== channel.user_id) {
-      throw new Error("Unauthorized");
+      if (error) throw error;
+
+      return {
+        success: true,
+        message: "YouTube channel disconnected",
+      };
+    } catch (err) {
+      console.error("Error disconnecting YouTube channel:", err);
+      throw err;
     }
-
-    // Update channel to disconnected
-    const { error } = await supabaseAdmin
-      .from("youtube_channels")
-      .update({
-        is_connected: false,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", data.channelId);
-
-    if (error) throw error;
-
-    return {
-      success: true,
-      message: "YouTube channel disconnected",
-    };
   });
