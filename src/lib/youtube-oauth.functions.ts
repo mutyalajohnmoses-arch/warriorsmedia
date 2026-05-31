@@ -43,6 +43,28 @@ export type YouTubeLiveStreamStatus = {
   viewerCount?: number;
 };
 
+type YouTubeVideoStatsItem = {
+  id: string;
+  statistics?: {
+    viewCount?: string;
+    likeCount?: string;
+    commentCount?: string;
+  };
+  contentDetails?: {
+    duration?: string;
+  };
+};
+
+function maskToken(token: string | undefined) {
+  if (!token) return { received: false };
+  return {
+    received: true,
+    length: token.length,
+    prefix: token.slice(0, 8),
+    suffix: token.slice(-4),
+  };
+}
+
 // Validate OAuth code
 const validateOAuthCode = (data: { code: string; redirectUri: string }) => {
   if (!data?.code || typeof data.code !== "string") {
@@ -65,6 +87,13 @@ export const exchangeOAuthCode = createServerFn({ method: "POST" })
       throw new Error("Google OAuth credentials not configured");
     }
 
+    console.log("[exchangeOAuthCode] Exchanging Google OAuth code", {
+      redirectUri: data.redirectUri,
+      codeLength: data.code.length,
+      hasClientId: Boolean(clientId),
+      hasClientSecret: Boolean(clientSecret),
+    });
+
     const response = await fetch("https://oauth2.googleapis.com/token", {
       method: "POST",
       headers: {
@@ -79,12 +108,26 @@ export const exchangeOAuthCode = createServerFn({ method: "POST" })
       }).toString(),
     });
 
+    console.log("[exchangeOAuthCode] Google token endpoint responded", {
+      ok: response.ok,
+      status: response.status,
+      statusText: response.statusText,
+    });
+
     if (!response.ok) {
       const error = await response.json();
+      console.error("[exchangeOAuthCode] OAuth token exchange failed", error);
       throw new Error(`OAuth token exchange failed: ${error.error_description || error.error}`);
     }
 
     const tokens = await response.json();
+    console.log("[exchangeOAuthCode] OAuth tokens received", {
+      accessToken: maskToken(tokens.access_token),
+      refreshToken: maskToken(tokens.refresh_token),
+      expiresIn: tokens.expires_in,
+      tokenType: tokens.token_type,
+      scope: tokens.scope,
+    });
     return {
       access_token: tokens.access_token,
       refresh_token: tokens.refresh_token,
@@ -151,6 +194,7 @@ const validateAccessToken = (data: { access_token: string }) => {
 export const getYouTubeChannelInfo = createServerFn({ method: "GET" })
   .inputValidator(validateAccessToken)
   .handler(async ({ data }): Promise<YouTubeChannelInfo> => {
+    console.log("[getYouTubeChannelInfo] Requesting YouTube channel details");
     const response = await fetch(
       "https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics,brandingSettings&mine=true",
       {
@@ -158,10 +202,23 @@ export const getYouTubeChannelInfo = createServerFn({ method: "GET" })
           Authorization: `Bearer ${data.access_token}`,
           Accept: "application/json",
         },
-      }
+      },
     );
 
+    console.log("[getYouTubeChannelInfo] YouTube channel API responded", {
+      ok: response.ok,
+      status: response.status,
+      statusText: response.statusText,
+    });
+
     if (!response.ok) {
+      let errorBody: unknown = null;
+      try {
+        errorBody = await response.json();
+      } catch {
+        errorBody = await response.text();
+      }
+      console.error("[getYouTubeChannelInfo] Failed YouTube channel API response", errorBody);
       if (response.status === 401) {
         throw new Error("Unauthorized: Token may have expired");
       }
@@ -169,6 +226,11 @@ export const getYouTubeChannelInfo = createServerFn({ method: "GET" })
     }
 
     const result = await response.json();
+    console.log("[getYouTubeChannelInfo] YouTube channel API response parsed", {
+      itemCount: result.items?.length ?? 0,
+      firstChannelId: result.items?.[0]?.id,
+      firstChannelTitle: result.items?.[0]?.snippet?.title,
+    });
     if (!result.items || result.items.length === 0) {
       throw new Error("No YouTube channel found");
     }
@@ -209,7 +271,7 @@ export const getYouTubeLatestVideos = createServerFn({ method: "GET" })
           Authorization: `Bearer ${data.access_token}`,
           Accept: "application/json",
         },
-      }
+      },
     );
 
     if (!channelResponse.ok) {
@@ -231,7 +293,7 @@ export const getYouTubeLatestVideos = createServerFn({ method: "GET" })
           Authorization: `Bearer ${data.access_token}`,
           Accept: "application/json",
         },
-      }
+      },
     );
 
     if (!videosResponse.ok) {
@@ -253,15 +315,19 @@ export const getYouTubeLatestVideos = createServerFn({ method: "GET" })
           Authorization: `Bearer ${data.access_token}`,
           Accept: "application/json",
         },
-      }
+      },
     );
 
     if (!statsResponse.ok) {
       throw new Error("Failed to fetch video statistics");
     }
 
-    const statsData = await statsResponse.json();
-    const statsMap = new Map(statsData.items.map((item: any) => [item.id, item]));
+    const statsData = (await statsResponse.json()) as { items?: YouTubeVideoStatsItem[] };
+    console.log("[getYouTubeLatestVideos] YouTube video statistics fetched", {
+      requestedCount: videoIds.split(",").filter(Boolean).length,
+      returnedCount: statsData.items?.length ?? 0,
+    });
+    const statsMap = new Map((statsData.items ?? []).map((item) => [item.id, item]));
 
     return videosData.items.map((item: any) => {
       const stats = statsMap.get(item.contentDetails.videoId);
@@ -271,10 +337,10 @@ export const getYouTubeLatestVideos = createServerFn({ method: "GET" })
         description: item.snippet.description || "",
         thumbnailUrl: item.snippet.thumbnails.medium.url,
         publishedAt: item.snippet.publishedAt,
-        viewCount: stats?.statistics.viewCount || "0",
-        likeCount: stats?.statistics.likeCount || "0",
-        commentCount: stats?.statistics.commentCount || "0",
-        duration: stats?.contentDetails.duration || "PT0S",
+        viewCount: stats?.statistics?.viewCount || "0",
+        likeCount: stats?.statistics?.likeCount || "0",
+        commentCount: stats?.statistics?.commentCount || "0",
+        duration: stats?.contentDetails?.duration || "PT0S",
       };
     });
   });
@@ -290,7 +356,7 @@ export const getYouTubeLiveStreamStatus = createServerFn({ method: "GET" })
           Authorization: `Bearer ${data.access_token}`,
           Accept: "application/json",
         },
-      }
+      },
     );
 
     if (!response.ok) {
@@ -337,17 +403,19 @@ export function formatNumber(num: string | number): string {
 
 // Create YouTube Broadcast and Stream
 export const createYouTubeLiveStream = createServerFn({ method: "POST" })
-  .inputValidator((data: {
-    access_token: string;
-    title: string;
-    description: string;
-    privacy: "public" | "private" | "unlisted";
-    madeForKids: boolean;
-  }) => {
-    if (!data?.access_token) throw new Error("Invalid access token");
-    if (!data?.title) throw new Error("Title is required");
-    return data;
-  })
+  .inputValidator(
+    (data: {
+      access_token: string;
+      title: string;
+      description: string;
+      privacy: "public" | "private" | "unlisted";
+      madeForKids: boolean;
+    }) => {
+      if (!data?.access_token) throw new Error("Invalid access token");
+      if (!data?.title) throw new Error("Title is required");
+      return data;
+    },
+  )
   .handler(async ({ data }) => {
     // 1. Create Broadcast
     const broadcastResponse = await fetch(
@@ -374,7 +442,7 @@ export const createYouTubeLiveStream = createServerFn({ method: "POST" })
             monitorStream: { enableMonitorStream: false },
           },
         }),
-      }
+      },
     );
 
     if (!broadcastResponse.ok) {
@@ -403,7 +471,7 @@ export const createYouTubeLiveStream = createServerFn({ method: "POST" })
             resolution: "variable",
           },
         }),
-      }
+      },
     );
 
     if (!streamResponse.ok) {
@@ -422,7 +490,7 @@ export const createYouTubeLiveStream = createServerFn({ method: "POST" })
           Authorization: `Bearer ${data.access_token}`,
           Accept: "application/json",
         },
-      }
+      },
     );
 
     if (!bindResponse.ok) {

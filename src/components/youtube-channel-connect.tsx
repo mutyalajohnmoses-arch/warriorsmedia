@@ -14,7 +14,13 @@ import {
   LogOut,
 } from "lucide-react";
 import { toast } from "sonner";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import {
   exchangeOAuthCode,
   getYouTubeChannelInfo,
@@ -32,13 +38,58 @@ import {
   disconnectYouTubeChannel,
 } from "@/lib/youtube-persistence.functions";
 
+const YOUTUBE_OAUTH_STATE_KEY = "youtube_oauth_state";
+const YOUTUBE_CHANNEL_CONNECTED_EVENT = "youtube-channel-connected";
+
+function maskToken(token: string | undefined) {
+  if (!token) return { received: false };
+  return {
+    received: true,
+    length: token.length,
+    prefix: token.slice(0, 8),
+    suffix: token.slice(-4),
+  };
+}
+
+function encodeOAuthState(state: { nonce: string; openerOrigin: string; redirectUri: string }) {
+  return btoa(JSON.stringify(state));
+}
+
+function decodeOAuthState(
+  value: string | null,
+): { nonce: string; openerOrigin: string; redirectUri: string } | null {
+  if (!value) return null;
+  try {
+    return JSON.parse(atob(value));
+  } catch (error) {
+    console.error("[YouTubeOAuth] Failed to decode OAuth state", error);
+    return null;
+  }
+}
+
+function publishYouTubeConnected(channelInfo: YouTubeChannelInfo, dbChannelId: string) {
+  const payload = {
+    channelId: channelInfo.channelId,
+    dbChannelId,
+    title: channelInfo.title,
+    connectedAt: new Date().toISOString(),
+  };
+  console.log("[YouTubeOAuth] Publishing connected event", payload);
+  localStorage.setItem("youtube_channel_connected_at", payload.connectedAt);
+  window.dispatchEvent(new CustomEvent(YOUTUBE_CHANNEL_CONNECTED_EVENT, { detail: payload }));
+}
+
 interface YouTubeChannelConnectProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   onConnected?: (channelInfo: YouTubeChannelInfo) => void;
 }
 
-export function YouTubeChannelConnect({ isOpen, onOpenChange, onConnected }: YouTubeChannelConnectProps) {
+export function YouTubeChannelConnect({
+  isOpen,
+  onOpenChange,
+  onConnected,
+}: YouTubeChannelConnectProps) {
   const [step, setStep] = useState<"connect" | "loading" | "connected">("connect");
   const [channelInfo, setChannelInfo] = useState<YouTubeChannelInfo | null>(null);
   const [latestVideos, setLatestVideos] = useState<YouTubeVideo[]>([]);
@@ -57,7 +108,9 @@ export function YouTubeChannelConnect({ isOpen, onOpenChange, onConnected }: You
 
   const handleConnectClick = () => {
     const clientId = "796816914839-v0t7t9rd8vtcgns4pi6vq33sfkf44dvq.apps.googleusercontent.com";
-    const redirectUri = "https://warriorsmedia.lovable.app/auth/google/callback";
+    const redirectUri = new URL("/auth/google/callback", window.location.origin).toString();
+    const nonce = crypto.randomUUID();
+    const oauthState = { nonce, openerOrigin: window.location.origin, redirectUri };
     const scopes = [
       "https://www.googleapis.com/auth/youtube",
       "https://www.googleapis.com/auth/youtube.readonly",
@@ -71,9 +124,17 @@ export function YouTubeChannelConnect({ isOpen, onOpenChange, onConnected }: You
     authUrl.searchParams.set("scope", scopes.join(" "));
     authUrl.searchParams.set("access_type", "offline");
     authUrl.searchParams.set("prompt", "consent");
+    authUrl.searchParams.set("state", encodeOAuthState(oauthState));
 
-    // Store the redirect URI in session storage for callback handling
+    // Store the redirect URI and nonce for callback verification.
     sessionStorage.setItem("youtube_oauth_redirect", redirectUri);
+    sessionStorage.setItem(YOUTUBE_OAUTH_STATE_KEY, JSON.stringify(oauthState));
+    console.log("[YouTubeOAuth] Opening OAuth popup", {
+      redirectUri,
+      openerOrigin: oauthState.openerOrigin,
+      nonce,
+      scopes,
+    });
 
     // Open OAuth consent screen
     const width = 500;
@@ -84,7 +145,7 @@ export function YouTubeChannelConnect({ isOpen, onOpenChange, onConnected }: You
     const popup = window.open(
       authUrl.toString(),
       "youtube-oauth",
-      `width=${width},height=${height},left=${left},top=${top}`
+      `width=${width},height=${height},left=${left},top=${top}`,
     );
 
     if (!popup) {
@@ -92,11 +153,45 @@ export function YouTubeChannelConnect({ isOpen, onOpenChange, onConnected }: You
       return;
     }
 
-    // Listen for OAuth code from callback
+    // Listen for OAuth code from callback.
     const handleMessage = async (event: MessageEvent) => {
-      if (event.origin !== window.location.origin) return;
+      const expectedCallbackOrigin = new URL(redirectUri).origin;
+      if (event.origin !== expectedCallbackOrigin) {
+        console.warn("[YouTubeOAuth] Ignoring OAuth message from unexpected origin", {
+          receivedOrigin: event.origin,
+          expectedCallbackOrigin,
+        });
+        return;
+      }
+
+      if (!event.data || typeof event.data !== "object") return;
+
+      if (event.data.type === "youtube-oauth-error") {
+        window.removeEventListener("message", handleMessage);
+        popup.close();
+        console.error("[YouTubeOAuth] OAuth callback returned error", event.data);
+        toast.error(event.data.errorDescription || event.data.error || "Google OAuth failed");
+        setStep("connect");
+        setConnecting(false);
+        return;
+      }
 
       if (event.data.type === "youtube-oauth-code") {
+        const storedState = decodeOAuthState(sessionStorage.getItem(YOUTUBE_OAUTH_STATE_KEY));
+        const returnedState = decodeOAuthState(event.data.state ?? null);
+        console.log("[YouTubeOAuth] OAuth callback message received", {
+          origin: event.origin,
+          hasCode: Boolean(event.data.code),
+          returnedState,
+          storedState,
+        });
+
+        if (!storedState || !returnedState || storedState.nonce !== returnedState.nonce) {
+          console.error("[YouTubeOAuth] OAuth state mismatch", { storedState, returnedState });
+          toast.error("Google OAuth verification failed. Please try connecting again.");
+          return;
+        }
+
         window.removeEventListener("message", handleMessage);
         popup.close();
 
@@ -104,6 +199,10 @@ export function YouTubeChannelConnect({ isOpen, onOpenChange, onConnected }: You
         setStep("loading");
 
         try {
+          console.log("[YouTubeOAuth] Exchanging OAuth code", {
+            redirectUri,
+            codeLength: String(event.data.code || "").length,
+          });
           const tokens = await exchangeCodeFn({
             data: {
               code: event.data.code,
@@ -111,26 +210,46 @@ export function YouTubeChannelConnect({ isOpen, onOpenChange, onConnected }: You
             },
           });
 
+          console.log("[YouTubeOAuth] OAuth tokens received", {
+            accessToken: maskToken(tokens.access_token),
+            refreshToken: maskToken(tokens.refresh_token),
+            expiresIn: tokens.expires_in,
+            tokenType: tokens.token_type,
+            scope: tokens.scope,
+          });
+
           // Store tokens securely (in production, use httpOnly cookies or secure storage)
           localStorage.setItem("youtube_access_token", tokens.access_token);
           if (tokens.refresh_token) {
             localStorage.setItem("youtube_refresh_token", tokens.refresh_token);
           }
-          localStorage.setItem("youtube_token_expires", String(Date.now() + tokens.expires_in * 1000));
+          localStorage.setItem(
+            "youtube_token_expires",
+            String(Date.now() + tokens.expires_in * 1000),
+          );
 
           // Fetch channel info
+          console.log("[YouTubeOAuth] Fetching YouTube channel details");
           const info = await getChannelInfoFn({ data: { access_token: tokens.access_token } });
+          console.log("[YouTubeOAuth] YouTube channel details fetched", info);
           setChannelInfo(info);
 
           // Fetch latest videos
-          const videos = await getVideosFn({ data: { access_token: tokens.access_token, maxResults: 5 } });
+          console.log("[YouTubeOAuth] Fetching latest YouTube videos");
+          const videos = await getVideosFn({
+            data: { access_token: tokens.access_token, maxResults: 5 },
+          });
+          console.log("[YouTubeOAuth] Latest YouTube videos fetched", { count: videos.length });
           setLatestVideos(videos);
 
           // Fetch live status
           try {
+            console.log("[YouTubeOAuth] Fetching YouTube live status");
             const live = await getLiveStatusFn({ data: { access_token: tokens.access_token } });
+            console.log("[YouTubeOAuth] YouTube live status fetched", live);
             setLiveStatus(live);
-          } catch {
+          } catch (liveError) {
+            console.warn("[YouTubeOAuth] Failed to fetch live status; continuing", liveError);
             setLiveStatus({ isLive: false });
           }
 
@@ -139,43 +258,68 @@ export function YouTubeChannelConnect({ isOpen, onOpenChange, onConnected }: You
             data: { session },
           } = await supabase.auth.getSession();
 
-          if (session?.user.id) {
-            try {
-              // Save channel to database
-              const saveResult = await saveChannelFn({
-                data: {
-                  userId: session.user.id,
-                  channelInfo: info,
-                  accessToken: tokens.access_token,
-                  refreshToken: tokens.refresh_token,
-                },
-              });
+          if (!session?.user.id) {
+            throw new Error("Supabase session not found while saving YouTube channel");
+          }
 
-              setDbChannelId(saveResult.channelId);
+          console.log("[YouTubeOAuth] Saving YouTube channel to database", {
+            userId: session.user.id,
+            channelId: info.channelId,
+            title: info.title,
+            hasRefreshToken: Boolean(tokens.refresh_token),
+          });
 
-              // Save videos to database
-              if (saveResult.channelId) {
-                await saveVideosFn({
-                  data: {
-                    channelId: saveResult.channelId,
-                    videos: videos,
-                  },
-                });
-              }
-            } catch (persistError) {
-              console.error("Failed to persist YouTube data:", persistError);
-              toast.warning("Channel connected but failed to save to database");
-            }
+          const saveResult = await saveChannelFn({
+            data: {
+              userId: session.user.id,
+              channelInfo: info,
+              accessToken: tokens.access_token,
+              refreshToken: tokens.refresh_token,
+            },
+          });
+
+          if (!saveResult.channelId) {
+            throw new Error("YouTube channel saved without a database channel ID");
+          }
+
+          console.log("[YouTubeOAuth] YouTube channel saved", saveResult);
+          setDbChannelId(saveResult.channelId);
+
+          // Save videos to database. Video caching is helpful, but it must not block channel connection.
+          try {
+            console.log("[YouTubeOAuth] Saving YouTube videos to database", {
+              dbChannelId: saveResult.channelId,
+              count: videos.length,
+            });
+            await saveVideosFn({
+              data: {
+                channelId: saveResult.channelId,
+                videos: videos,
+              },
+            });
+            console.log("[YouTubeOAuth] YouTube videos saved", {
+              dbChannelId: saveResult.channelId,
+              count: videos.length,
+            });
+          } catch (videoSaveError) {
+            console.warn(
+              "[YouTubeOAuth] Channel saved but video cache save failed",
+              videoSaveError,
+            );
           }
 
           setStep("connected");
+          publishYouTubeConnected(info, saveResult.channelId);
           toast.success("YouTube channel connected successfully!");
-          if (onConnected) onConnected(info);
+          onConnected?.(info);
+          onOpenChange(false);
         } catch (error) {
+          console.error("[YouTubeOAuth] Failed to complete YouTube OAuth flow", error);
           toast.error(error instanceof Error ? error.message : "Failed to connect YouTube channel");
           setStep("connect");
         } finally {
           setConnecting(false);
+          sessionStorage.removeItem(YOUTUBE_OAUTH_STATE_KEY);
         }
       }
     };
@@ -183,9 +327,12 @@ export function YouTubeChannelConnect({ isOpen, onOpenChange, onConnected }: You
     window.addEventListener("message", handleMessage);
 
     // Cleanup after 10 minutes
-    setTimeout(() => {
-      window.removeEventListener("message", handleMessage);
-    }, 10 * 60 * 1000);
+    setTimeout(
+      () => {
+        window.removeEventListener("message", handleMessage);
+      },
+      10 * 60 * 1000,
+    );
   };
 
   const handleRefresh = async () => {
@@ -280,7 +427,8 @@ export function YouTubeChannelConnect({ isOpen, onOpenChange, onConnected }: You
                 Connect Your YouTube Channel
               </DialogTitle>
               <DialogDescription>
-                Sign in with your Google account to access YouTube channel analytics, upload videos, and manage live streams.
+                Sign in with your Google account to access YouTube channel analytics, upload videos,
+                and manage live streams.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
@@ -343,7 +491,9 @@ export function YouTubeChannelConnect({ isOpen, onOpenChange, onConnected }: You
                   />
                   <div>
                     <DialogTitle>{channelInfo.title}</DialogTitle>
-                    <p className="text-xs text-muted-foreground mt-1">Channel ID: {channelInfo.channelId}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Channel ID: {channelInfo.channelId}
+                    </p>
                   </div>
                 </div>
                 <button
@@ -403,7 +553,8 @@ export function YouTubeChannelConnect({ isOpen, onOpenChange, onConnected }: You
                         <div className="text-sm">
                           <p className="font-medium text-red-400 mb-1">{liveStatus.title}</p>
                           <p className="text-xs text-red-300">
-                            {liveStatus.viewerCount} viewers • Started {new Date(liveStatus.startTime!).toLocaleString()}
+                            {liveStatus.viewerCount} viewers • Started{" "}
+                            {new Date(liveStatus.startTime!).toLocaleString()}
                           </p>
                         </div>
                       </div>
@@ -442,7 +593,8 @@ export function YouTubeChannelConnect({ isOpen, onOpenChange, onConnected }: You
                             {video.title}
                           </p>
                           <p className="text-[10px] text-muted-foreground mt-1">
-                            {formatNumber(video.viewCount)} views • {new Date(video.publishedAt).toLocaleDateString()}
+                            {formatNumber(video.viewCount)} views •{" "}
+                            {new Date(video.publishedAt).toLocaleDateString()}
                           </p>
                         </div>
                       </a>

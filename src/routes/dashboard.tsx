@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -29,6 +29,25 @@ import { getConnectedYouTubeChannel } from "@/lib/youtube-persistence.functions"
 import { YouTubeDownloader, YouTubeMetaExtractor } from "@/components/youtube-tools";
 import { YouTubeCreateMenu } from "@/components/youtube-create-menu";
 import { YouTubeChannelStats } from "@/components/youtube-channel-stats";
+import type { YouTubeChannelInfo } from "@/lib/youtube-oauth.functions";
+
+type ConnectedYouTubeChannel = {
+  id: string;
+  channel_id: string;
+  title: string;
+  description?: string | null;
+  profile_image_url?: string | null;
+  subscriber_count?: string | number | null;
+  view_count?: string | number | null;
+  video_count?: string | number | null;
+};
+
+type TeamProfile = {
+  profilePic?: string | null;
+  fullName?: string | null;
+  followers?: string | number | null;
+  posts?: string | number | null;
+};
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
@@ -116,10 +135,10 @@ function Home() {
     null,
   );
   const [loading, setLoading] = useState(true);
-  const [teamProfiles, setTeamProfiles] = useState<Record<string, any>>({});
+  const [teamProfiles, setTeamProfiles] = useState<Record<string, TeamProfile>>({});
   const [youtubeConnected, setYoutubeConnected] = useState(false);
   const [hasYouTubeChannel, setHasYouTubeChannel] = useState(false);
-  const [connectedChannel, setConnectedChannel] = useState<any>(null);
+  const [connectedChannel, setConnectedChannel] = useState<ConnectedYouTubeChannel | null>(null);
 
   const handleModuleClick = (title: string) => {
     if (title === "Live Streaming") {
@@ -134,6 +153,42 @@ function Home() {
   const fetchIg = useServerFn(getInstagramStats);
   const fetchTeamProfilesServerFn = useServerFn(getInstagramProfiles);
   const getChannelFn = useServerFn(getConnectedYouTubeChannel);
+
+  const refreshYouTubeChannel = useCallback(
+    async (reason: string) => {
+      console.log("[Dashboard] Refreshing YouTube channel state", { reason });
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session) {
+        console.log("[Dashboard] No Supabase session while refreshing YouTube channel");
+        setYoutubeConnected(false);
+        setHasYouTubeChannel(false);
+        setConnectedChannel(null);
+        return null;
+      }
+
+      console.log("[Dashboard] Calling getConnectedYouTubeChannel", {
+        userId: session.user.id,
+        reason,
+      });
+      const channel = await getChannelFn({ data: { userId: session.user.id } });
+      console.log("[Dashboard] getConnectedYouTubeChannel returned", {
+        found: Boolean(channel),
+        channelId: channel?.channel_id,
+        dbChannelId: channel?.id,
+        title: channel?.title,
+        reason,
+      });
+
+      setYoutubeConnected(Boolean(channel));
+      setHasYouTubeChannel(Boolean(channel));
+      setConnectedChannel(channel ?? null);
+      return channel ?? null;
+    },
+    [getChannelFn],
+  );
 
   useEffect(() => {
     const load = async () => {
@@ -156,39 +211,28 @@ function Home() {
   }, [navigate]);
 
   useEffect(() => {
-    // Check for YouTube channel connection using the shared server function
-    const checkChannel = async () => {
-      try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
+    refreshYouTubeChannel("initial-dashboard-load").catch((error) => {
+      console.error("[Dashboard] Error checking YouTube connection:", error);
+      setYoutubeConnected(false);
+      setHasYouTubeChannel(false);
+      setConnectedChannel(null);
+    });
+  }, [refreshYouTubeChannel]);
 
-        if (session) {
-          console.log("[Dashboard] Checking YouTube connection for user:", session.user.id);
-          const channel = await getChannelFn({ data: { userId: session.user.id } });
-          
-          if (channel) {
-            console.log("[Dashboard] YouTube channel found:", channel.title);
-            setYoutubeConnected(true);
-            setHasYouTubeChannel(true);
-            setConnectedChannel(channel);
-          } else {
-            console.log("[Dashboard] No YouTube channel connected");
-            setYoutubeConnected(false);
-            setHasYouTubeChannel(false);
-            setConnectedChannel(null);
-          }
-        }
-      } catch (error) {
-        console.error("[Dashboard] Error checking YouTube connection:", error);
-        setYoutubeConnected(false);
-        setHasYouTubeChannel(false);
-        setConnectedChannel(null);
-      }
+  useEffect(() => {
+    const handleConnected = () => {
+      refreshYouTubeChannel("youtube-channel-connected-event").catch((error) => {
+        console.error("[Dashboard] Error refreshing after YouTube connected event:", error);
+      });
     };
 
-    checkChannel();
-  }, [getChannelFn]);
+    window.addEventListener("youtube-channel-connected", handleConnected);
+    window.addEventListener("storage", handleConnected);
+    return () => {
+      window.removeEventListener("youtube-channel-connected", handleConnected);
+      window.removeEventListener("storage", handleConnected);
+    };
+  }, [refreshYouTubeChannel]);
 
   useEffect(() => {
     const load = async () => {
@@ -208,29 +252,23 @@ function Home() {
     navigate({ to: "/" });
   };
 
-  const handleChannelConnect = () => {
-    console.log("[Dashboard] Channel connected, refreshing state");
-    // Refresh the channel state
-    const checkChannel = async () => {
-      try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
+  const handleChannelConnect = (channelInfo?: YouTubeChannelInfo) => {
+    console.log("[Dashboard] Channel connected callback received", {
+      channelId: channelInfo?.channelId,
+      title: channelInfo?.title,
+    });
+    setYoutubeConnected(true);
+    setHasYouTubeChannel(true);
+    refreshYouTubeChannel("connect-callback").catch((error) => {
+      console.error("[Dashboard] Error refreshing YouTube connection:", error);
+    });
+  };
 
-        if (session) {
-          const channel = await getChannelFn({ data: { userId: session.user.id } });
-          if (channel) {
-            console.log("[Dashboard] YouTube channel refreshed:", channel.title);
-            setYoutubeConnected(true);
-            setHasYouTubeChannel(true);
-            setConnectedChannel(channel);
-          }
-        }
-      } catch (error) {
-        console.error("[Dashboard] Error refreshing YouTube connection:", error);
-      }
-    };
-    checkChannel();
+  const handleChannelDisconnect = () => {
+    console.log("[Dashboard] Channel disconnected callback received");
+    setYoutubeConnected(false);
+    setHasYouTubeChannel(false);
+    setConnectedChannel(null);
   };
 
   return (
@@ -265,9 +303,11 @@ function Home() {
                 {youtubeConnected ? "Channel Connected" : "Connect your YouTube channel"}
               </p>
             </div>
-            <YouTubeCreateMenu 
+            <YouTubeCreateMenu
               channelConnected={youtubeConnected}
+              connectedChannelId={connectedChannel?.id}
               onChannelConnect={handleChannelConnect}
+              onChannelDisconnect={handleChannelDisconnect}
             />
           </div>
 
@@ -283,7 +323,7 @@ function Home() {
             {modules.map((module) => {
               const Icon = module.icon;
               const isDisabled = module.title === "Live Streaming" && !youtubeConnected;
-              
+
               return (
                 <button
                   key={module.title}
@@ -329,7 +369,7 @@ function Home() {
             {teamMembers.map((member) => {
               const Icon = member.icon;
               const profile = teamProfiles[member.instagram];
-              
+
               return (
                 <a
                   key={member.name}

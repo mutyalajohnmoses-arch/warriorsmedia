@@ -23,6 +23,14 @@ import { useServerFn } from "@tanstack/react-start";
 import { createYouTubeLiveStream, getYouTubeLiveStreamStatus } from "@/lib/youtube-oauth.functions";
 import { getConnectedYouTubeChannel } from "@/lib/youtube-persistence.functions";
 
+type ConnectedYouTubeChannel = {
+  id: string;
+  channel_id: string;
+  title: string;
+  description?: string | null;
+  profile_image_url?: string | null;
+};
+
 export const Route = createFileRoute("/live-streaming-setup")({
   head: () => ({
     meta: [
@@ -43,7 +51,7 @@ function LiveStreamingSetup() {
   const [error, setError] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
   const [isLive, setIsLive] = useState(false);
-  const [channel, setChannel] = useState<any>(null);
+  const [channel, setChannel] = useState<ConnectedYouTubeChannel | null>(null);
   const [channelNotConnected, setChannelNotConnected] = useState(false);
 
   // Stream Configuration
@@ -81,13 +89,16 @@ function LiveStreamingSetup() {
 
         // Check authentication
         console.log("[LiveStreamingSetup] Checking authentication...");
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
+        const {
+          data: { session },
+          error: sessionError,
+        } = await supabase.auth.getSession();
+
         if (sessionError) {
           console.error("[LiveStreamingSetup] Session error:", sessionError);
           throw new Error("Failed to get session");
         }
-        
+
         if (!session) {
           console.log("[LiveStreamingSetup] No session found, redirecting to login");
           navigate({ to: "/" });
@@ -98,17 +109,20 @@ function LiveStreamingSetup() {
 
         // Fetch connected YouTube channel
         try {
-          console.log("[LiveStreamingSetup] Calling getConnectedYouTubeChannel for user:", session.user.id);
+          console.log(
+            "[LiveStreamingSetup] Calling getConnectedYouTubeChannel for user:",
+            session.user.id,
+          );
           const channelData = await getChannelFn({ data: { userId: session.user.id } });
           console.log("[LiveStreamingSetup] Channel data received:", channelData);
-          
+
           if (!channelData) {
             console.log("[LiveStreamingSetup] No YouTube channel connected for user");
             setChannelNotConnected(true);
             setLoading(false);
             return;
           }
-          
+
           console.log("[LiveStreamingSetup] Channel loaded successfully:", channelData.title);
           setChannel(channelData);
           setLoading(false);
@@ -131,10 +145,48 @@ function LiveStreamingSetup() {
 
     return () => {
       if (stream) {
-        stream.getTracks().forEach(track => track.stop());
+        stream.getTracks().forEach((track) => track.stop());
       }
     };
   }, [navigate, getChannelFn]);
+
+  useEffect(() => {
+    const refreshConnectedChannel = async () => {
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        if (!session) return;
+
+        console.log("[LiveStreamingSetup] Refreshing channel after connection event", {
+          userId: session.user.id,
+        });
+        const channelData = await getChannelFn({ data: { userId: session.user.id } });
+        console.log("[LiveStreamingSetup] Channel refresh returned", {
+          found: Boolean(channelData),
+          dbChannelId: channelData?.id,
+          channelId: channelData?.channel_id,
+          title: channelData?.title,
+        });
+
+        if (channelData) {
+          setChannel(channelData);
+          setChannelNotConnected(false);
+          setError(null);
+        }
+      } catch (error) {
+        console.error("[LiveStreamingSetup] Failed to refresh connected channel", error);
+      }
+    };
+
+    window.addEventListener("youtube-channel-connected", refreshConnectedChannel);
+    window.addEventListener("storage", refreshConnectedChannel);
+    return () => {
+      window.removeEventListener("youtube-channel-connected", refreshConnectedChannel);
+      window.removeEventListener("storage", refreshConnectedChannel);
+    };
+  }, [getChannelFn]);
 
   // Timer and stats polling when live
   useEffect(() => {
@@ -143,12 +195,18 @@ function LiveStreamingSetup() {
 
     if (isLive) {
       startTimeRef.current = Date.now();
-      
+
       interval = setInterval(() => {
         const diff = Date.now() - (startTimeRef.current || Date.now());
-        const h = Math.floor(diff / 3600000).toString().padStart(2, "0");
-        const m = Math.floor((diff % 3600000) / 60000).toString().padStart(2, "0");
-        const s = Math.floor((diff % 60000) / 1000).toString().padStart(2, "0");
+        const h = Math.floor(diff / 3600000)
+          .toString()
+          .padStart(2, "0");
+        const m = Math.floor((diff % 3600000) / 60000)
+          .toString()
+          .padStart(2, "0");
+        const s = Math.floor((diff % 60000) / 1000)
+          .toString()
+          .padStart(2, "0");
         setDuration(`${h}:${m}:${s}`);
       }, 1000);
 
@@ -165,7 +223,7 @@ function LiveStreamingSetup() {
           console.error("[LiveStreamingSetup] Failed to poll stats:", e);
         }
       };
-      
+
       statsInterval = setInterval(pollStats, 30000);
     }
 
@@ -202,6 +260,7 @@ function LiveStreamingSetup() {
     try {
       const accessToken = localStorage.getItem("youtube_access_token");
       if (!accessToken) throw new Error("YouTube access token not found");
+      if (!channel) throw new Error("YouTube channel not connected");
 
       await startMedia();
 
@@ -212,12 +271,14 @@ function LiveStreamingSetup() {
           description,
           privacy,
           madeForKids,
-        }
+        },
       });
 
       setBroadcastId(result.broadcastId);
 
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (session) {
         await supabase.from("live_streams").insert({
           user_id: session.user.id,
@@ -237,7 +298,7 @@ function LiveStreamingSetup() {
       console.error(err);
       toast.error(err instanceof Error ? err.message : "Failed to start stream");
       if (stream) {
-        stream.getTracks().forEach(track => track.stop());
+        stream.getTracks().forEach((track) => track.stop());
         setStream(null);
       }
     } finally {
@@ -247,7 +308,7 @@ function LiveStreamingSetup() {
 
   const handleEndStream = async () => {
     if (stream) {
-      stream.getTracks().forEach(track => track.stop());
+      stream.getTracks().forEach((track) => track.stop());
     }
     setIsLive(false);
     toast.success("Live stream ended");
@@ -372,15 +433,15 @@ function LiveStreamingSetup() {
               <ArrowLeft className="w-5 h-5" />
             </button>
           )}
-          <h1 className="font-display text-xl">
-            {isLive ? "Live Now" : "Go Live"}
-          </h1>
+          <h1 className="font-display text-xl">{isLive ? "Live Now" : "Go Live"}</h1>
         </div>
         {isLive && (
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-red-500/10 border border-red-500/30">
               <Circle className="w-2 h-2 fill-red-500 text-red-500 animate-pulse" />
-              <span className="text-[9px] font-bold uppercase tracking-widest text-red-500">Live</span>
+              <span className="text-[9px] font-bold uppercase tracking-widest text-red-500">
+                Live
+              </span>
             </div>
           </div>
         )}
@@ -397,7 +458,9 @@ function LiveStreamingSetup() {
                 <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center">
                   <Camera className="w-8 h-8 text-red-500" />
                 </div>
-                <p className="text-sm text-muted-foreground font-medium">Camera preview will appear here</p>
+                <p className="text-sm text-muted-foreground font-medium">
+                  Camera preview will appear here
+                </p>
               </div>
             </div>
 
@@ -440,7 +503,7 @@ function LiveStreamingSetup() {
                 </label>
                 <select
                   value={privacy}
-                  onChange={(e) => setPrivacy(e.target.value as any)}
+                  onChange={(e) => setPrivacy(e.target.value as "public" | "private" | "unlisted")}
                   className="w-full bg-card/40 border border-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[color:var(--gold)]/60 transition"
                 >
                   <option value="public">Public</option>
@@ -571,18 +634,22 @@ function LiveStreamingSetup() {
             <div className="p-4 rounded-xl border border-border bg-card/40 space-y-3">
               <div className="flex items-center gap-3">
                 <img
-                  src={channel.profile_image_url}
+                  src={channel.profile_image_url ?? ""}
                   alt={channel.title}
                   className="w-10 h-10 rounded-full border border-[color:var(--gold)]/30"
                 />
                 <div>
                   <p className="text-sm font-bold">{channel.title}</p>
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Broadcasting</p>
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                    Broadcasting
+                  </p>
                 </div>
               </div>
               <div className="pt-3 border-t border-border space-y-2">
                 <p className="text-sm font-medium line-clamp-2">{title}</p>
-                {description && <p className="text-xs text-muted-foreground line-clamp-2">{description}</p>}
+                {description && (
+                  <p className="text-xs text-muted-foreground line-clamp-2">{description}</p>
+                )}
               </div>
             </div>
 
