@@ -59,13 +59,19 @@ function decodeOAuthState(
   value: string | null,
 ): { nonce: string; openerOrigin: string; redirectUri: string } | null {
   if (!value) return null;
+
   try {
     return JSON.parse(atob(value));
   } catch (error) {
-    console.error("[YouTubeOAuth] Failed to decode OAuth state", error);
-    return null;
+    try {
+      return JSON.parse(decodeURIComponent(value));
+    } catch {
+      console.error("[YouTubeOAuth] Failed to decode OAuth state", error);
+      return null;
+    }
   }
 }
+
 
 function publishYouTubeConnected(channelInfo: YouTubeChannelInfo, dbChannelId: string) {
   const payload = {
