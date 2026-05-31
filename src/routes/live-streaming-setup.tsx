@@ -40,6 +40,7 @@ function LiveStreamingSetup() {
   const getChannelFn = useServerFn(getConnectedYouTubeChannel);
 
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
   const [isLive, setIsLive] = useState(false);
   const [channel, setChannel] = useState<any>(null);
@@ -64,24 +65,50 @@ function LiveStreamingSetup() {
   const [duration, setDuration] = useState("00:00:00");
   const startTimeRef = useRef<number | null>(null);
   const [broadcastId, setBroadcastId] = useState<string | null>(null);
+  const initRef = useRef(false);
 
+  // Initialize on mount
   useEffect(() => {
-    const init = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        navigate({ to: "/" });
-        return;
-      }
+    if (initRef.current) return; // Prevent double initialization
+    initRef.current = true;
 
-      const channelData = await getChannelFn({ data: { userId: session.user.id } });
-      if (!channelData) {
-        toast.error("Please connect your YouTube channel first");
-        navigate({ to: "/dashboard" });
-        return;
+    const init = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Check authentication
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) {
+          throw new Error("Failed to get session");
+        }
+        if (!session) {
+          navigate({ to: "/" });
+          return;
+        }
+
+        // Fetch connected YouTube channel
+        try {
+          const channelData = await getChannelFn({ data: { userId: session.user.id } });
+          if (!channelData) {
+            setError("YouTube channel not connected");
+            setLoading(false);
+            return;
+          }
+          setChannel(channelData);
+          setLoading(false);
+        } catch (err) {
+          const errorMsg = err instanceof Error ? err.message : "Failed to fetch YouTube channel";
+          setError(errorMsg);
+          setLoading(false);
+        }
+      } catch (err) {
+        const errorMsg = err instanceof Error ? err.message : "An error occurred";
+        setError(errorMsg);
+        setLoading(false);
       }
-      setChannel(channelData);
-      setLoading(false);
     };
+
     init();
 
     return () => {
@@ -91,10 +118,15 @@ function LiveStreamingSetup() {
     };
   }, [navigate, getChannelFn]);
 
+  // Timer and stats polling when live
   useEffect(() => {
-    let interval: ReturnType<typeof setTimeout>;
+    let interval: ReturnType<typeof setInterval> | null = null;
+    let statsInterval: ReturnType<typeof setInterval> | null = null;
+
     if (isLive) {
       startTimeRef.current = Date.now();
+      
+      // Update duration every second
       interval = setInterval(() => {
         const diff = Date.now() - (startTimeRef.current || Date.now());
         const h = Math.floor(diff / 3600000).toString().padStart(2, "0");
@@ -117,12 +149,14 @@ function LiveStreamingSetup() {
           console.error("Failed to poll stats:", e);
         }
       };
-      const statsInterval = setInterval(pollStats, 30000);
-      return () => {
-        clearInterval(interval);
-        clearInterval(statsInterval);
-      };
+      
+      statsInterval = setInterval(pollStats, 30000);
     }
+
+    return () => {
+      if (interval) clearInterval(interval);
+      if (statsInterval) clearInterval(statsInterval);
+    };
   }, [isLive, getStatusFn]);
 
   const startMedia = async () => {
@@ -170,16 +204,19 @@ function LiveStreamingSetup() {
       setBroadcastId(result.broadcastId);
 
       // 3. Save to database
-      await supabase.from("live_streams").insert({
-        user_id: channel.user_id,
-        broadcast_id: result.broadcastId,
-        stream_id: result.streamId,
-        channel_id: channel.channel_id,
-        title,
-        description,
-        privacy_status: privacy,
-        status: "live",
-      });
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        await supabase.from("live_streams").insert({
+          user_id: session.user.id,
+          broadcast_id: result.broadcastId,
+          stream_id: result.streamId,
+          channel_id: channel.channel_id,
+          title,
+          description,
+          privacy_status: privacy,
+          status: "live",
+        });
+      }
 
       setIsLive(true);
       toast.success("Live stream started! You're now broadcasting.");
@@ -236,10 +273,74 @@ function LiveStreamingSetup() {
     }
   };
 
+  // Loading state
   if (loading) {
     return (
       <main className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-8 h-8 animate-spin text-[color:var(--gold)]" />
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-8 h-8 animate-spin text-[color:var(--gold)]" />
+          <p className="text-sm text-muted-foreground">Loading live streaming setup...</p>
+        </div>
+      </main>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <main className="min-h-screen flex items-center justify-center bg-background px-6">
+        <div className="max-w-md w-full space-y-6">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center">
+              <AlertCircle className="w-8 h-8 text-red-500" />
+            </div>
+            <div className="text-center space-y-2">
+              <h1 className="font-display text-2xl">Unable to Load</h1>
+              <p className="text-sm text-muted-foreground">{error}</p>
+            </div>
+          </div>
+          <div className="space-y-3">
+            <button
+              onClick={() => navigate({ to: "/dashboard" })}
+              className="w-full py-3 rounded-lg bg-gold-gradient text-[color:var(--primary-foreground)] font-bold uppercase tracking-widest transition"
+            >
+              Back to Dashboard
+            </button>
+            <button
+              onClick={() => window.location.reload()}
+              className="w-full py-3 rounded-lg border border-border hover:bg-card transition font-bold uppercase tracking-widest"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  // No channel connected
+  if (!channel) {
+    return (
+      <main className="min-h-screen flex items-center justify-center bg-background px-6">
+        <div className="max-w-md w-full space-y-6">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-16 h-16 rounded-full bg-yellow-500/10 flex items-center justify-center">
+              <AlertCircle className="w-8 h-8 text-yellow-500" />
+            </div>
+            <div className="text-center space-y-2">
+              <h1 className="font-display text-2xl">YouTube Not Connected</h1>
+              <p className="text-sm text-muted-foreground">
+                Please connect your YouTube channel first before going live.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => navigate({ to: "/dashboard" })}
+            className="w-full py-3 rounded-lg bg-gold-gradient text-[color:var(--primary-foreground)] font-bold uppercase tracking-widest transition"
+          >
+            Connect YouTube Channel
+          </button>
+        </div>
       </main>
     );
   }
