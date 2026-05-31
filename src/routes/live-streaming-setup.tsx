@@ -78,32 +78,46 @@ function LiveStreamingSetup() {
         setError(null);
 
         // Check authentication
+        console.log("Checking authentication...");
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
         if (sessionError) {
+          console.error("Session error:", sessionError);
           throw new Error("Failed to get session");
         }
+        
         if (!session) {
+          console.log("No session found, redirecting to login");
           navigate({ to: "/" });
           return;
         }
 
+        console.log("Session found for user:", session.user.id);
+
         // Fetch connected YouTube channel
         try {
+          console.log("Fetching YouTube channel for user:", session.user.id);
           const channelData = await getChannelFn({ data: { userId: session.user.id } });
+          console.log("Channel data received:", channelData);
+          
           if (!channelData) {
+            console.log("No YouTube channel connected");
             setError("YouTube channel not connected");
             setLoading(false);
             return;
           }
+          
           setChannel(channelData);
           setLoading(false);
         } catch (err) {
           const errorMsg = err instanceof Error ? err.message : "Failed to fetch YouTube channel";
+          console.error("Error fetching YouTube channel:", err);
           setError(errorMsg);
           setLoading(false);
         }
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : "An error occurred";
+        console.error("Initialization error:", err);
         setError(errorMsg);
         setLoading(false);
       }

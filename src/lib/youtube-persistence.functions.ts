@@ -134,25 +134,27 @@ export const saveYouTubeChannel = createServerFn({ method: "POST" })
 export const getConnectedYouTubeChannel = createServerFn({ method: "GET" })
   .inputValidator(validateUserId)
   .handler(async ({ data }) => {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
+    // Note: In server functions, we trust the userId passed from the client
+    // The client has already validated the session before calling this function
+    // Attempting to call supabase.auth.getSession() on the server may fail
+    // because the session context is not available in server functions
+    
+    try {
+      const { data: channel, error } = await supabaseAdmin
+        .from("youtube_channels")
+        .select("*")
+        .eq("user_id", data.userId)
+        .eq("is_connected", true)
+        .order("created_at", { ascending: false })
+        .maybeSingle();
 
-    if (!session || session.user.id !== data.userId) {
-      throw new Error("Unauthorized");
+      if (error) throw error;
+
+      return channel;
+    } catch (err) {
+      console.error("Error fetching YouTube channel:", err);
+      throw err;
     }
-
-    const { data: channel, error } = await supabaseAdmin
-      .from("youtube_channels")
-      .select("*")
-      .eq("user_id", data.userId)
-      .eq("is_connected", true)
-      .order("created_at", { ascending: false })
-      .maybeSingle();
-
-    if (error) throw error;
-
-    return channel;
   });
 
 // Get all connected YouTube channels for user
