@@ -47,80 +47,106 @@ const validateVideoData = (data: {
 export const saveYouTubeChannel = createServerFn({ method: "POST" })
   .inputValidator(validateChannelInfo)
   .handler(async ({ data }) => {
-    // Trust the userId passed from the client
-    // The client has already validated the session before calling this function
-    
-    const expiresAt = new Date(Date.now() + 3600 * 1000); // 1 hour from now
+    console.log("[saveYouTubeChannel] Starting save for user:", data.userId);
+    console.log("[saveYouTubeChannel] Channel info:", {
+      channelId: data.channelInfo.channelId,
+      title: data.channelInfo.title,
+    });
 
-    const { data: existingChannel } = await supabaseAdmin
-      .from("youtube_channels")
-      .select("id")
-      .eq("user_id", data.userId)
-      .eq("channel_id", data.channelInfo.channelId)
-      .maybeSingle();
+    try {
+      const expiresAt = new Date(Date.now() + 3600 * 1000); // 1 hour from now
 
-    if (existingChannel) {
-      // Update existing channel
-      const { error } = await supabaseAdmin
+      // Check if channel already exists
+      const { data: existingChannel, error: checkError } = await supabaseAdmin
         .from("youtube_channels")
-        .update({
-          title: data.channelInfo.title,
-          description: data.channelInfo.description,
-          custom_url: data.channelInfo.customUrl,
-          profile_image_url: data.channelInfo.profileImageUrl,
-          banner_image_url: data.channelInfo.bannerImageUrl,
-          subscriber_count: data.channelInfo.subscriberCount,
-          view_count: data.channelInfo.viewCount,
-          video_count: data.channelInfo.videoCount,
-          published_at: data.channelInfo.publishedAt,
-          access_token: data.accessToken,
-          refresh_token: data.refreshToken || null,
-          token_expires_at: expiresAt.toISOString(),
-          is_connected: true,
-          last_synced_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", existingChannel.id);
-
-      if (error) throw error;
-
-      return {
-        success: true,
-        message: "YouTube channel updated successfully",
-        channelId: existingChannel.id,
-      };
-    } else {
-      // Insert new channel
-      const { data: newChannel, error } = await supabaseAdmin
-        .from("youtube_channels")
-        .insert({
-          user_id: data.userId,
-          channel_id: data.channelInfo.channelId,
-          title: data.channelInfo.title,
-          description: data.channelInfo.description,
-          custom_url: data.channelInfo.customUrl,
-          profile_image_url: data.channelInfo.profileImageUrl,
-          banner_image_url: data.channelInfo.bannerImageUrl,
-          subscriber_count: data.channelInfo.subscriberCount,
-          view_count: data.channelInfo.viewCount,
-          video_count: data.channelInfo.videoCount,
-          published_at: data.channelInfo.publishedAt,
-          access_token: data.accessToken,
-          refresh_token: data.refreshToken || null,
-          token_expires_at: expiresAt.toISOString(),
-          is_connected: true,
-          last_synced_at: new Date().toISOString(),
-        })
         .select("id")
-        .single();
+        .eq("user_id", data.userId)
+        .eq("channel_id", data.channelInfo.channelId)
+        .maybeSingle();
 
-      if (error) throw error;
+      if (checkError) {
+        console.error("[saveYouTubeChannel] Error checking existing channel:", checkError);
+        throw checkError;
+      }
 
-      return {
-        success: true,
-        message: "YouTube channel connected successfully",
-        channelId: newChannel.id,
-      };
+      console.log("[saveYouTubeChannel] Existing channel:", existingChannel ? "Found" : "Not found");
+
+      if (existingChannel) {
+        // Update existing channel
+        console.log("[saveYouTubeChannel] Updating existing channel:", existingChannel.id);
+        const { error } = await supabaseAdmin
+          .from("youtube_channels")
+          .update({
+            title: data.channelInfo.title,
+            description: data.channelInfo.description,
+            custom_url: data.channelInfo.customUrl,
+            profile_image_url: data.channelInfo.profileImageUrl,
+            banner_image_url: data.channelInfo.bannerImageUrl,
+            subscriber_count: data.channelInfo.subscriberCount,
+            view_count: data.channelInfo.viewCount,
+            video_count: data.channelInfo.videoCount,
+            published_at: data.channelInfo.publishedAt,
+            access_token: data.accessToken,
+            refresh_token: data.refreshToken || null,
+            token_expires_at: expiresAt.toISOString(),
+            is_connected: true,
+            last_synced_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", existingChannel.id);
+
+        if (error) {
+          console.error("[saveYouTubeChannel] Error updating channel:", error);
+          throw error;
+        }
+
+        console.log("[saveYouTubeChannel] Channel updated successfully");
+        return {
+          success: true,
+          message: "YouTube channel updated successfully",
+          channelId: existingChannel.id,
+        };
+      } else {
+        // Insert new channel
+        console.log("[saveYouTubeChannel] Creating new channel for user:", data.userId);
+        const { data: newChannel, error } = await supabaseAdmin
+          .from("youtube_channels")
+          .insert({
+            user_id: data.userId,
+            channel_id: data.channelInfo.channelId,
+            title: data.channelInfo.title,
+            description: data.channelInfo.description,
+            custom_url: data.channelInfo.customUrl,
+            profile_image_url: data.channelInfo.profileImageUrl,
+            banner_image_url: data.channelInfo.bannerImageUrl,
+            subscriber_count: data.channelInfo.subscriberCount,
+            view_count: data.channelInfo.viewCount,
+            video_count: data.channelInfo.videoCount,
+            published_at: data.channelInfo.publishedAt,
+            access_token: data.accessToken,
+            refresh_token: data.refreshToken || null,
+            token_expires_at: expiresAt.toISOString(),
+            is_connected: true,
+            last_synced_at: new Date().toISOString(),
+          })
+          .select("id")
+          .single();
+
+        if (error) {
+          console.error("[saveYouTubeChannel] Error inserting channel:", error);
+          throw error;
+        }
+
+        console.log("[saveYouTubeChannel] Channel created successfully:", newChannel?.id);
+        return {
+          success: true,
+          message: "YouTube channel connected successfully",
+          channelId: newChannel?.id,
+        };
+      }
+    } catch (err) {
+      console.error("[saveYouTubeChannel] Unexpected error:", err);
+      throw err;
     }
   });
 
@@ -128,10 +154,12 @@ export const saveYouTubeChannel = createServerFn({ method: "POST" })
 export const getConnectedYouTubeChannel = createServerFn({ method: "GET" })
   .inputValidator(validateUserId)
   .handler(async ({ data }) => {
-    // Trust the userId passed from the client
-    // The client has already validated the session before calling this function
-    
+    console.log("[getConnectedYouTubeChannel] Fetching channel for user:", data.userId);
+
     try {
+      // First, verify the user exists and has a valid session
+      console.log("[getConnectedYouTubeChannel] Querying youtube_channels table");
+      
       const { data: channel, error } = await supabaseAdmin
         .from("youtube_channels")
         .select("*")
@@ -140,11 +168,25 @@ export const getConnectedYouTubeChannel = createServerFn({ method: "GET" })
         .order("created_at", { ascending: false })
         .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        console.error("[getConnectedYouTubeChannel] Query error:", error);
+        throw error;
+      }
+
+      if (!channel) {
+        console.log("[getConnectedYouTubeChannel] No connected channel found for user:", data.userId);
+        return null;
+      }
+
+      console.log("[getConnectedYouTubeChannel] Channel found:", {
+        id: channel.id,
+        title: channel.title,
+        channelId: channel.channel_id,
+      });
 
       return channel;
     } catch (err) {
-      console.error("Error fetching YouTube channel:", err);
+      console.error("[getConnectedYouTubeChannel] Unexpected error:", err);
       throw err;
     }
   });
@@ -153,8 +195,8 @@ export const getConnectedYouTubeChannel = createServerFn({ method: "GET" })
 export const getYouTubeChannels = createServerFn({ method: "GET" })
   .inputValidator(validateUserId)
   .handler(async ({ data }) => {
-    // Trust the userId passed from the client
-    
+    console.log("[getYouTubeChannels] Fetching all channels for user:", data.userId);
+
     try {
       const { data: channels, error } = await supabaseAdmin
         .from("youtube_channels")
@@ -162,11 +204,15 @@ export const getYouTubeChannels = createServerFn({ method: "GET" })
         .eq("user_id", data.userId)
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error("[getYouTubeChannels] Query error:", error);
+        throw error;
+      }
 
+      console.log("[getYouTubeChannels] Found channels:", channels?.length || 0);
       return channels || [];
     } catch (err) {
-      console.error("Error fetching YouTube channels:", err);
+      console.error("[getYouTubeChannels] Unexpected error:", err);
       throw err;
     }
   });
@@ -175,52 +221,75 @@ export const getYouTubeChannels = createServerFn({ method: "GET" })
 export const saveYouTubeVideos = createServerFn({ method: "POST" })
   .inputValidator(validateVideoData)
   .handler(async ({ data }) => {
-    // Get the channel record to verify ownership
-    const { data: channel, error: channelError } = await supabaseAdmin
-      .from("youtube_channels")
-      .select("id, user_id")
-      .eq("id", data.channelId)
-      .maybeSingle();
+    console.log("[saveYouTubeVideos] Saving videos for channel:", data.channelId);
 
-    if (channelError) throw channelError;
-    if (!channel) throw new Error("Channel not found");
+    try {
+      // Get the channel record to verify ownership
+      const { data: channel, error: channelError } = await supabaseAdmin
+        .from("youtube_channels")
+        .select("id, user_id")
+        .eq("id", data.channelId)
+        .maybeSingle();
 
-    // Trust that the client has verified ownership
-    // Delete existing videos for this channel
-    const { error: deleteError } = await supabaseAdmin
-      .from("youtube_videos")
-      .delete()
-      .eq("channel_id", data.channelId);
+      if (channelError) {
+        console.error("[saveYouTubeVideos] Error fetching channel:", channelError);
+        throw channelError;
+      }
 
-    if (deleteError) throw deleteError;
+      if (!channel) {
+        console.error("[saveYouTubeVideos] Channel not found:", data.channelId);
+        throw new Error("Channel not found");
+      }
 
-    // Insert new videos
-    if (data.videos.length > 0) {
-      const videosToInsert = data.videos.map((video) => ({
-        channel_id: data.channelId,
-        video_id: video.videoId,
-        title: video.title,
-        description: video.description,
-        thumbnail_url: video.thumbnailUrl,
-        published_at: video.publishedAt,
-        view_count: video.viewCount,
-        like_count: video.likeCount,
-        comment_count: video.commentCount,
-        duration: video.duration,
-      }));
+      console.log("[saveYouTubeVideos] Channel found, deleting old videos");
 
-      const { error: insertError } = await supabaseAdmin
+      // Delete existing videos for this channel
+      const { error: deleteError } = await supabaseAdmin
         .from("youtube_videos")
-        .insert(videosToInsert);
+        .delete()
+        .eq("channel_id", data.channelId);
 
-      if (insertError) throw insertError;
+      if (deleteError) {
+        console.error("[saveYouTubeVideos] Error deleting old videos:", deleteError);
+        throw deleteError;
+      }
+
+      // Insert new videos
+      if (data.videos.length > 0) {
+        console.log("[saveYouTubeVideos] Inserting", data.videos.length, "videos");
+        const videosToInsert = data.videos.map((video) => ({
+          channel_id: data.channelId,
+          video_id: video.videoId,
+          title: video.title,
+          description: video.description,
+          thumbnail_url: video.thumbnailUrl,
+          published_at: video.publishedAt,
+          view_count: video.viewCount,
+          like_count: video.likeCount,
+          comment_count: video.commentCount,
+          duration: video.duration,
+        }));
+
+        const { error: insertError } = await supabaseAdmin
+          .from("youtube_videos")
+          .insert(videosToInsert);
+
+        if (insertError) {
+          console.error("[saveYouTubeVideos] Error inserting videos:", insertError);
+          throw insertError;
+        }
+      }
+
+      console.log("[saveYouTubeVideos] Videos saved successfully");
+      return {
+        success: true,
+        message: `Saved ${data.videos.length} videos`,
+        count: data.videos.length,
+      };
+    } catch (err) {
+      console.error("[saveYouTubeVideos] Unexpected error:", err);
+      throw err;
     }
-
-    return {
-      success: true,
-      message: `Saved ${data.videos.length} videos`,
-      count: data.videos.length,
-    };
   });
 
 // Get YouTube videos for a channel
@@ -232,29 +301,41 @@ export const getYouTubeChannelVideos = createServerFn({ method: "GET" })
     return data;
   })
   .handler(async ({ data }) => {
-    // Verify channel exists
-    const { data: channel, error: channelError } = await supabaseAdmin
-      .from("youtube_channels")
-      .select("user_id")
-      .eq("id", data.channelId)
-      .maybeSingle();
+    console.log("[getYouTubeChannelVideos] Fetching videos for channel:", data.channelId);
 
-    if (channelError) throw channelError;
-    if (!channel) throw new Error("Channel not found");
-
-    // Trust that the client has verified ownership
     try {
+      // Verify channel exists
+      const { data: channel, error: channelError } = await supabaseAdmin
+        .from("youtube_channels")
+        .select("user_id")
+        .eq("id", data.channelId)
+        .maybeSingle();
+
+      if (channelError) {
+        console.error("[getYouTubeChannelVideos] Error fetching channel:", channelError);
+        throw channelError;
+      }
+
+      if (!channel) {
+        console.error("[getYouTubeChannelVideos] Channel not found:", data.channelId);
+        throw new Error("Channel not found");
+      }
+
       const { data: videos, error } = await supabaseAdmin
         .from("youtube_videos")
         .select("*")
         .eq("channel_id", data.channelId)
         .order("published_at", { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error("[getYouTubeChannelVideos] Query error:", error);
+        throw error;
+      }
 
+      console.log("[getYouTubeChannelVideos] Found videos:", videos?.length || 0);
       return videos || [];
     } catch (err) {
-      console.error("Error fetching YouTube videos:", err);
+      console.error("[getYouTubeChannelVideos] Unexpected error:", err);
       throw err;
     }
   });
@@ -268,18 +349,26 @@ export const disconnectYouTubeChannel = createServerFn({ method: "POST" })
     return data;
   })
   .handler(async ({ data }) => {
-    // Verify channel exists
-    const { data: channel, error: channelError } = await supabaseAdmin
-      .from("youtube_channels")
-      .select("user_id")
-      .eq("id", data.channelId)
-      .maybeSingle();
+    console.log("[disconnectYouTubeChannel] Disconnecting channel:", data.channelId);
 
-    if (channelError) throw channelError;
-    if (!channel) throw new Error("Channel not found");
-
-    // Trust that the client has verified ownership
     try {
+      // Verify channel exists
+      const { data: channel, error: channelError } = await supabaseAdmin
+        .from("youtube_channels")
+        .select("user_id")
+        .eq("id", data.channelId)
+        .maybeSingle();
+
+      if (channelError) {
+        console.error("[disconnectYouTubeChannel] Error fetching channel:", channelError);
+        throw channelError;
+      }
+
+      if (!channel) {
+        console.error("[disconnectYouTubeChannel] Channel not found:", data.channelId);
+        throw new Error("Channel not found");
+      }
+
       // Update channel to disconnected
       const { error } = await supabaseAdmin
         .from("youtube_channels")
@@ -289,14 +378,18 @@ export const disconnectYouTubeChannel = createServerFn({ method: "POST" })
         })
         .eq("id", data.channelId);
 
-      if (error) throw error;
+      if (error) {
+        console.error("[disconnectYouTubeChannel] Error updating channel:", error);
+        throw error;
+      }
 
+      console.log("[disconnectYouTubeChannel] Channel disconnected successfully");
       return {
         success: true,
         message: "YouTube channel disconnected",
       };
     } catch (err) {
-      console.error("Error disconnecting YouTube channel:", err);
+      console.error("[disconnectYouTubeChannel] Unexpected error:", err);
       throw err;
     }
   });
