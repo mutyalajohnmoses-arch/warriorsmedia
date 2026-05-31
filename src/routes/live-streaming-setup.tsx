@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { createYouTubeLiveStream, getYouTubeLiveStreamStatus } from "@/lib/youtube-oauth.functions";
 import { getConnectedYouTubeChannel } from "@/lib/youtube-persistence.functions";
+import { getOrRefreshYouTubeToken } from "@/lib/youtube-token-manager.functions";
 
 type ConnectedYouTubeChannel = {
   id: string;
@@ -46,6 +47,7 @@ function LiveStreamingSetup() {
   const createStreamFn = useServerFn(createYouTubeLiveStream);
   const getStatusFn = useServerFn(getYouTubeLiveStreamStatus);
   const getChannelFn = useServerFn(getConnectedYouTubeChannel);
+  const getTokenFn = useServerFn(getOrRefreshYouTubeToken);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -124,6 +126,26 @@ function LiveStreamingSetup() {
           }
 
           console.log("[LiveStreamingSetup] Channel loaded successfully:", channelData.title);
+          
+          // Verify and refresh token if needed
+          try {
+            console.log("[LiveStreamingSetup] Verifying YouTube token...");
+            const tokenInfo = await getTokenFn({ data: { userId: session.user.id } });
+            console.log("[LiveStreamingSetup] Token verified and refreshed if needed");
+            // Store the fresh token in localStorage for immediate use
+            localStorage.setItem("youtube_access_token", tokenInfo.access_token);
+            if (tokenInfo.refresh_token) {
+              localStorage.setItem("youtube_refresh_token", tokenInfo.refresh_token);
+            }
+            localStorage.setItem("youtube_token_expires", String(tokenInfo.expires_at));
+          } catch (tokenError) {
+            console.warn("[LiveStreamingSetup] Token verification failed:", tokenError);
+            // If token refresh fails, channel is marked as disconnected in the token manager
+            setChannelNotConnected(true);
+            setLoading(false);
+            return;
+          }
+          
           setChannel(channelData);
           setLoading(false);
         } catch (err) {
@@ -148,7 +170,7 @@ function LiveStreamingSetup() {
         stream.getTracks().forEach((track) => track.stop());
       }
     };
-  }, [navigate, getChannelFn]);
+  }, [navigate, getChannelFn, getTokenFn]);
 
   useEffect(() => {
     const refreshConnectedChannel = async () => {
@@ -258,9 +280,25 @@ function LiveStreamingSetup() {
 
     setStarting(true);
     try {
-      const accessToken = localStorage.getItem("youtube_access_token");
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
+      
+      // Get fresh token before starting stream
+      console.log("[LiveStreamingSetup] Refreshing token before starting stream");
+      const tokenInfo = await getTokenFn({ data: { userId: session.user.id } });
+      const accessToken = tokenInfo.access_token;
+      
       if (!accessToken) throw new Error("YouTube access token not found");
       if (!channel) throw new Error("YouTube channel not connected");
+      
+      // Update localStorage with fresh token
+      localStorage.setItem("youtube_access_token", accessToken);
+      if (tokenInfo.refresh_token) {
+        localStorage.setItem("youtube_refresh_token", tokenInfo.refresh_token);
+      }
+      localStorage.setItem("youtube_token_expires", String(tokenInfo.expires_at));
 
       await startMedia();
 
@@ -276,9 +314,6 @@ function LiveStreamingSetup() {
 
       setBroadcastId(result.broadcastId);
 
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
       if (session) {
         await supabase.from("live_streams").insert({
           user_id: session.user.id,
