@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { YouTubeChannelConnect } from "./youtube-channel-connect";
+import { disconnectYouTubeChannel } from "@/lib/youtube-persistence.functions";
 import type { YouTubeChannelInfo } from "@/lib/youtube-oauth.functions";
 import {
   Upload,
@@ -11,6 +13,7 @@ import {
   AlertCircle,
   CheckCircle2,
   Link as LinkIcon,
+  LogOut,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -21,14 +24,27 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 interface YouTubeCreateMenuProps {
   channelConnected?: boolean;
+  connectedChannelId?: string;
   onChannelConnect?: (channelInfo: YouTubeChannelInfo) => void;
+  onChannelDisconnect?: () => void;
 }
 
-export function YouTubeCreateMenu({ channelConnected = false, onChannelConnect }: YouTubeCreateMenuProps) {
+export function YouTubeCreateMenu({
+  channelConnected = false,
+  connectedChannelId,
+  onChannelConnect,
+  onChannelDisconnect,
+}: YouTubeCreateMenuProps) {
   const navigate = useNavigate();
   const [showConnectDialog, setShowConnectDialog] = useState(false);
   const [showUploadDialog, setShowUploadDialog] = useState(false);
@@ -39,9 +55,39 @@ export function YouTubeCreateMenu({ channelConnected = false, onChannelConnect }
   const [startingLive, setStartingLive] = useState(false);
   const [creatingPost, setCreatingPost] = useState(false);
   const [showChannelConnectDialog, setShowChannelConnectDialog] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
+  const disconnectChannelFn = useServerFn(disconnectYouTubeChannel);
 
   const handleChannelConnected = (channelInfo: YouTubeChannelInfo) => {
-    if (onChannelConnect) onChannelConnect(channelInfo);
+    console.log("[YouTubeCreateMenu] Channel connected callback received", {
+      channelId: channelInfo.channelId,
+      title: channelInfo.title,
+    });
+    onChannelConnect?.(channelInfo);
+    setShowChannelConnectDialog(false);
+  };
+
+  const handleDisconnectChannel = async () => {
+    if (!connectedChannelId) {
+      toast.error("No connected YouTube channel found to disconnect");
+      return;
+    }
+
+    setDisconnecting(true);
+    try {
+      console.log("[YouTubeCreateMenu] Disconnecting YouTube channel", { connectedChannelId });
+      await disconnectChannelFn({ data: { channelId: connectedChannelId } });
+      localStorage.removeItem("youtube_access_token");
+      localStorage.removeItem("youtube_refresh_token");
+      localStorage.removeItem("youtube_token_expires");
+      toast.success("YouTube channel disconnected");
+      onChannelDisconnect?.();
+    } catch (error) {
+      console.error("[YouTubeCreateMenu] Failed to disconnect YouTube channel", error);
+      toast.error(error instanceof Error ? error.message : "Failed to disconnect channel");
+    } finally {
+      setDisconnecting(false);
+    }
   };
 
   const handleUploadVideo = async () => {
@@ -131,7 +177,10 @@ export function YouTubeCreateMenu({ channelConnected = false, onChannelConnect }
 
           {!channelConnected && (
             <>
-              <DropdownMenuItem onClick={() => setShowChannelConnectDialog(true)} className="cursor-pointer">
+              <DropdownMenuItem
+                onClick={() => setShowChannelConnectDialog(true)}
+                className="cursor-pointer"
+              >
                 <LinkIcon className="w-4 h-4 mr-2 text-[color:var(--gold)]" />
                 <span>Connect Channel</span>
               </DropdownMenuItem>
@@ -165,6 +214,24 @@ export function YouTubeCreateMenu({ channelConnected = false, onChannelConnect }
             <FileText className="w-4 h-4 mr-2 text-[color:var(--gold)]" />
             <span>Create Post</span>
           </DropdownMenuItem>
+
+          {channelConnected && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={handleDisconnectChannel}
+                className="cursor-pointer text-red-500 focus:text-red-500"
+                disabled={disconnecting || !connectedChannelId}
+              >
+                {disconnecting ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <LogOut className="w-4 h-4 mr-2" />
+                )}
+                <span>Disconnect Channel</span>
+              </DropdownMenuItem>
+            </>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
 
@@ -181,7 +248,8 @@ export function YouTubeCreateMenu({ channelConnected = false, onChannelConnect }
           <DialogHeader>
             <DialogTitle>Upload Video to YouTube</DialogTitle>
             <DialogDescription>
-              Select a video file to upload to your YouTube channel. You'll be able to add title, description, and privacy settings.
+              Select a video file to upload to your YouTube channel. You'll be able to add title,
+              description, and privacy settings.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -224,7 +292,8 @@ export function YouTubeCreateMenu({ channelConnected = false, onChannelConnect }
           <DialogHeader>
             <DialogTitle>Start Live Stream</DialogTitle>
             <DialogDescription>
-              Set up and start a live stream directly to your YouTube channel. Configure your stream settings and go live instantly.
+              Set up and start a live stream directly to your YouTube channel. Configure your stream
+              settings and go live instantly.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -233,7 +302,10 @@ export function YouTubeCreateMenu({ channelConnected = false, onChannelConnect }
                 <div className="w-2 h-2 rounded-full bg-red-500 mt-1.5 flex-shrink-0" />
                 <div className="text-sm">
                   <p className="font-medium text-red-400 mb-1">Live Stream Status</p>
-                  <p className="text-xs text-red-300">You're ready to go live. Your stream will be broadcast to all your YouTube subscribers.</p>
+                  <p className="text-xs text-red-300">
+                    You're ready to go live. Your stream will be broadcast to all your YouTube
+                    subscribers.
+                  </p>
                 </div>
               </div>
             </div>
@@ -270,7 +342,8 @@ export function YouTubeCreateMenu({ channelConnected = false, onChannelConnect }
           <DialogHeader>
             <DialogTitle>Create Community Post</DialogTitle>
             <DialogDescription>
-              Share updates, images, and links with your YouTube community. Posts appear on your channel page and in subscribers' feeds.
+              Share updates, images, and links with your YouTube community. Posts appear on your
+              channel page and in subscribers' feeds.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">

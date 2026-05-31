@@ -1,15 +1,7 @@
 import { useState, useEffect } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  Youtube,
-  Loader2,
-  Eye,
-  Users,
-  Video,
-  RefreshCw,
-  ExternalLink,
-} from "lucide-react";
+import { Youtube, Loader2, Eye, Users, Video, RefreshCw, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import {
   getConnectedYouTubeChannel,
@@ -17,14 +9,39 @@ import {
 } from "@/lib/youtube-persistence.functions";
 import { formatNumber } from "@/lib/youtube-oauth.functions";
 
+type YouTubeChannelRow = {
+  id: string;
+  channel_id: string;
+  title: string;
+  description?: string | null;
+  profile_image_url?: string | null;
+  subscriber_count?: string | number | null;
+  view_count?: string | number | null;
+  video_count?: string | number | null;
+};
+
+type YouTubeVideoRow = {
+  id: string;
+  video_id: string;
+  title: string;
+  thumbnail_url?: string | null;
+  view_count?: string | number | null;
+  published_at?: string | null;
+};
+
 interface YouTubeChannelStatsProps {
   userId?: string;
+  channel?: YouTubeChannelRow;
   onChannelFound?: (hasChannel: boolean) => void;
 }
 
-export function YouTubeChannelStats({ userId: propUserId, onChannelFound }: YouTubeChannelStatsProps) {
-  const [channel, setChannel] = useState<any>(null);
-  const [videos, setVideos] = useState<any[]>([]);
+export function YouTubeChannelStats({
+  userId: propUserId,
+  channel: propChannel,
+  onChannelFound,
+}: YouTubeChannelStatsProps) {
+  const [channel, setChannel] = useState<YouTubeChannelRow | null>(propChannel ?? null);
+  const [videos, setVideos] = useState<YouTubeVideoRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -34,6 +51,28 @@ export function YouTubeChannelStats({ userId: propUserId, onChannelFound }: YouT
   useEffect(() => {
     const loadChannelData = async () => {
       try {
+        if (propChannel) {
+          console.log("[YouTubeChannelStats] Using channel provided by parent", {
+            dbChannelId: propChannel.id,
+            channelId: propChannel.channel_id,
+            title: propChannel.title,
+          });
+          setChannel(propChannel);
+          if (onChannelFound) onChannelFound(true);
+          try {
+            const videosData = await getVideosFn({ data: { channelId: propChannel.id } });
+            setVideos(videosData || []);
+          } catch (error) {
+            console.error(
+              "[YouTubeChannelStats] Failed to fetch videos for provided channel:",
+              error,
+            );
+            setVideos([]);
+          }
+          setLoading(false);
+          return;
+        }
+
         const {
           data: { session },
         } = await supabase.auth.getSession();
@@ -78,7 +117,7 @@ export function YouTubeChannelStats({ userId: propUserId, onChannelFound }: YouT
     };
 
     loadChannelData();
-  }, [propUserId, getChannelFn, getVideosFn, onChannelFound]);
+  }, [propUserId, propChannel, getChannelFn, getVideosFn, onChannelFound]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -133,7 +172,7 @@ export function YouTubeChannelStats({ userId: propUserId, onChannelFound }: YouT
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-4 flex-1 min-w-0">
             <img
-              src={channel.profile_image_url}
+              src={channel.profile_image_url ?? ""}
               alt={channel.title}
               className="w-16 h-16 rounded-full border border-[color:var(--gold)]/30 flex-shrink-0"
             />
@@ -142,13 +181,9 @@ export function YouTubeChannelStats({ userId: propUserId, onChannelFound }: YouT
                 <Youtube className="w-4 h-4 text-red-500 flex-shrink-0" />
                 <h3 className="font-display text-xl truncate">{channel.title}</h3>
               </div>
-              <p className="text-xs text-muted-foreground mb-3">
-                Channel ID: {channel.channel_id}
-              </p>
+              <p className="text-xs text-muted-foreground mb-3">Channel ID: {channel.channel_id}</p>
               {channel.description && (
-                <p className="text-sm text-muted-foreground line-clamp-2">
-                  {channel.description}
-                </p>
+                <p className="text-sm text-muted-foreground line-clamp-2">{channel.description}</p>
               )}
             </div>
           </div>
@@ -171,7 +206,7 @@ export function YouTubeChannelStats({ userId: propUserId, onChannelFound }: YouT
             <span className="text-xs text-muted-foreground">Subscribers</span>
           </div>
           <p className="font-display text-2xl text-[color:var(--gold)]">
-            {formatNumber(channel.subscriber_count)}
+            {formatNumber(channel.subscriber_count ?? 0)}
           </p>
         </div>
 
@@ -181,7 +216,7 @@ export function YouTubeChannelStats({ userId: propUserId, onChannelFound }: YouT
             <span className="text-xs text-muted-foreground">Total Views</span>
           </div>
           <p className="font-display text-2xl text-[color:var(--gold)]">
-            {formatNumber(channel.view_count)}
+            {formatNumber(channel.view_count ?? 0)}
           </p>
         </div>
 
@@ -191,7 +226,7 @@ export function YouTubeChannelStats({ userId: propUserId, onChannelFound }: YouT
             <span className="text-xs text-muted-foreground">Videos</span>
           </div>
           <p className="font-display text-2xl text-[color:var(--gold)]">
-            {formatNumber(channel.video_count)}
+            {formatNumber(channel.video_count ?? 0)}
           </p>
         </div>
       </div>
@@ -210,7 +245,7 @@ export function YouTubeChannelStats({ userId: propUserId, onChannelFound }: YouT
                 className="flex gap-3 p-3 rounded-lg border border-border hover:border-[color:var(--gold)]/50 bg-background/40 transition group"
               >
                 <img
-                  src={video.thumbnail_url}
+                  src={video.thumbnail_url ?? ""}
                   alt={video.title}
                   className="w-20 h-20 rounded object-cover flex-shrink-0"
                 />
@@ -219,7 +254,10 @@ export function YouTubeChannelStats({ userId: propUserId, onChannelFound }: YouT
                     {video.title}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {formatNumber(video.view_count)} views • {new Date(video.published_at).toLocaleDateString()}
+                    {formatNumber(video.view_count ?? 0)} views •{" "}
+                    {video.published_at
+                      ? new Date(video.published_at).toLocaleDateString()
+                      : "Unknown date"}
                   </p>
                 </div>
                 <ExternalLink className="w-4 h-4 text-muted-foreground group-hover:text-[color:var(--gold)] transition flex-shrink-0 mt-1" />
