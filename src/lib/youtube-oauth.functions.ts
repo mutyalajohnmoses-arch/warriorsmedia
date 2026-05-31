@@ -183,6 +183,15 @@ export const refreshOAuthToken = createServerFn({ method: "POST" })
     };
   });
 
+// Helper to handle token refresh on 401
+async function handleTokenRefresh(refreshToken: string | undefined): Promise<string> {
+  if (!refreshToken) {
+    throw new Error("No refresh token available");
+  }
+  const tokens = await refreshOAuthToken({ data: { refresh_token: refreshToken } });
+  return tokens.access_token;
+}
+
 // Fetch YouTube channel information
 const validateAccessToken = (data: { access_token: string }) => {
   if (!data?.access_token || typeof data.access_token !== "string") {
