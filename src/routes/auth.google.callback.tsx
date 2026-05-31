@@ -43,15 +43,16 @@ function GoogleOAuthCallback() {
         error,
         errorDescription: params.get("error_description"),
       });
-      window.opener?.postMessage(
-        {
-          type: "youtube-oauth-error",
-          error: error,
-          errorDescription: params.get("error_description"),
-          state,
-        },
-        targetOrigin,
-      );
+      const errorPayload = {
+        type: "youtube-oauth-error",
+        error: error,
+        errorDescription: params.get("error_description"),
+        state,
+      };
+      window.opener?.postMessage(errorPayload, targetOrigin);
+      if (targetOrigin !== window.location.origin) {
+        window.opener?.postMessage(errorPayload, window.location.origin);
+      }
       window.close();
       return;
     }
@@ -62,14 +63,15 @@ function GoogleOAuthCallback() {
         targetOrigin,
         codeLength: code.length,
       });
-      window.opener?.postMessage(
-        {
-          type: "youtube-oauth-code",
-          code: code,
-          state,
-        },
-        targetOrigin,
-      );
+      const codePayload = {
+        type: "youtube-oauth-code",
+        code: code,
+        state,
+      };
+      window.opener?.postMessage(codePayload, targetOrigin);
+      if (targetOrigin !== window.location.origin) {
+        window.opener?.postMessage(codePayload, window.location.origin);
+      }
       window.close();
       return;
     }
