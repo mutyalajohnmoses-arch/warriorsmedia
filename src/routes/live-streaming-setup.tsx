@@ -264,7 +264,10 @@ function LiveStreamingSetup() {
       setStream(mediaStream);
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
+        await videoRef.current.play();
       }
+      setCameraEnabled(true);
+      
       return mediaStream;
     } catch (err) {
       toast.error("Failed to access camera or microphone. Please check permissions.");
