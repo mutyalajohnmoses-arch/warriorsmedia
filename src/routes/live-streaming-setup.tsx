@@ -16,13 +16,28 @@ import {
   Upload,
   X,
   Play,
+  Wifi,
+  WifiOff,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
-import { createYouTubeLiveStream, getYouTubeLiveStreamStatus } from "@/lib/youtube-oauth.functions";
+import { Room } from "livekit-client";
+import {
+  connectToLiveKitRoom,
+  publishTracksToRoom,
+  disconnectFromLiveKitRoom,
+  toggleCamera,
+  toggleMicrophone,
+} from "@/lib/livekit-client";
+import {
+  generateLiveKitToken,
+  startLiveKitEgress,
+  stopLiveKitEgress,
+} from "@/lib/livekit.functions";
 import { getConnectedYouTubeChannel } from "@/lib/youtube-persistence.functions";
 import { getOrRefreshYouTubeToken } from "@/lib/youtube-token-manager.functions";
+import { createYouTubeBroadcast } from "@/lib/youtube-oauth.functions";
 
 type ConnectedYouTubeChannel = {
   id: string;
@@ -31,7 +46,6 @@ type ConnectedYouTubeChannel = {
   description?: string | null;
   profile_image_url?: string | null;
 };
-
 
 export const Route = createFileRoute("/live-streaming-setup")({
   head: () => ({
@@ -45,10 +59,12 @@ export const Route = createFileRoute("/live-streaming-setup")({
 
 function LiveStreamingSetup() {
   const navigate = useNavigate();
-  const createStreamFn = useServerFn(createYouTubeLiveStream);
-  const getStatusFn = useServerFn(getYouTubeLiveStreamStatus);
+  const generateTokenFn = useServerFn(generateLiveKitToken);
+  const startEgressFn = useServerFn(startLiveKitEgress);
+  const stopEgressFn = useServerFn(stopLiveKitEgress);
   const getChannelFn = useServerFn(getConnectedYouTubeChannel);
   const getTokenFn = useServerFn(getOrRefreshYouTubeToken);
+  const createBroadcastFn = useServerFn(createYouTubeBroadcast);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -62,7 +78,6 @@ function LiveStreamingSetup() {
   const [description, setDescription] = useState("");
   const [privacy, setPrivacy] = useState<"public" | "private" | "unlisted">("public");
   const [madeForKids, setMadeForKids] = useState(false);
-  const [scheduleTime, setScheduleTime] = useState("");
 
   // Media State
   const [stream, setStream] = useState<MediaStream | null>(null);
@@ -72,11 +87,17 @@ function LiveStreamingSetup() {
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
+  // LiveKit State
+  const [room, setRoom] = useState<Room | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
+
   // Live Stats
   const [viewerCount, setViewerCount] = useState(0);
   const [duration, setDuration] = useState("00:00:00");
   const startTimeRef = useRef<number | null>(null);
   const [broadcastId, setBroadcastId] = useState<string | null>(null);
+  const [egressId, setEgressId] = useState<string | null>(null);
   const initRef = useRef(false);
 
   // Initialize on mount
@@ -127,7 +148,7 @@ function LiveStreamingSetup() {
           }
 
           console.log("[LiveStreamingSetup] Channel loaded successfully:", channelData.title);
-          
+
           // Verify and refresh token if needed
           try {
             console.log("[LiveStreamingSetup] Verifying YouTube token...");
@@ -146,17 +167,16 @@ function LiveStreamingSetup() {
             setLoading(false);
             return;
           }
-          
+
           setChannel(channelData);
 
-try {
-  await startMedia();
-} catch (err) {
-  console.error("Camera initialization failed:", err);
-}
+          try {
+            await startMedia();
+          } catch (err) {
+            console.error("Camera initialization failed:", err);
+          }
 
-setLoading(false);
-
+          setLoading(false);
         } catch (err) {
           const errorMsg = err instanceof Error ? err.message : "Failed to fetch YouTube channel";
           console.error("[LiveStreamingSetup] Error fetching YouTube channel:", err);
@@ -222,7 +242,6 @@ setLoading(false);
   // Timer and stats polling when live
   useEffect(() => {
     let interval: ReturnType<typeof setInterval> | null = null;
-    let statsInterval: ReturnType<typeof setInterval> | null = null;
 
     if (isLive) {
       startTimeRef.current = Date.now();
@@ -240,29 +259,12 @@ setLoading(false);
           .padStart(2, "0");
         setDuration(`${h}:${m}:${s}`);
       }, 1000);
-
-      const pollStats = async () => {
-        try {
-          const accessToken = localStorage.getItem("youtube_access_token");
-          if (accessToken) {
-            const status = await getStatusFn({ data: { access_token: accessToken } });
-            if (status.isLive) {
-              setViewerCount(status.viewerCount || 0);
-            }
-          }
-        } catch (e) {
-          console.error("[LiveStreamingSetup] Failed to poll stats:", e);
-        }
-      };
-
-      statsInterval = setInterval(pollStats, 30000);
     }
 
     return () => {
       if (interval) clearInterval(interval);
-      if (statsInterval) clearInterval(statsInterval);
     };
-  }, [isLive, getStatusFn]);
+  }, [isLive]);
 
   const startMedia = async () => {
     try {
@@ -276,7 +278,7 @@ setLoading(false);
         await videoRef.current.play();
       }
       setCameraEnabled(true);
-      
+
       return mediaStream;
     } catch (err) {
       toast.error("Failed to access camera or microphone. Please check permissions.");
@@ -296,27 +298,32 @@ setLoading(false);
         data: { session },
       } = await supabase.auth.getSession();
       if (!session) throw new Error("Not authenticated");
-      
-      // Get fresh token before starting stream
+
+      // Get fresh YouTube token before starting stream
       console.log("[LiveStreamingSetup] Refreshing token before starting stream");
       const tokenInfo = await getTokenFn({ data: { userId: session.user.id } });
-      const accessToken = tokenInfo.access_token;
-      
-      if (!accessToken) throw new Error("YouTube access token not found");
+      const youtubeAccessToken = tokenInfo.access_token;
+
+      if (!youtubeAccessToken) throw new Error("YouTube access token not found");
       if (!channel) throw new Error("YouTube channel not connected");
-      
+
       // Update localStorage with fresh token
-      localStorage.setItem("youtube_access_token", accessToken);
+      localStorage.setItem("youtube_access_token", youtubeAccessToken);
       if (tokenInfo.refresh_token) {
         localStorage.setItem("youtube_refresh_token", tokenInfo.refresh_token);
       }
       localStorage.setItem("youtube_token_expires", String(tokenInfo.expires_at));
 
-      await startMedia();
+      // Ensure media is started
+      if (!stream) {
+        await startMedia();
+      }
 
-      const result = await createStreamFn({
+      // Step 1: Create YouTube Broadcast (to get broadcast ID for egress)
+      console.log("[LiveStreamingSetup] Creating YouTube broadcast");
+      const broadcastResult = await createBroadcastFn({
         data: {
-          access_token: accessToken,
+          access_token: youtubeAccessToken,
           title,
           description,
           privacy,
@@ -324,18 +331,66 @@ setLoading(false);
         },
       });
 
-      setBroadcastId(result.broadcastId);
+      setBroadcastId(broadcastResult.broadcastId);
+      console.log("[LiveStreamingSetup] Broadcast created:", broadcastResult.broadcastId);
 
+      // Step 2: Generate LiveKit token
+      console.log("[LiveStreamingSetup] Generating LiveKit token");
+      const roomName = `broadcast-${broadcastResult.broadcastId}`;
+      const tokenResult = await generateTokenFn({
+        data: {
+          roomName,
+          participantName: session.user.id,
+          canPublish: true,
+          canSubscribe: false,
+        },
+      });
+
+      console.log("[LiveStreamingSetup] LiveKit token generated");
+
+      // Step 3: Connect to LiveKit room
+      console.log("[LiveStreamingSetup] Connecting to LiveKit room");
+      setIsConnected(true);
+      const liveKitRoom = await connectToLiveKitRoom({
+        url: tokenResult.url,
+        token: tokenResult.token,
+        roomName,
+      });
+
+      setRoom(liveKitRoom);
+      console.log("[LiveStreamingSetup] Connected to LiveKit room");
+
+      // Step 4: Publish tracks to LiveKit room
+      console.log("[LiveStreamingSetup] Publishing tracks to LiveKit");
+      setIsPublishing(true);
+      await publishTracksToRoom(liveKitRoom);
+      console.log("[LiveStreamingSetup] Tracks published");
+
+      // Step 5: Start LiveKit Egress to YouTube
+      console.log("[LiveStreamingSetup] Starting LiveKit egress to YouTube");
+      const egressResult = await startEgressFn({
+        data: {
+          roomName,
+          youtubeStreamKey: broadcastResult.streamKey,
+          title,
+        },
+      });
+
+      setEgressId(egressResult.egressId);
+      console.log("[LiveStreamingSetup] Egress started:", egressResult.egressId);
+
+      // Step 6: Save to database
       if (session) {
         await supabase.from("live_streams").insert({
           user_id: session.user.id,
-          broadcast_id: result.broadcastId,
-          stream_id: result.streamId,
+          broadcast_id: broadcastResult.broadcastId,
           channel_id: channel.channel_id,
           title,
           description,
           privacy_status: privacy,
           status: "live",
+          livekit_room_name: roomName,
+          livekit_egress_id: egressResult.egressId,
         });
       }
 
@@ -344,44 +399,79 @@ setLoading(false);
     } catch (err) {
       console.error(err);
       toast.error(err instanceof Error ? err.message : "Failed to start stream");
-      if (stream) {
-        stream.getTracks().forEach((track) => track.stop());
-        setStream(null);
+
+      // Cleanup on error
+      if (room) {
+        try {
+          await disconnectFromLiveKitRoom(room);
+        } catch (e) {
+          console.error("Error disconnecting room on failure:", e);
+        }
       }
+      setIsConnected(false);
+      setIsPublishing(false);
+      setRoom(null);
     } finally {
       setStarting(false);
     }
   };
 
   const handleEndStream = async () => {
-    if (stream) {
-      stream.getTracks().forEach((track) => track.stop());
+    try {
+      // Stop LiveKit egress
+      if (egressId) {
+        console.log("[LiveStreamingSetup] Stopping LiveKit egress");
+        try {
+          await stopEgressFn({ data: { egressId } });
+          console.log("[LiveStreamingSetup] Egress stopped");
+        } catch (e) {
+          console.error("Error stopping egress:", e);
+        }
+      }
+
+      // Disconnect from LiveKit room
+      if (room) {
+        console.log("[LiveStreamingSetup] Disconnecting from LiveKit room");
+        await disconnectFromLiveKitRoom(room);
+        console.log("[LiveStreamingSetup] Disconnected from room");
+      }
+
+      // Stop media tracks
+      if (stream) {
+        stream.getTracks().forEach((track) => track.stop());
+        setStream(null);
+      }
+
+      // Reset state
+      setRoom(null);
+      setIsConnected(false);
+      setIsPublishing(false);
+      setCameraEnabled(false);
+      setMicEnabled(false);
+      setIsLive(false);
+      setEgressId(null);
+      setBroadcastId(null);
+
+      toast.success("Live stream ended");
+      setTimeout(() => navigate({ to: "/dashboard" }), 1500);
+    } catch (err) {
+      console.error("Error ending stream:", err);
+      toast.error("Error ending stream, but redirecting to dashboard");
+      setTimeout(() => navigate({ to: "/dashboard" }), 1500);
     }
-    setStream(null);
-setCameraEnabled(false);
-setMicEnabled(false);
-    setIsLive(false);
-    toast.success("Live stream ended");
-    setTimeout(() => navigate({ to: "/dashboard" }), 1500);
   };
 
-  const toggleCamera = () => {
-    if (stream) {
-      const track = stream.getVideoTracks()[0];
-      if (track) {
-        track.enabled = !track.enabled;
-        setCameraEnabled(track.enabled);
-      }
+  const handleToggleCamera = () => {
+    if (room) {
+      toggleCamera(room, !cameraEnabled);
+      setCameraEnabled(!cameraEnabled);
     }
   };
 
-  const toggleMic = () => {
-    if (stream) {
-      const track = stream.getAudioTracks()[0];
-      if (track) {
-        track.enabled = !track.enabled;
-        setMicEnabled(track.enabled);
-      }
+  const handleToggleMic = () => {
+    if (room) {
+      toggleMicrophone(room, !micEnabled);
+      setMicEnabled(!micEnabled);
     }
   };
 
@@ -493,6 +583,26 @@ setMicEnabled(false);
                 Live
               </span>
             </div>
+            <div
+              className={`flex items-center gap-2 px-2.5 py-1 rounded-full border ${
+                isConnected
+                  ? "bg-green-500/10 border-green-500/30"
+                  : "bg-yellow-500/10 border-yellow-500/30"
+              }`}
+            >
+              {isConnected ? (
+                <Wifi className="w-3 h-3 text-green-500" />
+              ) : (
+                <WifiOff className="w-3 h-3 text-yellow-500" />
+              )}
+              <span
+                className={`text-[9px] font-bold uppercase tracking-widest ${
+                  isConnected ? "text-green-500" : "text-yellow-500"
+                }`}
+              >
+                {isConnected ? "Connected" : "Connecting"}
+              </span>
+            </div>
           </div>
         )}
       </header>
@@ -503,27 +613,26 @@ setMicEnabled(false);
           // Setup Mode
           <div className="space-y-6 px-4 py-6">
             {/* Camera Preview */}
-            
             <div className="relative aspect-video rounded-2xl overflow-hidden bg-card/40 border border-border shadow-lg">
-  <video
-    ref={videoRef}
-    autoPlay
-    muted
-    playsInline
-    className="w-full h-full object-cover"
-  />
+              <video
+                ref={videoRef}
+                autoPlay
+                muted
+                playsInline
+                className="w-full h-full object-cover"
+              />
 
-  {!stream && (
-    <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-card/80 backdrop-blur-sm">
-      <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center">
-        <Camera className="w-8 h-8 text-red-500" />
-      </div>
-      <p className="text-sm text-muted-foreground font-medium">
-        Camera preview will appear here
-      </p>
-    </div>
-  )}
-</div>
+              {!stream && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-card/80 backdrop-blur-sm">
+                  <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center">
+                    <Camera className="w-8 h-8 text-red-500" />
+                  </div>
+                  <p className="text-sm text-muted-foreground font-medium">
+                    Camera preview will appear here
+                  </p>
+                </div>
+              )}
+            </div>
 
             {/* Stream Title */}
             <div className="space-y-3">
@@ -677,13 +786,13 @@ setMicEnabled(false);
               {/* Controls */}
               <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 p-2 rounded-full bg-background/60 backdrop-blur-md border border-white/10">
                 <button
-                  onClick={toggleCamera}
+                  onClick={handleToggleCamera}
                   className={`p-2.5 rounded-full transition ${cameraEnabled ? "bg-white/10 hover:bg-white/20" : "bg-red-500 text-white"}`}
                 >
                   {cameraEnabled ? <Video className="w-4 h-4" /> : <VideoOff className="w-4 h-4" />}
                 </button>
                 <button
-                  onClick={toggleMic}
+                  onClick={handleToggleMic}
                   className={`p-2.5 rounded-full transition ${micEnabled ? "bg-white/10 hover:bg-white/20" : "bg-red-500 text-white"}`}
                 >
                   {micEnabled ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
@@ -727,3 +836,4 @@ setMicEnabled(false);
     </main>
   );
 }
+
