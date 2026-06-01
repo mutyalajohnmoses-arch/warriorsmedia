@@ -491,16 +491,27 @@ function LiveStreamingSetup() {
           // Setup Mode
           <div className="space-y-6 px-4 py-6">
             {/* Camera Preview */}
+            
             <div className="relative aspect-video rounded-2xl overflow-hidden bg-card/40 border border-border shadow-lg">
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-card/80 backdrop-blur-sm">
-                <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center">
-                  <Camera className="w-8 h-8 text-red-500" />
-                </div>
-                <p className="text-sm text-muted-foreground font-medium">
-                  Camera preview will appear here
-                </p>
-              </div>
-            </div>
+  <video
+    ref={videoRef}
+    autoPlay
+    muted
+    playsInline
+    className="w-full h-full object-cover"
+  />
+
+  {!stream && (
+    <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-card/80 backdrop-blur-sm">
+      <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center">
+        <Camera className="w-8 h-8 text-red-500" />
+      </div>
+      <p className="text-sm text-muted-foreground font-medium">
+        Camera preview will appear here
+      </p>
+    </div>
+  )}
+</div>
 
             {/* Stream Title */}
             <div className="space-y-3">
