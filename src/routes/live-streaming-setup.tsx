@@ -631,7 +631,7 @@ function LiveStreamingSetup() {
                 autoPlay
                 muted
                 playsInline
-                className={`w-full h-full object-cover ${!cameraEnabled ? "hidden" : ""}`}
+                className="w-full h-full object-cover"
               />
               {!cameraEnabled && (
                 <div className="absolute inset-0 flex items-center justify-center bg-card">
