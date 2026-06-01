@@ -356,6 +356,9 @@ setLoading(false);
     if (stream) {
       stream.getTracks().forEach((track) => track.stop());
     }
+    setStream(null);
+setCameraEnabled(false);
+setMicEnabled(false);
     setIsLive(false);
     toast.success("Live stream ended");
     setTimeout(() => navigate({ to: "/dashboard" }), 1500);
