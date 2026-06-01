@@ -147,7 +147,15 @@ function LiveStreamingSetup() {
           }
           
           setChannel(channelData);
-          setLoading(false);
+
+try {
+  await startMedia();
+} catch (err) {
+  console.error("Camera initialization failed:", err);
+}
+
+setLoading(false);
+
         } catch (err) {
           const errorMsg = err instanceof Error ? err.message : "Failed to fetch YouTube channel";
           console.error("[LiveStreamingSetup] Error fetching YouTube channel:", err);
