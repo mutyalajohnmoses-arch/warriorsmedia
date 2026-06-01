@@ -1,3 +1,4 @@
+
 -- Create live_streams table
 CREATE TABLE IF NOT EXISTS live_streams (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
