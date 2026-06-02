@@ -1,3 +1,4 @@
+
 import { createFileRoute, useSearch, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, useRef } from "react";
 import { useServerFn } from "@tanstack/react-start";
@@ -320,15 +321,14 @@ function LiveStreamingSetupPage() {
         console.log("Room Name:", roomName);
         console.log("YouTube Key:", youtubeStreamKey);
 
-        const payload = {
-          roomName,
-          youtubeStreamKey,
-          title: roomName,
-        };
-
-        console.log("Egress payload:", payload);
-
-        const egress = await startEgress(payload);
+        // Client side input wrapper is passed properly to serialize payload types
+        const egress = await startEgress({
+          data: {
+            roomName,
+            youtubeStreamKey,
+            title: roomName,
+          }
+        });
 
         console.log("Egress response:", egress);
 
@@ -397,7 +397,6 @@ function LiveStreamingSetupPage() {
   }, [room, isCameraEnabled]);
 
   const handleStartStream = async () => {
-    // 1. Strict trim space validation checks
     if (!roomName?.trim()) {
       toast.error("Room name is required");
       return;
@@ -412,11 +411,14 @@ function LiveStreamingSetupPage() {
     try {
       console.log("[LiveStreamingSetupPage] Attempting to generate LiveKit token...");
       
+      // Wrapped properly inside data key object to comply with router action validator
       const tokenResponse = await generateToken({
-        roomName,
-        participantName,
-        canPublish: true,
-        canSubscribe: true,
+        data: {
+          roomName,
+          participantName,
+          canPublish: true,
+          canSubscribe: true,
+        }
       });
 
       if (tokenResponse?.token && tokenResponse?.url) {
@@ -437,7 +439,7 @@ function LiveStreamingSetupPage() {
     try {
       if (currentEgressId) {
         console.log("[YouTube] Stopping egress session:", currentEgressId);
-        await stopEgress({ egressId: currentEgressId });
+        await stopEgress({ data: { egressId: currentEgressId } });
         toast.info("YouTube Egress stopped.");
       }
     } catch (err: any) {
