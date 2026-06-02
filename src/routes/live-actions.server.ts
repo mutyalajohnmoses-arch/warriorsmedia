@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { AccessToken, EgressClient } from "livekit-server-sdk";
+import { AccessToken, EgressClient, EncodedFileType } from "livekit-server-sdk";
 
 function validateLiveKitEnv() {
   const apiKey = process.env.LIVEKIT_API_KEY;
@@ -7,24 +7,21 @@ function validateLiveKitEnv() {
   const url = process.env.LIVEKIT_URL;
 
   if (!apiKey || !apiSecret || !url) {
-    throw new Error("Missing LiveKit Environment variables on server side.");
+    throw new Error("Missing LiveKit environment configurations.");
   }
   return { apiKey, apiSecret, url };
 }
 
-// 1. Generate WebRTC token
 export const generateLiveKitToken = createServerFn({ method: "POST" })
-  .inputValidator((data: any) => {
-    if (!data?.roomName || !data?.participantName) throw new Error("Room & Participant Name required");
-    return data;
-  })
+  .input((data: { roomName: string; participantName: string }) => data)
   .handler(async ({ data }) => {
     const { apiKey, apiSecret, url } = validateLiveKitEnv();
+    
     const token = new AccessToken(apiKey, apiSecret, {
       identity: data.participantName,
       name: data.participantName,
     });
-    
+
     token.addGrant({
       room: data.roomName,
       roomJoin: true,
@@ -32,54 +29,35 @@ export const generateLiveKitToken = createServerFn({ method: "POST" })
       canSubscribe: true,
     });
 
-    return { token: await token.toJwt(), url, roomName: data.roomName };
+    return {
+      token: await token.toJwt(),
+      url: url,
+    };
   });
 
-// 2. Trigger Egress directly to YouTube RTMP (Using standard object mapping to prevent SDK serialization errors)
 export const startLiveKitEgress = createServerFn({ method: "POST" })
-  .inputValidator((data: any) => {
-    if (!data?.roomName || !data?.youtubeStreamKey) throw new Error("Missing Room Name or Stream Key");
-    return data;
-  })
+  .input((data: { roomName: string; youtubeStreamKey: string }) => data)
   .handler(async ({ data }) => {
-    try {
-      const { apiKey, apiSecret, url } = validateLiveKitEnv();
-      const egressClient = new EgressClient(url, apiKey, apiSecret);
-      const youtubeRtmpUrl = `rtmps://a.rtmp.youtube.com/live2/${data.youtubeStreamKey}`;
+    const { apiKey, apiSecret, url } = validateLiveKitEnv();
+    const egressClient = new EgressClient(url, apiKey, apiSecret);
+    const youtubeRtmpUrl = `rtmps://a.rtmp.youtube.com/live2/${data.youtubeStreamKey}`;
 
-      // Call via standard raw parameters to completely bypass browser-bundler structure corruption
-      const response = await egressClient.startRoomCompositeEgress(
-        data.roomName,
-        {
-          layout: "single",
-          rtmpOutputs: [{
-            urls: [youtubeRtmpUrl]
-          }]
-        },
-        {
-          width: 1280,
-          height: 720,
-          framerate: 30,
-          videoBitrate: 2500,
-          audioBitrate: 128
-        }
-      );
+    // Properly built request object structured exactly how the SDK expects it
+    const response = await egressClient.startRoomCompositeEgress(data.roomName, {
+      layout: "single", // Fixes the internal layout builder lookup crash
+      rtmp: {
+        urls: [youtubeRtmpUrl],
+      }
+    });
 
-      return { egressId: response.egressId, status: response.status };
-    } catch (error: any) {
-      throw new Error(error.message || "LiveKit Egress failed to initialize");
-    }
+    return { egressId: response.egressId };
   });
 
-// 3. Stop Egress
 export const stopLiveKitEgress = createServerFn({ method: "POST" })
-  .inputValidator((data: any) => {
-    if (!data?.egressId) throw new Error("Egress ID is required");
-    return data;
-  })
+  .input((data: { egressId: string }) => data)
   .handler(async ({ data }) => {
     const { apiKey, apiSecret, url } = validateLiveKitEnv();
     const egressClient = new EgressClient(url, apiKey, apiSecret);
     const response = await egressClient.stopEgress(data.egressId);
-    return { egressId: response.egressId, status: response.status };
+    return { egressId: response.egressId };
   });
