@@ -34,7 +34,7 @@ import type { YouTubeChannelInfo } from "@/lib/youtube-oauth.functions";
 type ConnectedYouTubeChannel = {
   id: string;
   channel_id: string;
-  title: string;
+  title: string | null;
   description?: string | null;
   profile_image_url?: string | null;
   subscriber_count?: string | number | null;
