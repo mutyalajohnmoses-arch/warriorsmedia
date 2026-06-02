@@ -37,7 +37,7 @@ import {
 } from "@/lib/livekit.functions";
 import { getConnectedYouTubeChannel } from "@/lib/youtube-persistence.functions";
 import { getOrRefreshYouTubeToken } from "@/lib/youtube-token-manager.functions";
-import { createYouTubeBroadcast } from "@/lib/youtube-oauth.functions";
+import { createYouTubeBroadcast } from "@/lib/youtube-broadcast.functions";
 
 type ConnectedYouTubeChannel = {
   id: string;
@@ -836,4 +836,3 @@ function LiveStreamingSetup() {
     </main>
   );
 }
-
