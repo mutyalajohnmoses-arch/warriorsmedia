@@ -246,7 +246,7 @@ export function YouTubeChannelStats({
               >
                 <img
                   src={video.thumbnail_url ?? ""}
-                  alt={video.title}
+                  alt={video.title ?? ""}
                   className="w-20 h-20 rounded object-cover flex-shrink-0"
                 />
                 <div className="flex-1 min-w-0">
