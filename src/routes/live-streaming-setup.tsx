@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 
 // ఫిక్స్డ్ రిలేటివ్ పాత్ ఇంపోర్ట్ - ఇది క్లైంట్ బిల్డ్ ఎర్రర్ రాకుండా కాపాడుతుంది
-import { generateLiveKitToken, startLiveKitEgress, stopLiveKitEgress } from "../server/live-actions";
+import { generateLiveKitToken, startLiveKitEgress, stopLiveKitEgress } from "@/server/live-actions.server";
 
 export const Route = createFileRoute("/live-streaming-setup")({
   component: LiveStreamingSetupPage,
@@ -102,7 +102,7 @@ function LiveStreamingSetupPage() {
       }
     };
 
-    if (room.localParticipant?.isLocalTrackPublished) {
+    if ((room.localParticipant?.videoTrackPublications.size ?? 0) > 0) {
       triggerYouTubeEgressPipeline();
     } else {
       room.once(RoomEvent.LocalTrackPublished, () => {
