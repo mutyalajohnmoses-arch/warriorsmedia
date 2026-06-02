@@ -1,3 +1,4 @@
+
 import { createFileRoute, useSearch, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, useRef } from "react";
 import { useServerFn } from "@tanstack/react-start";
@@ -299,22 +300,46 @@ function LiveStreamingSetupPage() {
   const [isMicEnabled, setIsMicEnabled] = useState(true);
   const [liveKitToken, setLiveKitToken] = useState<string | null>(null);
   const [liveKitUrl, setLiveKitUrl] = useState<string | null>(null);
+  const [currentEgressId, setCurrentEgressId] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const generateToken = useServerFn(generateLiveKitToken);
+  const startEgress = useServerFn(startLiveKitEgress);
+  const stopEgress = useServerFn(stopLiveKitEgress);
 
   const { room, isConnected, isPublishing, error, connect, disconnect, toggleCameraTrack, toggleMicTrack } = useLiveKitRoom({
     url: liveKitUrl || "",
     token: liveKitToken || "",
     roomName: roomName,
-    onConnected: () => {
+    onConnected: async () => {
       setIsLive(true);
       setIsConnecting(false);
       toast.success("Connected to LiveKit room!");
+      
+      try {
+        console.log("[YouTube] Starting egress...");
+        const egress = await startEgress({
+          data: {
+            roomName,
+            youtubeStreamKey,
+            title: roomName,
+          },
+        });
+
+        console.log("[YouTube] Egress started:", egress);
+        if (egress?.egressId) {
+          setCurrentEgressId(egress.egressId);
+        }
+        toast.success("YouTube Live Started!");
+      } catch (err: any) {
+        console.error("[YouTube] Egress failed:", err);
+        toast.error(`YouTube Live Failed: ${err.message}`);
+      }
     },
     onDisconnected: () => {
       setIsLive(false);
       setIsConnecting(false);
+      setCurrentEgressId(null);
       toast.info("Disconnected from LiveKit room.");
     },
     onError: (err) => {
@@ -388,7 +413,6 @@ function LiveStreamingSetupPage() {
         setLiveKitToken(tokenResponse.token);
         setLiveKitUrl(tokenResponse.url);
         console.log("[LiveStreamingSetupPage] LiveKit token generated. Setting state to trigger connection...");
-      // The useEffect above will now handle the connection once liveKitToken and liveKitUrl are set.
       } else {
         throw new Error("Failed to get LiveKit token or URL.");
       }
@@ -400,11 +424,22 @@ function LiveStreamingSetupPage() {
   };
 
   const handleStopStream = async () => {
+    try {
+      if (currentEgressId) {
+        console.log("[YouTube] Stopping egress session:", currentEgressId);
+        await stopEgress({ data: { egressId: currentEgressId } });
+        toast.info("YouTube Egress stopped.");
+      }
+    } catch (err: any) {
+      console.error("[YouTube] Failed to stop egress safely:", err);
+    }
+
     if (isConnected) {
       await disconnect();
       setIsConnecting(false);
       setLiveKitToken(null);
       setLiveKitUrl(null);
+      setCurrentEgressId(null);
     }
   };
 
@@ -421,8 +456,6 @@ function LiveStreamingSetupPage() {
   useEffect(() => {
     if (auto === "true" && !isConnecting && !isConnected) {
       console.log("Auto-starting live streaming setup...");
-      // Optionally, you could pre-fill roomName or youtubeStreamKey here if available from search params
-      // handleStartStream(); // Uncomment to auto-start immediately
       toast.info("Automatic setup initiated. Please configure and start your stream.");
     }
   }, [auto, isConnecting, isConnected]);
@@ -525,4 +558,3 @@ function LiveStreamingSetupPage() {
     </div>
   );
 }
-
