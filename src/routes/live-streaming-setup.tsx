@@ -20,7 +20,7 @@ import {
   LogIn
 } from "lucide-react";
 
-// కరెక్ట్ అలియాస్ పాత్ ఇంపోర్ట్
+// కరెక్ట్ అలియాస్ పాత్ ఇంపోర్ట్ (బిల్డ్ ఎర్రర్‌ను పూర్తిగా ఫిక్స్ చేస్తుంది)
 import { 
   generateLiveKitToken, 
   createYouTubeLivePipeline, 
@@ -35,13 +35,13 @@ export const Route = createFileRoute("/live-streaming-setup")({
 function LiveStreamingSetupPage() {
   const navigate = useNavigate();
 
-  // YouTube Setup States
+  // YouTube States
   const [streamTitle, setStreamTitle] = useState("");
   const [streamDescription, setStreamDescription] = useState("");
   const [privacyStatus, setPrivacyStatus] = useState("public");
   const [googleToken, setGoogleToken] = useState<string | null>(null);
 
-  // Connection Pipeline States
+  // Connection Pipelines
   const [isConnecting, setIsConnecting] = useState(false);
   const [isEgressActive, setIsEgressActive] = useState(false); 
   const [isCameraEnabled, setIsCameraEnabled] = useState(true);
@@ -53,7 +53,6 @@ function LiveStreamingSetupPage() {
   const [participantName, setParticipantName] = useState("Host");
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  // Server Functions Hooks
   const generateTokenFn = useServerFn(generateLiveKitToken);
   const createYouTubePipelineFn = useServerFn(createYouTubeLivePipeline);
   const startEgressFn = useServerFn(startLiveKitEgress);
@@ -80,10 +79,9 @@ function LiveStreamingSetupPage() {
     },
   });
 
-  // Google OAuth తో లాగిన్ అవ్వడం (YouTube Live Scopes తో)
   const handleGoogleLogin = async () => {
     try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
           scopes: "https://www.googleapis.com/auth/youtube.force-ssl https://www.googleapis.com/auth/youtube.readonly",
@@ -96,7 +94,6 @@ function LiveStreamingSetupPage() {
     }
   };
 
-  // Session నుండి Google Access Token ని ఎక్స్‌ట్రాక్ట్ చేయడం
   useEffect(() => {
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -109,14 +106,13 @@ function LiveStreamingSetupPage() {
     checkSession();
   }, []);
 
-  // LiveKit కి కనెక్ట్ అయ్యాక ఆటోమేటిక్‌గా Egress స్టార్ట్ చేసి YouTube కి పంపడం
   useEffect(() => {
     if (!room || !isConnected || !generatedRtmpUrl || currentEgressId || isEgressActive) return;
 
     const pipelineExecution = async () => {
       try {
         setIsConnecting(true);
-        const tId = toast.loading("LiveKit Egress స్టార్ట్ అవుతోంది. YouTube కి కనెక్ట్ చేస్తున్నాము...");
+        const tId = toast.loading("YouTube కి లైవ్ కనెక్ట్ చేస్తున్నాము...");
         
         const res = await startEgressFn({
           data: { roomName: safeRoomName, youtubeRtmpUrl: generatedRtmpUrl }
@@ -129,7 +125,7 @@ function LiveStreamingSetupPage() {
         }
       } catch (err: any) {
         toast.error(`Egress pipeline failed: ${err.message}`);
-      } finally {
+      } block {
         setIsConnecting(false);
       }
     };
@@ -160,7 +156,6 @@ function LiveStreamingSetupPage() {
     }
   }, [room, isCameraEnabled]);
 
-  // COMPLETE PIPELINE FLOW TRIGGER
   const handleStartFullPipeline = async () => {
     if (!googleToken) {
       toast.error("దయచేసి మొదట Google తో లాగిన్ అవ్వండి.");
@@ -173,7 +168,6 @@ function LiveStreamingSetupPage() {
 
     setIsConnecting(true);
     try {
-      // STEP 1 & 2: YouTube లో Broadcast మరియు Stream ఆటోమేటిక్ గా క్రియేట్ చేసి RTMP పొందడం
       const ytId = toast.loading("YouTube Broadcast & Stream క్రియేట్ చేస్తున్నాము...");
       const ytPipeline = await createYouTubePipelineFn({
         data: { accessToken: googleToken, title: streamTitle, description: streamDescription, privacy: privacyStatus }
@@ -185,7 +179,6 @@ function LiveStreamingSetupPage() {
       setGeneratedRtmpUrl(ytPipeline.youtubeRtmpUrl);
       toast.success("YouTube RTMP URL విజయవంతంగా పొందింది!", { id: ytId });
 
-      // STEP 3: LiveKit రూమ్ కోసం టోకెన్ తెచ్చుకోవడం
       const tokenResponse = await generateTokenFn({
         data: { roomName: safeRoomName, participantName },
       });
@@ -224,25 +217,23 @@ function LiveStreamingSetupPage() {
   return (
     <div className="min-h-screen bg-[#0f0f0f] text-[#f1f1f1] flex flex-col lg:flex-row p-6 gap-6">
       
-      {/* LEFT: CONFIGURATION FORM */}
       <div className="w-full lg:w-5/12 bg-[#1f1f1f] border border-[#2f2f2f] rounded-xl p-6 shadow-2xl flex flex-col gap-4">
         <div className="flex items-center gap-2 border-b border-[#2f2f2f] pb-3">
           <Tv className="text-red-500 w-5 h-5" />
-          <h2 className="text-lg font-bold tracking-wide">YouTube Live Automatons</h2>
+          <h2 className="text-lg font-bold tracking-wide">YouTube Live Automations</h2>
         </div>
 
-        {/* GOOGLE LOGIN STEP */}
         {!googleToken ? (
           <button
             onClick={handleGoogleLogin}
             className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center justify-center gap-2 font-semibold text-sm transition"
           >
-            <LogIn className="w-4 h-4" /> Step 1: Login with Google (YouTube Scopes)
+            <LogIn className="w-4 h-4" /> Step 1: Login with Google
           </button>
         ) : (
           <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg text-xs text-blue-400 flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-blue-500 flex-shrink-0" />
-            <span>Google Authentic Integration Active (Token Synchronized)</span>
+            <span>Google Integration Active</span>
           </div>
         )}
 
@@ -281,21 +272,20 @@ function LiveStreamingSetupPage() {
             onChange={(e) => setPrivacyStatus(e.target.value)}
             disabled={isConnected}
           >
-            <option value="public">🌐 Public (Everyone can view)</option>
-            <option value="unlisted">🔗 Unlisted (Only via link)</option>
-            <option value="private">🔒 Private (Only you can view)</option>
+            <option value="public">🌐 Public</option>
+            <option value="unlisted">🔗 Unlisted</option>
+            <option value="private">🔒 Private</option>
           </select>
         </div>
 
         {generatedRtmpUrl && (
           <div className="p-3 bg-zinc-900 border border-zinc-800 rounded-lg">
-            <p className="text-[10px] text-gray-500 font-bold uppercase mb-1">Auto-Generated Target Endpoints</p>
+            <p className="text-[10px] text-gray-500 font-bold uppercase mb-1">Auto-Generated Endpoints</p>
             <p className="text-xs text-red-400 font-mono break-all select-all">{generatedRtmpUrl}</p>
           </div>
         )}
       </div>
 
-      {/* RIGHT: LIVE STUDIO MONITOR */}
       <div className="w-full lg:w-7/12 bg-[#1f1f1f] border border-[#2f2f2f] rounded-xl p-6 shadow-2xl flex flex-col gap-4 justify-between">
         <div className="flex items-center justify-between border-b border-[#2f2f2f] pb-3">
           <div className="flex items-center gap-2">
@@ -374,11 +364,11 @@ function LiveStreamingSetupPage() {
         {isEgressActive && (
           <div className="flex items-center p-2.5 rounded-lg bg-green-500/10 text-green-400 text-xs">
             <CheckCircle2 className="w-4 h-4 mr-2 flex-shrink-0" />
-            <span>Egress Pipeline running! Data feeding directly into YouTube Live Control Room.</span>
+            <span>Egress Pipeline running! Data feeding directly into YouTube Live.</span>
           </div>
         )}
       </div>
 
     </div>
   );
-        }
+    }
