@@ -165,7 +165,7 @@ export const startLiveKitEgress = createServerFn({ method: "POST" })
       });
 
       // Start egress
-      const response = await egressClient.startRoomCompositeEgress(request as any);
+      const response = await (egressClient as any).startRoomCompositeEgress(request);
 
       console.log("[LiveKit Egress] Egress started successfully:", {
         egressId: response.egressId,
@@ -252,7 +252,7 @@ export const getLiveKitEgressStatus = createServerFn({ method: "GET" })
       const egressClient = new EgressClient(url, apiKey, apiSecret);
 
       // Get egress info
-      const response = await egressClient.listEgress({
+      const response = await (egressClient as any).listEgress({
         egressId: data.egressId,
       });
 
