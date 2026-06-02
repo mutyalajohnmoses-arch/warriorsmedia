@@ -81,13 +81,13 @@ export const generateLiveKitToken = createServerFn({ method: "POST" })
           timestamp: new Date().toISOString(),
           roomName: data.roomName,
         }),
-        grants: {
-          room: data.roomName,
-          roomJoin: true,
-          canPublish: data.canPublish !== false,
-          canPublishData: true,
-          canSubscribe: data.canSubscribe !== false,
-        },
+      } as any);
+      (token as any).addGrant({
+        room: data.roomName,
+        roomJoin: true,
+        canPublish: data.canPublish !== false,
+        canPublishData: true,
+        canSubscribe: data.canSubscribe !== false,
       });
 
       const jwt = await token.toJwt();
