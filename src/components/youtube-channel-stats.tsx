@@ -12,7 +12,7 @@ import { formatNumber } from "@/lib/youtube-oauth.functions";
 type YouTubeChannelRow = {
   id: string;
   channel_id: string;
-  title: string;
+  title: string | null;
   description?: string | null;
   profile_image_url?: string | null;
   subscriber_count?: string | number | null;
@@ -22,8 +22,8 @@ type YouTubeChannelRow = {
 
 type YouTubeVideoRow = {
   id: string;
-  video_id: string;
-  title: string;
+  video_id: string | null;
+  title: string | null;
   thumbnail_url?: string | null;
   view_count?: string | number | null;
   published_at?: string | null;
