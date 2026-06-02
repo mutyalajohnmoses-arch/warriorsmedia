@@ -209,7 +209,7 @@ export const stopLiveKitEgress = createServerFn({ method: "POST" })
       const egressClient = new EgressClient(url, apiKey, apiSecret);
 
       // Stop egress
-      const response = await egressClient.stopEgress(data.egressId);
+      const response = await (egressClient as any).stopEgress(data.egressId);
 
       console.log("[LiveKit Egress] Egress stopped successfully", {
         egressId: response.egressId,
