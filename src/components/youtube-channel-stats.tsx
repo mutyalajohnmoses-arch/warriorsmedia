@@ -12,7 +12,7 @@ import { formatNumber } from "@/lib/youtube-oauth.functions";
 type YouTubeChannelRow = {
   id: string;
   channel_id: string;
-  title: string;
+  title: string | null;
   description?: string | null;
   profile_image_url?: string | null;
   subscriber_count?: string | number | null;
@@ -22,8 +22,8 @@ type YouTubeChannelRow = {
 
 type YouTubeVideoRow = {
   id: string;
-  video_id: string;
-  title: string;
+  video_id: string | null;
+  title: string | null;
   thumbnail_url?: string | null;
   view_count?: string | number | null;
   published_at?: string | null;
@@ -173,7 +173,7 @@ export function YouTubeChannelStats({
           <div className="flex items-start gap-4 flex-1 min-w-0">
             <img
               src={channel.profile_image_url ?? ""}
-              alt={channel.title}
+              alt={channel.title ?? ""}
               className="w-16 h-16 rounded-full border border-[color:var(--gold)]/30 flex-shrink-0"
             />
             <div className="flex-1 min-w-0">
@@ -246,7 +246,7 @@ export function YouTubeChannelStats({
               >
                 <img
                   src={video.thumbnail_url ?? ""}
-                  alt={video.title}
+                  alt={video.title ?? ""}
                   className="w-20 h-20 rounded object-cover flex-shrink-0"
                 />
                 <div className="flex-1 min-w-0">

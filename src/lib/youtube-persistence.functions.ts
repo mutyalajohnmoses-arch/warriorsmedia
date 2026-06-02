@@ -94,9 +94,9 @@ export const saveYouTubeChannel = createServerFn({ method: "POST" })
             custom_url: data.channelInfo.customUrl,
             profile_image_url: data.channelInfo.profileImageUrl,
             banner_image_url: data.channelInfo.bannerImageUrl,
-            subscriber_count: data.channelInfo.subscriberCount,
-            view_count: data.channelInfo.viewCount,
-            video_count: data.channelInfo.videoCount,
+            subscriber_count: Number(data.channelInfo.subscriberCount) || 0,
+            view_count: Number(data.channelInfo.viewCount) || 0,
+            video_count: Number(data.channelInfo.videoCount) || 0,
             published_at: data.channelInfo.publishedAt,
             access_token: data.accessToken,
             refresh_token: data.refreshToken || null,
@@ -133,9 +133,9 @@ export const saveYouTubeChannel = createServerFn({ method: "POST" })
             custom_url: data.channelInfo.customUrl,
             profile_image_url: data.channelInfo.profileImageUrl,
             banner_image_url: data.channelInfo.bannerImageUrl,
-            subscriber_count: data.channelInfo.subscriberCount,
-            view_count: data.channelInfo.viewCount,
-            video_count: data.channelInfo.videoCount,
+            subscriber_count: Number(data.channelInfo.subscriberCount) || 0,
+            view_count: Number(data.channelInfo.viewCount) || 0,
+            video_count: Number(data.channelInfo.videoCount) || 0,
             published_at: data.channelInfo.publishedAt,
             access_token: data.accessToken,
             refresh_token: data.refreshToken || null,
@@ -295,7 +295,7 @@ export const saveYouTubeVideos = createServerFn({ method: "POST" })
 
         const { error: insertError } = await supabaseAdmin
           .from("youtube_videos")
-          .insert(videosToInsert);
+          .insert(videosToInsert as any);
 
         if (insertError) {
           console.error("[saveYouTubeVideos] Error inserting videos:", insertError);

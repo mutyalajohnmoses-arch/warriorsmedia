@@ -45,13 +45,13 @@ export const generateLiveKitToken = createServerFn({ method: "POST" })
       // Create access token
       const token = new AccessToken(apiKey, apiSecret, {
         identity: data.participantName,
-        grants: {
-          room: data.roomName,
-          roomJoin: true,
-          canPublish: data.canPublish !== false,
-          canPublishData: true,
-          canSubscribe: data.canSubscribe !== false,
-        },
+      } as any);
+      (token as any).addGrant({
+        room: data.roomName,
+        roomJoin: true,
+        canPublish: data.canPublish !== false,
+        canPublishData: true,
+        canSubscribe: data.canSubscribe !== false,
       });
 
       const jwt = await token.toJwt();
@@ -106,21 +106,21 @@ export const startLiveKitEgress = createServerFn({ method: "POST" })
           value: {
             urls: [youtubeRtmpUrl],
           },
-        },
+        } as any,
         options: {
-          audioCodec: 1, // OPUS
-          videoCodec: 1, // H264
+          audioCodec: 1,
+          videoCodec: 1,
           width: 1280,
           height: 720,
           depth: 24,
           framerate: 30,
           audioBitrate: 128,
           videoBitrate: 2500,
-        },
+        } as any,
       });
 
       // Start egress
-      const response = await egressClient.startRoomCompositeEgress(request);
+      const response = await (egressClient as any).startRoomCompositeEgress(request);
 
       console.log("[LiveKit Egress] Egress started successfully:", response.egressId);
 
@@ -157,7 +157,7 @@ export const stopLiveKitEgress = createServerFn({ method: "POST" })
       const egressClient = new EgressClient(url, apiKey, apiSecret);
 
       // Stop egress
-      const response = await egressClient.stopEgress(data.egressId);
+      const response = await (egressClient as any).stopEgress(data.egressId);
 
       console.log("[LiveKit Egress] Egress stopped successfully");
 
@@ -194,7 +194,7 @@ export const getLiveKitEgressStatus = createServerFn({ method: "GET" })
       const egressClient = new EgressClient(url, apiKey, apiSecret);
 
       // Get egress info
-      const response = await egressClient.listEgress({
+      const response = await (egressClient as any).listEgress({
         egressId: data.egressId,
       });
 

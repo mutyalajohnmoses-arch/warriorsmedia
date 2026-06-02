@@ -3,7 +3,7 @@
  * Handles browser-side LiveKit room connection, track publishing, and state management
  */
 
-import { connect, Room, RoomEvent, ParticipantEvent, Track } from "livekit-client";
+import { Room, RoomEvent, Track } from "livekit-client";
 
 export interface LiveKitConnectionOptions {
   url: string;
@@ -54,7 +54,7 @@ export async function connectToLiveKitRoom(
       console.log("[LiveKit] Track unpublished:", publication.trackSid);
     });
 
-    room.on(RoomEvent.Error, (error) => {
+    room.on(RoomEvent.MediaDevicesError, (error: Error) => {
       console.error("[LiveKit] Room error:", error);
     });
 
@@ -117,7 +117,7 @@ export async function disconnectFromLiveKitRoom(room: Room | null): Promise<void
 
     // Stop all local tracks
     if (room.localParticipant) {
-      room.localParticipant.tracks.forEach((publication) => {
+      room.localParticipant.trackPublications.forEach((publication) => {
         if (publication.track) {
           publication.track.stop();
         }
@@ -145,7 +145,8 @@ export function toggleCamera(room: Room | null, enabled: boolean): void {
 
   room.localParticipant.videoTrackPublications.forEach((publication) => {
     if (publication.track) {
-      publication.track.muted = !enabled;
+      if (enabled) publication.track.unmute();
+      else publication.track.mute();
     }
   });
 
@@ -163,7 +164,8 @@ export function toggleMicrophone(room: Room | null, enabled: boolean): void {
 
   room.localParticipant.audioTrackPublications.forEach((publication) => {
     if (publication.track) {
-      publication.track.muted = !enabled;
+      if (enabled) publication.track.unmute();
+      else publication.track.mute();
     }
   });
 
@@ -178,6 +180,6 @@ export function getLocalVideoTrack(room: Room | null): Track | undefined {
     return undefined;
   }
 
-  const videoPublication = room.localParticipant.videoTrackPublications[0];
+  const videoPublication = Array.from(room.localParticipant.videoTrackPublications.values())[0];
   return videoPublication?.track;
 }
