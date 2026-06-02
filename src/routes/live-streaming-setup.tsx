@@ -151,21 +151,21 @@ export const startLiveKitEgress = createServerFn({ method: "POST" })
           value: {
             urls: [youtubeRtmpUrl],
           },
-        },
+        } as any,
         options: {
-          audioCodec: 1, // OPUS
-          videoCodec: 1, // H264
+          audioCodec: 1,
+          videoCodec: 1,
           width: 1280,
           height: 720,
           depth: 24,
           framerate: 30,
           audioBitrate: 128,
           videoBitrate: 2500,
-        },
+        } as any,
       });
 
       // Start egress
-      const response = await egressClient.startRoomCompositeEgress(request);
+      const response = await egressClient.startRoomCompositeEgress(request as any);
 
       console.log("[LiveKit Egress] Egress started successfully:", {
         egressId: response.egressId,
