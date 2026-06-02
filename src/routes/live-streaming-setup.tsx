@@ -22,8 +22,8 @@ import {
   Key
 } from "lucide-react";
 
-// కరెక్ట్ సర్వర్ యాక్షన్ ఇంపోర్ట్ పాత్ (బిల్డ్ ఎర్రర్‌ను ఫిక్స్ చేస్తుంది)
-import { generateLiveKitToken, startLiveKitEgress, stopLiveKitEgress } from "@/server/live-actions.server";
+// ఫిక్స్డ్ రిలేటివ్ పాత్ ఇంపోర్ట్ - ఇది క్లైంట్ బిల్డ్ ఎర్రర్ రాకుండా కాపాడుతుంది
+import { generateLiveKitToken, startLiveKitEgress, stopLiveKitEgress } from "../server/live-actions";
 
 export const Route = createFileRoute("/live-streaming-setup")({
   component: LiveStreamingSetupPage,
@@ -40,7 +40,7 @@ function LiveStreamingSetupPage() {
   const [privacyStatus, setPrivacyStatus] = useState("public");
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
 
-  // States
+  // Connection System States
   const [isConnecting, setIsConnecting] = useState(false);
   const [isEgressActive, setIsEgressActive] = useState(false); 
   const [isCameraEnabled, setIsCameraEnabled] = useState(true);
@@ -62,7 +62,7 @@ function LiveStreamingSetupPage() {
     token: liveKitToken || "",
     roomName: safeRoomName,
     onConnected: () => {
-      toast.info("Studio కి కనెక్ట్ అయింది. కెమెరా ఫీడ్ లోడ్ అవుతోంది...");
+      toast.info("Studio కి కనెక్ట్ అయింది. మీడియా ఫీడ్ సిద్ధం చేస్తున్నాము...");
     },
     onDisconnected: () => {
       setIsConnecting(false);
@@ -76,14 +76,14 @@ function LiveStreamingSetupPage() {
     },
   });
 
-  // కెమెరా ట్రాక్ పూర్తిగా పబ్లిష్ అయిన తర్వాతే యూట్యూబ్‌కి కనెక్ట్ చేసే లాజిక్
+  // కెమెరా మరియు ఆడియో ట్రాక్స్ సక్సెస్ ఫుల్ గా లోడ్ అయ్యాకే యూట్యూబ్ ఈగ్రెస్స్ స్టార్ట్ అవుతుంది
   useEffect(() => {
     if (!room || !isConnected || currentEgressId || isEgressActive) return;
 
     const triggerYouTubeEgressPipeline = async () => {
       try {
         setIsConnecting(true);
-        const toastId = toast.loading("YouTube Live కి స్ట్రీమ్ కనెక్ట్ చేస్తున్నాము...");
+        const toastId = toast.loading("YouTube Live కి కనెక్ట్ చేస్తున్నాము...");
         
         const egressResp = await startEgress({
           data: { roomName: safeRoomName, youtubeStreamKey }
