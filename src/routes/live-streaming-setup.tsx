@@ -11,7 +11,7 @@ import {
   VideoOff,
   Loader2,
   Signal,
-  Radio,
+  Broadcast,
   PowerOff,
   AlertCircle,
   CheckCircle2,
@@ -81,13 +81,13 @@ export const generateLiveKitToken = createServerFn({ method: "POST" })
           timestamp: new Date().toISOString(),
           roomName: data.roomName,
         }),
-      } as any);
-      (token as any).addGrant({
-        room: data.roomName,
-        roomJoin: true,
-        canPublish: data.canPublish !== false,
-        canPublishData: true,
-        canSubscribe: data.canSubscribe !== false,
+        grants: {
+          room: data.roomName,
+          roomJoin: true,
+          canPublish: data.canPublish !== false,
+          canPublishData: true,
+          canSubscribe: data.canSubscribe !== false,
+        },
       });
 
       const jwt = await token.toJwt();
@@ -151,21 +151,21 @@ export const startLiveKitEgress = createServerFn({ method: "POST" })
           value: {
             urls: [youtubeRtmpUrl],
           },
-        } as any,
+        },
         options: {
-          audioCodec: 1,
-          videoCodec: 1,
+          audioCodec: 1, // OPUS
+          videoCodec: 1, // H264
           width: 1280,
           height: 720,
           depth: 24,
           framerate: 30,
           audioBitrate: 128,
           videoBitrate: 2500,
-        } as any,
+        },
       });
 
       // Start egress
-      const response = await (egressClient as any).startRoomCompositeEgress(request);
+      const response = await egressClient.startRoomCompositeEgress(request);
 
       console.log("[LiveKit Egress] Egress started successfully:", {
         egressId: response.egressId,
@@ -209,7 +209,7 @@ export const stopLiveKitEgress = createServerFn({ method: "POST" })
       const egressClient = new EgressClient(url, apiKey, apiSecret);
 
       // Stop egress
-      const response = await (egressClient as any).stopEgress(data.egressId);
+      const response = await egressClient.stopEgress(data.egressId);
 
       console.log("[LiveKit Egress] Egress stopped successfully", {
         egressId: response.egressId,
@@ -252,7 +252,7 @@ export const getLiveKitEgressStatus = createServerFn({ method: "GET" })
       const egressClient = new EgressClient(url, apiKey, apiSecret);
 
       // Get egress info
-      const response = await (egressClient as any).listEgress({
+      const response = await egressClient.listEgress({
         egressId: data.egressId,
       });
 
@@ -326,10 +326,16 @@ function LiveStreamingSetupPage() {
 
   // Trigger connection when token and url are available
   useEffect(() => {
-    if (liveKitToken && liveKitUrl && !isConnected && !isConnecting) {
+    console.log("liveKitToken state changed", !!liveKitToken);
+    console.log("liveKitUrl state changed", !!liveKitUrl);
+    console.log("isConnected state changed", isConnected);
+    console.log("isConnecting state changed", isConnecting);
+
+    if (liveKitToken && liveKitUrl && !isConnected) {
+      console.log("Attempting to connect to LiveKit room via useEffect...");
       connect();
     }
-  }, [liveKitToken, liveKitUrl, isConnected, isConnecting, connect]);
+  }, [liveKitToken, liveKitUrl, isConnected, connect]);
 
   // Fetch user profile for participant name
   useEffect(() => {
@@ -354,11 +360,11 @@ function LiveStreamingSetupPage() {
   // Handle local video preview
   useEffect(() => {
     if (room && videoRef.current) {
-      const localVideoTrack = Array.from(room.localParticipant?.videoTrackPublications.values() ?? [])[0]?.videoTrack;
+      const localVideoTrack = room.localParticipant?.videoTrackPublications[0]?.videoTrack;
       if (localVideoTrack) {
         localVideoTrack.attach(videoRef.current);
         return () => {
-          if (videoRef.current) localVideoTrack.detach(videoRef.current);
+          localVideoTrack.detach(videoRef.current);
         };
       }
     }
@@ -380,7 +386,8 @@ function LiveStreamingSetupPage() {
       if (tokenResponse?.token && tokenResponse?.url) {
         setLiveKitToken(tokenResponse.token);
         setLiveKitUrl(tokenResponse.url);
-        console.log("[LiveStreamingSetupPage] LiveKit token generated. Triggering connection...");
+        console.log("[LiveStreamingSetupPage] LiveKit token generated. Setting state to trigger connection...");
+      // The useEffect above will now handle the connection once liveKitToken and liveKitUrl are set.
       } else {
         throw new Error("Failed to get LiveKit token or URL.");
       }
@@ -483,7 +490,7 @@ function LiveStreamingSetupPage() {
               disabled={isConnecting || !roomName || !youtubeStreamKey}
               className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 flex items-center justify-center gap-2"
             >
-              {isConnecting ? <Loader2 className="animate-spin mr-2" /> : <Radio className="mr-2" />}
+              {isConnecting ? <Loader2 className="animate-spin mr-2" /> : <Broadcast className="mr-2" />}
               {isConnecting ? "Connecting..." : "Start Stream"}
             </button>
           ) : (
