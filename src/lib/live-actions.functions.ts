@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { AccessToken, EgressClient, StreamProtocol } from "livekit-server-sdk";
+import { AccessToken, EgressClient, StreamOutput, StreamProtocol } from "livekit-server-sdk";
 
 function validateLiveKitEnv() {
   const apiKey = process.env.LIVEKIT_API_KEY;
@@ -50,10 +50,10 @@ export const startLiveKitEgress = createServerFn({ method: "POST" })
     const response = await egressClient.startRoomCompositeEgress(
       data.roomName,
       {
-        stream: {
+        stream: new StreamOutput({
           protocol: StreamProtocol.RTMP,
           urls: [youtubeRtmpUrl],
-        },
+        }),
       },
       { layout: "grid" },
     );
