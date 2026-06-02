@@ -1,4 +1,3 @@
-
 import { createFileRoute, useSearch, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, useRef } from "react";
 import { useServerFn } from "@tanstack/react-start";
@@ -317,23 +316,28 @@ function LiveStreamingSetupPage() {
       toast.success("Connected to LiveKit room!");
       
       try {
-        console.log("[YouTube] Starting egress...");
-        const egress = await startEgress({
-          data: {
-            roomName,
-            youtubeStreamKey,
-            title: roomName,
-          },
-        });
+        console.log("Starting egress...");
 
-        console.log("[YouTube] Egress started:", egress);
+        const payload = {
+          roomName,
+          youtubeStreamKey,
+          title: roomName,
+        };
+
+        console.log("Egress payload:", payload);
+
+        // Direct payload handling without the 'data' wrapper object
+        const egress = await startEgress(payload);
+
+        console.log("Egress response:", egress);
+
         if (egress?.egressId) {
           setCurrentEgressId(egress.egressId);
         }
         toast.success("YouTube Live Started!");
       } catch (err: any) {
-        console.error("[YouTube] Egress failed:", err);
-        toast.error(`YouTube Live Failed: ${err.message}`);
+        console.error("FULL EGRESS ERROR:", err);
+        toast.error(`YouTube Live Failed: ${err.message || "Unknown validation error"}`);
       }
     },
     onDisconnected: () => {
@@ -405,8 +409,13 @@ function LiveStreamingSetupPage() {
     setIsConnecting(true);
     try {
       console.log("[LiveStreamingSetupPage] Attempting to generate LiveKit token...");
+      
+      // Fixed generateToken payload as well just in case
       const tokenResponse = await generateToken({
-        data: { roomName, participantName, canPublish: true, canSubscribe: true },
+        roomName,
+        participantName,
+        canPublish: true,
+        canSubscribe: true,
       });
 
       if (tokenResponse?.token && tokenResponse?.url) {
@@ -427,7 +436,7 @@ function LiveStreamingSetupPage() {
     try {
       if (currentEgressId) {
         console.log("[YouTube] Stopping egress session:", currentEgressId);
-        await stopEgress({ data: { egressId: currentEgressId } });
+        await stopEgress({ egressId: currentEgressId });
         toast.info("YouTube Egress stopped.");
       }
     } catch (err: any) {
