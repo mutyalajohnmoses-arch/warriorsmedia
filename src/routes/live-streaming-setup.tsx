@@ -1,5 +1,21 @@
-import { createFileRoute, useSearch } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { createFileRoute, useSearch, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState, useRef } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { supabase } from "@/integrations/supabase/client";
+import { useLiveKitRoom } from "@/hooks/useLiveKitRoom";
+import { toast } from "sonner";
+import {
+  Video,
+  Mic,
+  MicOff,
+  VideoOff,
+  Loader2,
+  Signal,
+  Broadcast,
+  PowerOff,
+  AlertCircle,
+  CheckCircle2,
+} from "lucide-react";
 
 /**
  * LiveKit Server Functions
@@ -272,14 +288,136 @@ export const Route = createFileRoute("/live-streaming-setup")({
 
 function LiveStreamingSetupPage() {
   const { auto } = Route.useSearch();
+  const navigate = useNavigate();
+
+  const [roomName, setRoomName] = useState("");
+  const [youtubeStreamKey, setYoutubeStreamKey] = useState("");
+  const [participantName, setParticipantName] = useState("Guest");
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [isLive, setIsLive] = useState(false);
+  const [isCameraEnabled, setIsCameraEnabled] = useState(true);
+  const [isMicEnabled, setIsMicEnabled] = useState(true);
+  const [liveKitToken, setLiveKitToken] = useState<string | null>(null);
+  const [liveKitUrl, setLiveKitUrl] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  const generateToken = useServerFn(generateLiveKitToken);
+
+  const { room, isConnected, isPublishing, error, connect, disconnect, toggleCameraTrack, toggleMicTrack } = useLiveKitRoom({
+    url: liveKitUrl || "",
+    token: liveKitToken || "",
+    roomName: roomName,
+    onConnected: () => {
+      setIsLive(true);
+      setIsConnecting(false);
+      toast.success("Connected to LiveKit room!");
+    },
+    onDisconnected: () => {
+      setIsLive(false);
+      setIsConnecting(false);
+      toast.info("Disconnected from LiveKit room.");
+    },
+    onError: (err) => {
+      setIsConnecting(false);
+      toast.error(`LiveKit Error: ${err.message}`);
+      console.error("LiveKit Room Error:", err);
+    },
+  });
+
+  // Trigger connection when token and url are available
+  useEffect(() => {
+    if (liveKitToken && liveKitUrl && !isConnected && !isConnecting) {
+      connect();
+    }
+  }, [liveKitToken, liveKitUrl, isConnected, isConnecting, connect]);
+
+  // Fetch user profile for participant name
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        const { data } = await supabase
+          .from("profiles")
+          .select("full_name")
+          .eq("id", session.user.id)
+          .maybeSingle();
+        if (data?.full_name) {
+          setParticipantName(data.full_name);
+        }
+      } else {
+        navigate({ to: "/" }); // Redirect to login if no session
+      }
+    };
+    fetchProfile();
+  }, [navigate]);
+
+  // Handle local video preview
+  useEffect(() => {
+    if (room && videoRef.current) {
+      const localVideoTrack = room.localParticipant?.videoTrackPublications[0]?.videoTrack;
+      if (localVideoTrack) {
+        localVideoTrack.attach(videoRef.current);
+        return () => {
+          localVideoTrack.detach(videoRef.current);
+        };
+      }
+    }
+  }, [room, isCameraEnabled]);
+
+  const handleStartStream = async () => {
+    if (!roomName || !youtubeStreamKey) {
+      toast.error("Please fill in both Room Name and YouTube Stream Key.");
+      return;
+    }
+
+    setIsConnecting(true);
+    try {
+      console.log("[LiveStreamingSetupPage] Attempting to generate LiveKit token...");
+      const tokenResponse = await generateToken({
+        data: { roomName, participantName, canPublish: true, canSubscribe: true },
+      });
+
+      if (tokenResponse?.token && tokenResponse?.url) {
+        setLiveKitToken(tokenResponse.token);
+        setLiveKitUrl(tokenResponse.url);
+        console.log("[LiveStreamingSetupPage] LiveKit token generated. Triggering connection...");
+      } else {
+        throw new Error("Failed to get LiveKit token or URL.");
+      }
+    } catch (err: any) {
+      console.error("[LiveStreamingSetupPage] Error starting stream:", err);
+      toast.error(`Failed to start stream: ${err.message || "Unknown error"}`);
+      setIsConnecting(false);
+    }
+  };
+
+  const handleStopStream = async () => {
+    if (isConnected) {
+      await disconnect();
+      setIsConnecting(false);
+      setLiveKitToken(null);
+      setLiveKitUrl(null);
+    }
+  };
+
+  const handleToggleCamera = () => {
+    toggleCameraTrack(!isCameraEnabled);
+    setIsCameraEnabled((prev) => !prev);
+  };
+
+  const handleToggleMic = () => {
+    toggleMicTrack(!isMicEnabled);
+    setIsMicEnabled((prev) => !prev);
+  };
 
   useEffect(() => {
-    if (auto === "true") {
+    if (auto === "true" && !isConnecting && !isConnected) {
       console.log("Auto-starting live streaming setup...");
-      // Logic to automatically start the live streaming setup can go here
-      // For example, trigger a modal or a function to initiate the process
+      // Optionally, you could pre-fill roomName or youtubeStreamKey here if available from search params
+      // handleStartStream(); // Uncomment to auto-start immediately
+      toast.info("Automatic setup initiated. Please configure and start your stream.");
     }
-  }, [auto]);
+  }, [auto, isConnecting, isConnected]);
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
@@ -297,6 +435,9 @@ function LiveStreamingSetupPage() {
               id="roomName"
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 bg-input text-foreground"
               placeholder="My Awesome Stream"
+              value={roomName}
+              onChange={(e) => setRoomName(e.target.value)}
+              disabled={isConnecting || isConnected}
             />
           </div>
           <div>
@@ -306,16 +447,71 @@ function LiveStreamingSetupPage() {
               id="youtubeStreamKey"
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 bg-input text-foreground"
               placeholder="Enter your YouTube stream key"
+              value={youtubeStreamKey}
+              onChange={(e) => setYoutubeStreamKey(e.target.value)}
+              disabled={isConnecting || isConnected}
             />
           </div>
-          <button
-            className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-          >
-            Start Stream
-          </button>
+
+          <div className="relative w-full h-48 bg-black rounded-md overflow-hidden">
+            {isConnecting && <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-75 text-white"><Loader2 className="animate-spin mr-2" /> Connecting...</div>}
+            {isConnected && !isCameraEnabled && <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-75 text-white"><VideoOff className="mr-2" /> Camera Off</div>}
+            {isConnected && isCameraEnabled && <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover"></video>}
+            {!isConnected && !isConnecting && <div className="absolute inset-0 flex items-center justify-center bg-gray-800 text-gray-400">No Video Preview</div>}
+          </div>
+
+          <div className="flex justify-center gap-4">
+            <button
+              onClick={handleToggleCamera}
+              disabled={!isConnected}
+              className={`p-3 rounded-full ${isCameraEnabled ? "bg-indigo-600 hover:bg-indigo-700" : "bg-gray-600 hover:bg-gray-700"} text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`}
+            >
+              {isCameraEnabled ? <Video /> : <VideoOff />}
+            </button>
+            <button
+              onClick={handleToggleMic}
+              disabled={!isConnected}
+              className={`p-3 rounded-full ${isMicEnabled ? "bg-indigo-600 hover:bg-indigo-700" : "bg-gray-600 hover:bg-gray-700"} text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`}
+            >
+              {isMicEnabled ? <Mic /> : <MicOff />}
+            </button>
+          </div>
+
+          {!isConnected ? (
+            <button
+              onClick={handleStartStream}
+              disabled={isConnecting || !roomName || !youtubeStreamKey}
+              className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 flex items-center justify-center gap-2"
+            >
+              {isConnecting ? <Loader2 className="animate-spin mr-2" /> : <Broadcast className="mr-2" />}
+              {isConnecting ? "Connecting..." : "Start Stream"}
+            </button>
+          ) : (
+            <button
+              onClick={handleStopStream}
+              disabled={!isConnected}
+              className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 flex items-center justify-center gap-2"
+            >
+              <PowerOff className="mr-2" />
+              Stop Stream
+            </button>
+          )}
+
+          {error && (
+            <div className="flex items-center p-3 rounded-md bg-red-500/10 text-red-400 text-sm">
+              <AlertCircle className="w-4 h-4 mr-2" />
+              <span>{error.message}</span>
+            </div>
+          )}
+          {isConnected && !error && (
+            <div className="flex items-center p-3 rounded-md bg-green-500/10 text-green-400 text-sm">
+              <CheckCircle2 className="w-4 h-4 mr-2" />
+              <span>LiveKit Room Connected. Ready to stream!</span>
+            </div>
+          )}
         </div>
       </div>
-      {auto === "true" && (
+      {auto === "true" && !isConnected && !isConnecting && (
         <p className="mt-4 text-sm text-green-500">Automatic setup initiated. Please configure and start your stream.</p>
       )}
     </div>
