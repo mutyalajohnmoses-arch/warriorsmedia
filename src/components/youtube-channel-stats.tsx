@@ -173,7 +173,7 @@ export function YouTubeChannelStats({
           <div className="flex items-start gap-4 flex-1 min-w-0">
             <img
               src={channel.profile_image_url ?? ""}
-              alt={channel.title}
+              alt={channel.title ?? ""}
               className="w-16 h-16 rounded-full border border-[color:var(--gold)]/30 flex-shrink-0"
             />
             <div className="flex-1 min-w-0">
