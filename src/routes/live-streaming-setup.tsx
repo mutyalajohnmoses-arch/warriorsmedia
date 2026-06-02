@@ -52,12 +52,11 @@ function validateLiveKitEnv() {
  */
 export const generateLiveKitToken = createServerFn({ method: "POST" })
   .inputValidator(
-    (data: {
-      roomName: string;
-      participantName: string;
-      canPublish?: boolean;
-      canSubscribe?: boolean;
-    }) => {
+    (input: any) => {
+      // Robust client deserialization interceptor to prevent TanStack parameter drop errors
+      const data = input?.data ? input.data : input;
+      console.log("[Server Validator] token input data received:", data);
+      
       if (!data?.roomName) throw new Error("Room name is required");
       if (!data?.participantName) throw new Error("Participant name is required");
       return data;
@@ -117,11 +116,11 @@ export const generateLiveKitToken = createServerFn({ method: "POST" })
  */
 export const startLiveKitEgress = createServerFn({ method: "POST" })
   .inputValidator(
-    (data: {
-      roomName: string;
-      youtubeStreamKey: string;
-      title: string;
-    }) => {
+    (input: any) => {
+      // Robust client deserialization interceptor to prevent parameter serialization crashes
+      const data = input?.data ? input.data : input;
+      console.log("[Server Validator] egress input data received:", data);
+
       if (!data?.roomName) throw new Error("Room name is required");
       if (!data?.youtubeStreamKey) throw new Error("YouTube stream key is required");
       if (!data?.title) throw new Error("Stream title is required");
@@ -191,9 +190,8 @@ export const startLiveKitEgress = createServerFn({ method: "POST" })
  */
 export const stopLiveKitEgress = createServerFn({ method: "POST" })
   .inputValidator(
-    (data: {
-      egressId: string;
-    }) => {
+    (input: any) => {
+      const data = input?.data ? input.data : input;
       if (!data?.egressId) throw new Error("Egress ID is required");
       return data;
     },
@@ -234,9 +232,8 @@ export const stopLiveKitEgress = createServerFn({ method: "POST" })
  */
 export const getLiveKitEgressStatus = createServerFn({ method: "GET" })
   .inputValidator(
-    (data: {
-      egressId: string;
-    }) => {
+    (input: any) => {
+      const data = input?.data ? input.data : input;
       if (!data?.egressId) throw new Error("Egress ID is required");
       return data;
     },
@@ -315,22 +312,24 @@ function LiveStreamingSetupPage() {
       setIsLive(true);
       setIsConnecting(false);
       toast.success("Connected to LiveKit room!");
-      
+
       try {
         console.log("Starting egress...");
-        console.log("Room Name:", roomName);
-        console.log("YouTube Key:", youtubeStreamKey);
+        console.log("Room Name Debug Log:", roomName);
+        console.log("YouTube Key Debug Log:", youtubeStreamKey);
 
-        // Client side input wrapper is passed properly to serialize payload types
-        const egress = await startEgress({
-          data: {
-            roomName,
-            youtubeStreamKey,
-            title: roomName,
-          }
-        });
+        const payload = {
+          roomName,
+          youtubeStreamKey,
+          title: roomName,
+        };
 
-        console.log("Egress response:", egress);
+        console.log("Egress absolute payload content:", payload);
+
+        // Standardizing execution payload mapping across both functional schemas
+        const egress = await startEgress({ data: payload });
+
+        console.log("Egress response received:", egress);
 
         if (egress?.egressId) {
           setCurrentEgressId(egress.egressId);
@@ -356,6 +355,11 @@ function LiveStreamingSetupPage() {
 
   // Trigger connection when token and url are available
   useEffect(() => {
+    console.log("liveKitToken state changed", !!liveKitToken);
+    console.log("liveKitUrl state changed", !!liveKitUrl);
+    console.log("isConnected state changed", isConnected);
+    console.log("isConnecting state changed", isConnecting);
+
     if (liveKitToken && liveKitUrl && !isConnected) {
       console.log("Attempting to connect to LiveKit room via useEffect...");
       connect();
@@ -397,28 +401,18 @@ function LiveStreamingSetupPage() {
   }, [room, isCameraEnabled]);
 
   const handleStartStream = async () => {
-    if (!roomName?.trim()) {
-      toast.error("Room name is required");
-      return;
-    }
-
-    if (!youtubeStreamKey?.trim()) {
-      toast.error("YouTube Stream Key is required");
+    if (!roomName?.trim() || !youtubeStreamKey?.trim()) {
+      toast.error("Please fill in both Room Name and YouTube Stream Key.");
       return;
     }
 
     setIsConnecting(true);
     try {
       console.log("[LiveStreamingSetupPage] Attempting to generate LiveKit token...");
+      console.log("[Debug State Mapping] Room name passing:", roomName);
       
-      // Wrapped properly inside data key object to comply with router action validator
       const tokenResponse = await generateToken({
-        data: {
-          roomName,
-          participantName,
-          canPublish: true,
-          canSubscribe: true,
-        }
+        data: { roomName, participantName, canPublish: true, canSubscribe: true },
       });
 
       if (tokenResponse?.token && tokenResponse?.url) {
@@ -533,7 +527,7 @@ function LiveStreamingSetupPage() {
           {!isConnected ? (
             <button
               onClick={handleStartStream}
-              disabled={isConnecting}
+              disabled={isConnecting || !roomName || !youtubeStreamKey}
               className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 flex items-center justify-center gap-2"
             >
               {isConnecting ? <Loader2 className="animate-spin mr-2" /> : <Radio className="mr-2" />}
