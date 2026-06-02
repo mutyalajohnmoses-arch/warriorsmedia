@@ -85,7 +85,7 @@ export function useLiveKitRoom(options: UseLiveKitRoomOptions): UseLiveKitRoomSt
         setParticipantCount((prev) => Math.max(0, prev - 1));
       });
 
-      liveKitRoom.on(RoomEvent.Error, (error) => {
+      liveKitRoom.on(RoomEvent.MediaDevicesError, (error: Error) => {
         console.error("[useLiveKitRoom] Room error:", error);
         setError(error);
         options.onError?.(error);
