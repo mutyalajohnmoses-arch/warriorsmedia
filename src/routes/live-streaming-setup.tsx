@@ -1,3 +1,6 @@
+import { createFileRoute, useSearch } from "@tanstack/react-router";
+import { useEffect } from "react";
+
 /**
  * LiveKit Server Functions
  * Handles server-side LiveKit operations: token generation, room management, and egress
@@ -261,3 +264,61 @@ export const getLiveKitEgressStatus = createServerFn({ method: "GET" })
       );
     }
   });
+
+// TanStack Router route registration
+export const Route = createFileRoute("/live-streaming-setup")({
+  component: LiveStreamingSetupPage,
+});
+
+function LiveStreamingSetupPage() {
+  const { auto } = Route.useSearch();
+
+  useEffect(() => {
+    if (auto === "true") {
+      console.log("Auto-starting live streaming setup...");
+      // Logic to automatically start the live streaming setup can go here
+      // For example, trigger a modal or a function to initiate the process
+    }
+  }, [auto]);
+
+  return (
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
+      <h1 className="text-3xl font-bold text-foreground mb-4">Live Streaming Setup</h1>
+      <p className="text-muted-foreground mb-8 text-center">
+        Configure your live stream settings and go live to your audience.
+      </p>
+      <div className="bg-card p-8 rounded-lg shadow-lg w-full max-w-md">
+        <h2 className="text-xl font-semibold text-foreground mb-4">Stream Configuration</h2>
+        <div className="space-y-4">
+          <div>
+            <label htmlFor="roomName" className="block text-sm font-medium text-muted-foreground">Room Name</label>
+            <input
+              type="text"
+              id="roomName"
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 bg-input text-foreground"
+              placeholder="My Awesome Stream"
+            />
+          </div>
+          <div>
+            <label htmlFor="youtubeStreamKey" className="block text-sm font-medium text-muted-foreground">YouTube Stream Key</label>
+            <input
+              type="text"
+              id="youtubeStreamKey"
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 bg-input text-foreground"
+              placeholder="Enter your YouTube stream key"
+            />
+          </div>
+          <button
+            className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          >
+            Start Stream
+          </button>
+        </div>
+      </div>
+      {auto === "true" && (
+        <p className="mt-4 text-sm text-green-500">Automatic setup initiated. Please configure and start your stream.</p>
+      )}
+    </div>
+  );
+}
+
