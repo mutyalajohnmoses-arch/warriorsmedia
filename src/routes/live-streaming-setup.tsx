@@ -354,7 +354,7 @@ function LiveStreamingSetupPage() {
   // Handle local video preview
   useEffect(() => {
     if (room && videoRef.current) {
-      const localVideoTrack = room.localParticipant?.videoTrackPublications[0]?.videoTrack;
+      const localVideoTrack = Array.from(room.localParticipant?.videoTrackPublications.values() ?? [])[0]?.videoTrack;
       if (localVideoTrack) {
         localVideoTrack.attach(videoRef.current);
         return () => {
