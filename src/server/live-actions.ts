@@ -37,7 +37,7 @@ export const generateLiveKitToken = createServerFn({ method: "POST" })
     };
   });
 
-// 2. YouTube లో ఆటోమేటిక్‌గా Broadcast & Stream క్రియేట్ చేసి RTMP Key తెచ్చుకోవడం
+// 2. YouTube లో ఆటోమేటిక్‌గా Broadcast & Stream క్రియేట్ చేయడం
 export const createYouTubeLivePipeline = createServerFn({ method: "POST" })
   .input((data: { accessToken: string; title: string; description: string; privacy: string }) => data)
   .handler(async ({ data }) => {
@@ -57,7 +57,7 @@ export const createYouTubeLivePipeline = createServerFn({ method: "POST" })
             scheduledStartTime: new Date().toISOString(),
           },
           status: {
-            privacyStatus: data.privacy, // public, unlisted, or private
+            privacyStatus: data.privacy,
             selfDeclaredMadeForKids: false,
           },
           contentDetails: {
@@ -67,7 +67,7 @@ export const createYouTubeLivePipeline = createServerFn({ method: "POST" })
         },
       });
 
-      // Step B: Create YouTube Stream (RTMP Configurations)
+      // Step B: Create YouTube Stream (RTMP)
       const streamRes = await youtube.liveStreams.insert({
         part: ["snippet", "cdn"],
         requestBody: {
@@ -86,10 +86,10 @@ export const createYouTubeLivePipeline = createServerFn({ method: "POST" })
       const streamKey = streamRes.data.cdn?.ingestionInfo?.streamName;
 
       if (!broadcastId || !streamId || !rtmpUrl || !streamKey) {
-        throw new Error("Failed to retrieve complete YouTube RTMP Pipeline details.");
+        throw new Error("Failed to retrieve YouTube RTMP details.");
       }
 
-      // Step C: Bind Broadcast and Stream together
+      // Step C: Bind Broadcast and Stream
       await youtube.liveBroadcasts.bind({
         id: broadcastId,
         part: ["id", "contentDetails"],
@@ -107,7 +107,7 @@ export const createYouTubeLivePipeline = createServerFn({ method: "POST" })
     }
   });
 
-// 3. LiveKit Egress ద్వారా YouTube RTMP కి స్ట్రీమ్ పుష్ చేయడం
+// 3. LiveKit Egress స్టార్ట్ చేయడం
 export const startLiveKitEgress = createServerFn({ method: "POST" })
   .input((data: { roomName: string; youtubeRtmpUrl: string }) => data)
   .handler(async ({ data }) => {
