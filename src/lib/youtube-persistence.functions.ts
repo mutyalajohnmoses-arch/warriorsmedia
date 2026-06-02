@@ -295,7 +295,7 @@ export const saveYouTubeVideos = createServerFn({ method: "POST" })
 
         const { error: insertError } = await supabaseAdmin
           .from("youtube_videos")
-          .insert(videosToInsert);
+          .insert(videosToInsert as any);
 
         if (insertError) {
           console.error("[saveYouTubeVideos] Error inserting videos:", insertError);
