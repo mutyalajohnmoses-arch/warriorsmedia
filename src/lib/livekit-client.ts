@@ -180,6 +180,6 @@ export function getLocalVideoTrack(room: Room | null): Track | undefined {
     return undefined;
   }
 
-  const videoPublication = room.localParticipant.videoTrackPublications[0];
+  const videoPublication = Array.from(room.localParticipant.videoTrackPublications.values())[0];
   return videoPublication?.track;
 }
