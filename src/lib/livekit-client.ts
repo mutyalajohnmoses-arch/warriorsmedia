@@ -3,7 +3,7 @@
  * Handles browser-side LiveKit room connection, track publishing, and state management
  */
 
-import { connect, Room, RoomEvent, ParticipantEvent, Track } from "livekit-client";
+import { Room, RoomEvent, Track } from "livekit-client";
 
 export interface LiveKitConnectionOptions {
   url: string;
