@@ -145,7 +145,8 @@ export function toggleCamera(room: Room | null, enabled: boolean): void {
 
   room.localParticipant.videoTrackPublications.forEach((publication) => {
     if (publication.track) {
-      publication.track.muted = !enabled;
+      if (enabled) publication.track.unmute();
+      else publication.track.mute();
     }
   });
 
