@@ -57,6 +57,7 @@ export const Route = createFileRoute("/live-streaming-setup")({
   component: LiveStreamingSetup,
 });
 
+
 function LiveStreamingSetup() {
   const navigate = useNavigate();
   const generateTokenFn = useServerFn(generateLiveKitToken);
