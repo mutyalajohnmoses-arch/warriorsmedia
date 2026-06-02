@@ -11,7 +11,7 @@ import {
   VideoOff,
   Loader2,
   Signal,
-  Broadcast,
+  Radio,
   PowerOff,
   AlertCircle,
   CheckCircle2,
@@ -81,13 +81,13 @@ export const generateLiveKitToken = createServerFn({ method: "POST" })
           timestamp: new Date().toISOString(),
           roomName: data.roomName,
         }),
-        grants: {
-          room: data.roomName,
-          roomJoin: true,
-          canPublish: data.canPublish !== false,
-          canPublishData: true,
-          canSubscribe: data.canSubscribe !== false,
-        },
+      } as any);
+      (token as any).addGrant({
+        room: data.roomName,
+        roomJoin: true,
+        canPublish: data.canPublish !== false,
+        canPublishData: true,
+        canSubscribe: data.canSubscribe !== false,
       });
 
       const jwt = await token.toJwt();
@@ -151,21 +151,21 @@ export const startLiveKitEgress = createServerFn({ method: "POST" })
           value: {
             urls: [youtubeRtmpUrl],
           },
-        },
+        } as any,
         options: {
-          audioCodec: 1, // OPUS
-          videoCodec: 1, // H264
+          audioCodec: 1,
+          videoCodec: 1,
           width: 1280,
           height: 720,
           depth: 24,
           framerate: 30,
           audioBitrate: 128,
           videoBitrate: 2500,
-        },
+        } as any,
       });
 
       // Start egress
-      const response = await egressClient.startRoomCompositeEgress(request);
+      const response = await (egressClient as any).startRoomCompositeEgress(request);
 
       console.log("[LiveKit Egress] Egress started successfully:", {
         egressId: response.egressId,
@@ -360,11 +360,12 @@ function LiveStreamingSetupPage() {
   // Handle local video preview
   useEffect(() => {
     if (room && videoRef.current) {
-      const localVideoTrack = room.localParticipant?.videoTrackPublications[0]?.videoTrack;
+      const localVideoPub = Array.from(room.localParticipant?.videoTrackPublications.values() ?? [])[0];
+      const localVideoTrack = localVideoPub?.videoTrack;
       if (localVideoTrack) {
         localVideoTrack.attach(videoRef.current);
         return () => {
-          localVideoTrack.detach(videoRef.current);
+          if (videoRef.current) localVideoTrack.detach(videoRef.current);
         };
       }
     }
@@ -490,7 +491,7 @@ function LiveStreamingSetupPage() {
               disabled={isConnecting || !roomName || !youtubeStreamKey}
               className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 flex items-center justify-center gap-2"
             >
-              {isConnecting ? <Loader2 className="animate-spin mr-2" /> : <Broadcast className="mr-2" />}
+              {isConnecting ? <Loader2 className="animate-spin mr-2" /> : <Radio className="mr-2" />}
               {isConnecting ? "Connecting..." : "Start Stream"}
             </button>
           ) : (
