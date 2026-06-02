@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { AccessToken, EgressClient } from "livekit-server-sdk";
+import { AccessToken, EgressClient, StreamOutput, StreamProtocol } from "livekit-server-sdk";
 
 function validateLiveKitEnv() {
   const apiKey = process.env.LIVEKIT_API_KEY;
@@ -40,15 +40,25 @@ export const startLiveKitEgress = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { apiKey, apiSecret, url } = validateLiveKitEnv();
     const egressClient = new EgressClient(url, apiKey, apiSecret);
-    const youtubeRtmpUrl = `rtmps://a.rtmp.youtube.com/live2/${data.youtubeStreamKey}`;
+    const youtubeRtmpUrl = `rtmp://a.rtmp.youtube.com/live2/${data.youtubeStreamKey}`;
 
-    const response = await (egressClient as any).startRoomCompositeEgress(data.roomName, {
-      layout: "single",
-      rtmp: {
-        urls: [youtubeRtmpUrl],
-      },
+    console.log("[startLiveKitEgress] Starting egress", {
+      roomName: data.roomName,
+      rtmpHost: "rtmp://a.rtmp.youtube.com/live2/***",
     });
 
+    const response = await egressClient.startRoomCompositeEgress(
+      data.roomName,
+      {
+        stream: new StreamOutput({
+          protocol: StreamProtocol.RTMP,
+          urls: [youtubeRtmpUrl],
+        }),
+      },
+      { layout: "grid" },
+    );
+
+    console.log("[startLiveKitEgress] Egress started:", response.egressId);
     return { egressId: response.egressId };
   });
 
