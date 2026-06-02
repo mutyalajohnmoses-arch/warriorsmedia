@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { useLiveKitRoom } from "@/hooks/useLiveKitRoom";
+import { RoomEvent } from "livekit-client"; // Added to monitor track events
 import { toast } from "sonner";
 import {
   Video,
@@ -41,6 +42,7 @@ function LiveStreamingSetupPage() {
 
   // Connection System States
   const [isConnecting, setIsConnecting] = useState(false);
+  const [isEgressActive, setIsEgressActive] = useState(false); // Tracks actual YouTube connection state
   const [isCameraEnabled, setIsCameraEnabled] = useState(true);
   const [isMicEnabled, setIsMicEnabled] = useState(true);
   const [liveKitToken, setLiveKitToken] = useState<string | null>(null);
@@ -54,34 +56,21 @@ function LiveStreamingSetupPage() {
   const startEgress = useServerFn(startLiveKitEgress);
   const stopEgress = useServerFn(stopLiveKitEgress);
 
-  // LiveKit Room Implementation Hook
+  // Standardize the room naming format uniformly across token generation and egress execution
+  const safeRoomName = streamTitle ? `room-${streamTitle.toLowerCase().replace(/[^a-z0-9]/g, "-")}` : "live-studio-room";
+
+  // LiveKit Room Integration Hook
   const { room, isConnected, error, connect, disconnect, toggleCameraTrack, toggleMicTrack } = useLiveKitRoom({
     url: liveKitUrl || "",
     token: liveKitToken || "",
-    roomName: streamTitle ? streamTitle.replace(/\s+/g, "-") : "live-studio-room",
-    onConnected: async () => {
-      toast.success("Studio Room Connected! Activating YouTube Live Stream...");
-      
-      try {
-        const roomIdentifier = streamTitle.replace(/\s+/g, "-");
-        console.log("[Studio] Routing Egress pipeline using explicit room parameter...");
-        
-        const egressResp = await startEgress({
-          data: { roomName: roomIdentifier, youtubeStreamKey }
-        });
-
-        if (egressResp?.egressId) {
-          setCurrentEgressId(egressResp.egressId);
-          toast.success("You are now LIVE on YouTube! Check your YouTube dashboard.");
-        }
-      } catch (err: any) {
-        console.error("[Egress Setup Error]", err);
-        toast.error(`YouTube connection failed: ${err.message}`);
-      }
-      setIsConnecting(false);
+    roomName: safeRoomName,
+    onConnected: () => {
+      // Changed from success toast to informative toast because YouTube pipeline hasn't been triggered yet
+      toast.info("Connected to Studio. Finalizing camera stream initialization...");
     },
     onDisconnected: () => {
       setIsConnecting(false);
+      setIsEgressActive(false);
       setCurrentEgressId(null);
       toast.info("Broadcast Studio Session Closed.");
     },
@@ -90,6 +79,46 @@ function LiveStreamingSetupPage() {
       toast.error(`LiveKit Error: ${err.message}`);
     },
   });
+
+  // 🔥 CRITICAL FIX: Track Publishing Synchronizer Loop
+  useEffect(() => {
+    if (!room || !isConnected || currentEgressId || isEgressActive) return;
+
+    const triggerYouTubeEgressPipeline = async () => {
+      try {
+        setIsConnecting(true);
+        const toastId = toast.loading("Opening pipeline link directly to YouTube Live...");
+        
+        console.log(`[Egress] Instantiating stream relay for target room ID: ${safeRoomName}`);
+        
+        const egressResp = await startEgress({
+          data: { roomName: safeRoomName, youtubeStreamKey }
+        });
+
+        if (egressResp?.egressId) {
+          setCurrentEgressId(egressResp.egressId);
+          setIsEgressActive(true);
+          toast.success("You are now LIVE on YouTube! Check your YouTube Dashboard.", { id: toastId });
+        }
+      } catch (err: any) {
+        console.error("[Egress Failure Exception]", err);
+        toast.error(`YouTube sync connection failed: ${err.message}`);
+      } finally {
+        setIsConnecting(false);
+      }
+    };
+
+    // If tracks are already live and published, start the egress pipeline immediately
+    if (room.localParticipant?.isLocalTrackPublished) {
+      triggerYouTubeEgressPipeline();
+    } else {
+      // Otherwise, hook an active event listener to wait until media streams finish rendering
+      room.once(RoomEvent.LocalTrackPublished, () => {
+        // Safe 1-second buffer delay to allow WebRTC stream frames to initialize completely
+        setTimeout(triggerYouTubeEgressPipeline, 1000);
+      });
+    }
+  }, [isConnected, room, safeRoomName, youtubeStreamKey, currentEgressId, isEgressActive]);
 
   useEffect(() => {
     if (liveKitToken && liveKitUrl && !isConnected) {
@@ -129,9 +158,8 @@ function LiveStreamingSetupPage() {
 
     setIsConnecting(true);
     try {
-      const roomIdentifier = streamTitle.replace(/\s+/g, "-");
       const tokenResponse = await generateToken({
-        data: { roomName: roomIdentifier, participantName },
+        data: { roomName: safeRoomName, participantName },
       });
 
       if (tokenResponse?.token && tokenResponse?.url) {
@@ -160,6 +188,7 @@ function LiveStreamingSetupPage() {
       setLiveKitToken(null);
       setLiveKitUrl(null);
       setCurrentEgressId(null);
+      setIsEgressActive(false);
       setIsConnecting(false);
     }
   };
@@ -274,9 +303,9 @@ function LiveStreamingSetupPage() {
         
         <div className="flex items-center justify-between border-b border-[#2f2f2f] pb-3">
           <div className="flex items-center gap-2">
-            <span className={`w-2.5 h-2.5 rounded-full ${isConnected ? "bg-red-500 animate-pulse" : "bg-gray-600"}`}></span>
+            <span className={`w-2.5 h-2.5 rounded-full ${isEgressActive ? "bg-red-500 animate-pulse" : "bg-gray-600"}`}></span>
             <span className="text-xs font-bold uppercase tracking-wider text-gray-300">
-              {isConnected ? "STUDIO FEED ONLINE (LIVE TO YOUTUBE)" : "STUDIO FEED OFFLINE"}
+              {isEgressActive ? "STUDIO FEED ONLINE (LIVE TO YOUTUBE)" : "STUDIO FEED OFFLINE"}
             </span>
           </div>
         </div>
@@ -285,7 +314,7 @@ function LiveStreamingSetupPage() {
           {isConnecting && (
             <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-10 gap-2 text-xs">
               <Loader2 className="animate-spin text-red-500 w-6 h-6" />
-              <p className="text-gray-400 font-medium">Starting Media Transcoder on backend...</p>
+              <p className="text-gray-400 font-medium">Synchronizing streaming pipes...</p>
             </div>
           )}
           {isConnected && !isCameraEnabled && (
@@ -334,28 +363,3 @@ function LiveStreamingSetupPage() {
             </button>
           ) : (
             <button
-              onClick={handleStopBroadcasting}
-              className="w-full py-3 rounded-xl text-xs font-bold text-white bg-transparent border border-red-600/40 hover:bg-red-600/10 flex items-center justify-center gap-2 transition"
-            >
-              <PowerOff className="w-3.5 h-3.5 text-red-500" /> End Stream Broadcast
-            </button>
-          )}
-        </div>
-
-        {error && (
-          <div className="flex items-center p-2.5 rounded-lg bg-red-500/10 text-red-400 text-xs">
-            <AlertCircle className="w-4 h-4 mr-2 flex-shrink-0" />
-            <span>{error.message}</span>
-          </div>
-        )}
-        {isConnected && (
-          <div className="flex items-center p-2.5 rounded-lg bg-green-500/10 text-green-400 text-xs">
-            <CheckCircle2 className="w-4 h-4 mr-2 flex-shrink-0" />
-            <span>LiveKit Room Active. Syncing pipeline to YouTube Creator Studio...</span>
-          </div>
-        )}
-      </div>
-
-    </div>
-  );
-}
