@@ -115,8 +115,8 @@ export const getOrRefreshYouTubeToken = createServerFn({ method: "POST" })
       console.log("[getOrRefreshYouTubeToken] Token is still valid");
 
       return {
-        access_token: channel.access_token,
-        refresh_token: channel.refresh_token,
+        access_token: channel.access_token ?? "",
+        refresh_token: channel.refresh_token ?? undefined,
         expires_at: expiresAt,
       };
     } catch (err) {
