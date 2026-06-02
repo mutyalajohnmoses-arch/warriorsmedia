@@ -40,11 +40,18 @@ export const generateLiveKitToken = createServerFn({ method: "POST" })
     try {
       const { apiKey, apiSecret, url } = validateLiveKitEnv();
 
-      console.log("[LiveKit] Generating token for room:", data.roomName);
+      console.log("[LiveKit] Generating token", {
+        roomName: data.roomName,
+        participantName: data.participantName,
+        url,
+        canPublish: data.canPublish !== false,
+        canSubscribe: data.canSubscribe !== false,
+      });
 
       // Create access token
       const token = new AccessToken(apiKey, apiSecret, {
         identity: data.participantName,
+        ttl: 60 * 60, // 1 hour
       } as any);
       (token as any).addGrant({
         room: data.roomName,
@@ -56,7 +63,7 @@ export const generateLiveKitToken = createServerFn({ method: "POST" })
 
       const jwt = await token.toJwt();
 
-      console.log("[LiveKit] Token generated successfully");
+      console.log("[LiveKit] Token generated successfully (length:", jwt.length, ")");
 
       return {
         token: jwt,
@@ -70,6 +77,7 @@ export const generateLiveKitToken = createServerFn({ method: "POST" })
       );
     }
   });
+
 
 /**
  * Start LiveKit Egress to YouTube Live
