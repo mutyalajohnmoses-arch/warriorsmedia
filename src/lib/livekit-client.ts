@@ -54,7 +54,7 @@ export async function connectToLiveKitRoom(
       console.log("[LiveKit] Track unpublished:", publication.trackSid);
     });
 
-    room.on(RoomEvent.Error, (error) => {
+    room.on(RoomEvent.MediaDevicesError, (error: Error) => {
       console.error("[LiveKit] Room error:", error);
     });
 
