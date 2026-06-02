@@ -317,6 +317,8 @@ function LiveStreamingSetupPage() {
       
       try {
         console.log("Starting egress...");
+        console.log("Room Name:", roomName);
+        console.log("YouTube Key:", youtubeStreamKey);
 
         const payload = {
           roomName,
@@ -326,7 +328,6 @@ function LiveStreamingSetupPage() {
 
         console.log("Egress payload:", payload);
 
-        // Direct payload handling without the 'data' wrapper object
         const egress = await startEgress(payload);
 
         console.log("Egress response:", egress);
@@ -355,11 +356,6 @@ function LiveStreamingSetupPage() {
 
   // Trigger connection when token and url are available
   useEffect(() => {
-    console.log("liveKitToken state changed", !!liveKitToken);
-    console.log("liveKitUrl state changed", !!liveKitUrl);
-    console.log("isConnected state changed", isConnected);
-    console.log("isConnecting state changed", isConnecting);
-
     if (liveKitToken && liveKitUrl && !isConnected) {
       console.log("Attempting to connect to LiveKit room via useEffect...");
       connect();
@@ -380,7 +376,7 @@ function LiveStreamingSetupPage() {
           setParticipantName(data.full_name);
         }
       } else {
-        navigate({ to: "/" }); // Redirect to login if no session
+        navigate({ to: "/" });
       }
     };
     fetchProfile();
@@ -401,8 +397,14 @@ function LiveStreamingSetupPage() {
   }, [room, isCameraEnabled]);
 
   const handleStartStream = async () => {
-    if (!roomName || !youtubeStreamKey) {
-      toast.error("Please fill in both Room Name and YouTube Stream Key.");
+    // 1. Strict trim space validation checks
+    if (!roomName?.trim()) {
+      toast.error("Room name is required");
+      return;
+    }
+
+    if (!youtubeStreamKey?.trim()) {
+      toast.error("YouTube Stream Key is required");
       return;
     }
 
@@ -410,7 +412,6 @@ function LiveStreamingSetupPage() {
     try {
       console.log("[LiveStreamingSetupPage] Attempting to generate LiveKit token...");
       
-      // Fixed generateToken payload as well just in case
       const tokenResponse = await generateToken({
         roomName,
         participantName,
@@ -530,7 +531,7 @@ function LiveStreamingSetupPage() {
           {!isConnected ? (
             <button
               onClick={handleStartStream}
-              disabled={isConnecting || !roomName || !youtubeStreamKey}
+              disabled={isConnecting}
               className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 flex items-center justify-center gap-2"
             >
               {isConnecting ? <Loader2 className="animate-spin mr-2" /> : <Radio className="mr-2" />}
