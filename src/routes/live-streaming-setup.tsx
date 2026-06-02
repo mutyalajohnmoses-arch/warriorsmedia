@@ -1,3 +1,4 @@
+
 import { createFileRoute, useSearch, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, useRef } from "react";
 import { useServerFn } from "@tanstack/react-start";
@@ -10,7 +11,6 @@ import {
   MicOff,
   VideoOff,
   Loader2,
-  Signal,
   Radio,
   PowerOff,
   AlertCircle,
@@ -19,14 +19,11 @@ import {
 
 /**
  * LiveKit Server Functions
- * Handles server-side LiveKit operations: token generation, room management, and egress
  */
-
 import { createServerFn } from "@tanstack/react-start";
 import { AccessToken } from "livekit-server-sdk";
 import { EgressClient, RoomCompositeEgressRequest } from "livekit-server-sdk";
 
-// Validate environment variables
 function validateLiveKitEnv() {
   const apiKey = process.env.LIVEKIT_API_KEY;
   const apiSecret = process.env.LIVEKIT_API_SECRET;
@@ -39,145 +36,78 @@ function validateLiveKitEnv() {
   return { apiKey, apiSecret, url };
 }
 
-/**
- * Generate a LiveKit access token for a participant
- */
 export const generateLiveKitToken = createServerFn({ method: "POST" })
-  .inputValidator(
-    (data: {
-      roomName: string;
-      participantName: string;
-      canPublish?: boolean;
-      canSubscribe?: boolean;
-    }) => {
-      if (!data?.roomName) throw new Error("Room name is required");
-      if (!data?.participantName) throw new Error("Participant name is required");
-      return data;
-    },
-  )
+  .inputValidator((data: any) => {
+    if (!data?.roomName) throw new Error("Room name is required");
+    if (!data?.participantName) throw new Error("Participant name is required");
+    return data;
+  })
   .handler(async ({ data }) => {
     try {
       const { apiKey, apiSecret, url } = validateLiveKitEnv();
-
       const token = new AccessToken(apiKey, apiSecret, {
         identity: data.participantName,
         name: data.participantName,
-        metadata: JSON.stringify({
-          timestamp: new Date().toISOString(),
-          roomName: data.roomName,
-        }),
+        metadata: JSON.stringify({ timestamp: new Date().toISOString(), roomName: data.roomName }),
       } as any);
       (token as any).addGrant({
         room: data.roomName,
         roomJoin: true,
-        canPublish: data.canPublish !== false,
+        canPublish: true,
         canPublishData: true,
-        canSubscribe: data.canSubscribe !== false,
+        canSubscribe: true,
       });
-
-      const jwt = await token.toJwt();
-
-      return {
-        token: jwt,
-        url: url,
-        roomName: data.roomName,
-      };
-    } catch (error) {
-      console.error("[LiveKit] Token generation failed:", error);
-      throw new Error(
-        error instanceof Error ? error.message : "Failed to generate LiveKit token",
-      );
+      return { token: await token.toJwt(), url, roomName: data.roomName };
+    } catch (error: any) {
+      throw new Error(error.message || "Failed to generate LiveKit token");
     }
   });
 
-/**
- * Start LiveKit Egress to YouTube Live
- */
 export const startLiveKitEgress = createServerFn({ method: "POST" })
-  .inputValidator(
-    (data: {
-      roomName: string;
-      youtubeStreamKey: string;
-      title: string;
-    }) => {
-      if (!data?.roomName) throw new Error("Room name is required");
-      if (!data?.youtubeStreamKey) throw new Error("YouTube stream key is required");
-      if (!data?.title) throw new Error("Stream title is required");
-      return data;
-    },
-  )
+  .inputValidator((data: any) => {
+    if (!data?.roomName) throw new Error("Room name is required");
+    if (!data?.youtubeStreamKey) throw new Error("YouTube stream key is required");
+    return data;
+  })
   .handler(async ({ data }) => {
     try {
       const { apiKey, apiSecret, url } = validateLiveKitEnv();
-
-      console.log("[LiveKit Egress] Starting egress for room:", data.roomName);
       const egressClient = new EgressClient(url, apiKey, apiSecret);
-
-      // Create YouTube RTMP output URL
       const youtubeRtmpUrl = `rtmps://a.rtmp.youtube.com/live2/${data.youtubeStreamKey}`;
 
-      // Configure egress request
       const request = new RoomCompositeEgressRequest({
         roomName: data.roomName,
-        output: {
-          case: "rtmpOutput",
-          value: {
-            urls: [youtubeRtmpUrl],
-          },
-        } as any,
+        output: { case: "rtmpOutput", value: { urls: [youtubeRtmpUrl] } } as any,
         options: {
-          audioCodec: 1,
-          videoCodec: 1,
-          width: 1280,
-          height: 720,
-          depth: 24,
-          framerate: 30,
-          audioBitrate: 128,
-          videoBitrate: 2500,
+          audioCodec: 1, videoCodec: 1, width: 1280, height: 720,
+          depth: 24, framerate: 30, audioBitrate: 128, videoBitrate: 2500,
         } as any,
       });
 
-      // Start egress
       const response = await (egressClient as any).startRoomCompositeEgress(request);
-
-      return {
-        egressId: response.egressId,
-        status: response.status,
-      };
-    } catch (error) {
-      console.error("[LiveKit Egress] Failed to start egress:", error);
-      throw new Error(
-        error instanceof Error ? error.message : "Failed to start LiveKit egress",
-      );
+      return { egressId: response.egressId, status: response.status };
+    } catch (error: any) {
+      throw new Error(error.message || "Failed to start LiveKit egress");
     }
   });
 
-/**
- * Stop LiveKit Egress
- */
 export const stopLiveKitEgress = createServerFn({ method: "POST" })
-  .inputValidator(
-    (data: { egressId: string }) => {
-      if (!data?.egressId) throw new Error("Egress ID is required");
-      return data;
-    },
-  )
+  .inputValidator((data: any) => {
+    if (!data?.egressId) throw new Error("Egress ID is required");
+    return data;
+  })
   .handler(async ({ data }) => {
     try {
       const { apiKey, apiSecret, url } = validateLiveKitEnv();
       const egressClient = new EgressClient(url, apiKey, apiSecret);
       const response = await egressClient.stopEgress(data.egressId);
-      return {
-        egressId: response.egressId,
-        status: response.status,
-      };
+      return { egressId: response.egressId, status: response.status };
     } catch (error) {
-      console.error("[LiveKit Egress] Failed to stop egress:", error);
       throw new Error("Failed to stop LiveKit egress");
     }
   });
 
-// TanStack Router route registration
+// Route registration
 export const Route = createFileRoute("/live-streaming-setup")({
   component: LiveStreamingSetupPage,
 });
@@ -195,15 +125,13 @@ function LiveStreamingSetupPage() {
   const [isMicEnabled, setIsMicEnabled] = useState(true);
   const [liveKitToken, setLiveKitToken] = useState<string | null>(null);
   const [liveKitUrl, setLiveKitUrl] = useState<string | null>(null);
-  
-  // FIX: Track current active egress state to stop properly
   const [currentEgressId, setCurrentEgressId] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  // CRITICAL FIX: Always bind server functions using TanStack 'useServerFn' custom hook inside components
-  const generateTokenFn = useServerFn(generateLiveKitToken);
-  const startEgressFn = useServerFn(startLiveKitEgress);
-  const stopEgressFn = useServerFn(stopLiveKitEgress);
+  // Client Functions Binding (CRITICAL FIX)
+  const generateToken = useServerFn(generateLiveKitToken);
+  const startEgress = useServerFn(startLiveKitEgress);
+  const stopEgress = useServerFn(stopLiveKitEgress);
 
   const { room, isConnected, error, connect, disconnect, toggleCameraTrack, toggleMicTrack } = useLiveKitRoom({
     url: liveKitUrl || "",
@@ -214,28 +142,20 @@ function LiveStreamingSetupPage() {
       setIsConnecting(false);
       toast.success("Connected to LiveKit room!");
 
-      // Sequence Layer: Once room is up, securely kickstart the YouTube stream egress server function
+      // Trigger YouTube streaming immediately after LiveKit room connects successfully
       try {
-        console.log("Starting egress pipeline via useServerFn...");
-        
-        // Passing arguments structured accurately through useServerFn payload rules
-        const egress = await startEgressFn({
-          data: {
-            roomName: roomName,
-            youtubeStreamKey: youtubeStreamKey,
-            title: roomName || "Live Stream Sessions"
-          }
+        console.log("Starting Egress to YouTube...");
+        const egress = await startEgress({
+          data: { roomName, youtubeStreamKey, title: roomName || "Live Stream" }
         });
-
-        console.log("Egress response success:", egress);
 
         if (egress?.egressId) {
           setCurrentEgressId(egress.egressId);
+          toast.success("YouTube Stream is now LIVE!");
         }
-        toast.success("YouTube Live Stream is now LIVE!");
       } catch (err: any) {
-        console.error("FULL EGRESS ERROR:", err);
-        toast.error(`YouTube Live Failed to Initialize: ${err.message || "RPC Context Drop"}`);
+        console.error("EGRESS INITIATION ERROR:", err);
+        toast.error(`YouTube Streaming Failed: ${err.message || "Egress Drop"}`);
       }
     },
     onDisconnected: () => {
@@ -250,14 +170,12 @@ function LiveStreamingSetupPage() {
     },
   });
 
-  // Trigger connection when token and url are available
   useEffect(() => {
     if (liveKitToken && liveKitUrl && !isConnected) {
       connect();
     }
   }, [liveKitToken, liveKitUrl, isConnected, connect]);
 
-  // Fetch user profile for participant name
   useEffect(() => {
     const fetchProfile = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -277,7 +195,6 @@ function LiveStreamingSetupPage() {
     fetchProfile();
   }, [navigate]);
 
-  // Handle local video preview
   useEffect(() => {
     if (room && videoRef.current) {
       const localVideoPub = Array.from(room.localParticipant?.videoTrackPublications.values() ?? [])[0];
@@ -299,8 +216,7 @@ function LiveStreamingSetupPage() {
 
     setIsConnecting(true);
     try {
-      // Calling wrapped token generation function securely
-      const tokenResponse = await generateTokenFn({
+      const tokenResponse = await generateToken({
         data: { roomName, participantName, canPublish: true, canSubscribe: true },
       });
 
@@ -319,11 +235,11 @@ function LiveStreamingSetupPage() {
   const handleStopStream = async () => {
     try {
       if (currentEgressId) {
-        await stopEgressFn({ data: { egressId: currentEgressId } });
-        toast.info("YouTube Egress stopped safely.");
+        await stopEgress({ data: { egressId: currentEgressId } });
+        toast.info("YouTube stream stopped.");
       }
-    } catch (err: any) {
-      console.error("Stop egress failed:", err);
+    } catch (err) {
+      console.error(err);
     }
 
     if (isConnected) {
@@ -348,29 +264,24 @@ function LiveStreamingSetupPage() {
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
       <h1 className="text-3xl font-bold text-foreground mb-4">Live Streaming Setup</h1>
-      <p className="text-muted-foreground mb-8 text-center">
-        Configure your live stream settings and go live to your audience.
-      </p>
       <div className="bg-card p-8 rounded-lg shadow-lg w-full max-w-md">
         <h2 className="text-xl font-semibold text-foreground mb-4">Stream Configuration</h2>
         <div className="space-y-4">
           <div>
-            <label htmlFor="roomName" className="block text-sm font-medium text-muted-foreground">Room Name</label>
+            <label className="block text-sm font-medium text-muted-foreground">Room Name</label>
             <input
               type="text"
-              id="roomName"
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 bg-input text-foreground p-2"
+              className="mt-1 block w-full rounded-md bg-input text-foreground p-2 border border-gray-700"
               value={roomName}
               onChange={(e) => setRoomName(e.target.value)}
               disabled={isConnecting || isConnected}
             />
           </div>
           <div>
-            <label htmlFor="youtubeStreamKey" className="block text-sm font-medium text-muted-foreground">YouTube Stream Key</label>
+            <label className="block text-sm font-medium text-muted-foreground">YouTube Stream Key</label>
             <input
               type="password"
-              id="youtubeStreamKey"
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 bg-input text-foreground p-2"
+              className="mt-1 block w-full rounded-md bg-input text-foreground p-2 border border-gray-700"
               value={youtubeStreamKey}
               onChange={(e) => setYoutubeStreamKey(e.target.value)}
               disabled={isConnecting || isConnected}
@@ -378,6 +289,46 @@ function LiveStreamingSetupPage() {
           </div>
 
           <div className="relative w-full h-48 bg-black rounded-md overflow-hidden">
-            {isConnecting && <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-75 text-white"><Loader2 className="animate-spin mr-2" /> Connecting...</div>}
-            {isConnected && !isCameraEnabled && <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-75 text-white"><VideoOff className="mr-2" /> Camera Off</div>}
-            {isConnected && isCameraEnabled && <video ref={videoRef} autoPlay
+            {isConnecting && <div className="absolute inset-0 flex items-center justify-center bg-black/75 text-white"><Loader2 className="animate-spin mr-2" /> Connecting...</div>}
+            {isConnected && !isCameraEnabled && <div className="absolute inset-0 flex items-center justify-center bg-black/75 text-white"><VideoOff className="mr-2" /> Camera Off</div>}
+            {isConnected && isCameraEnabled && <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover"></video>}
+            {!isConnected && !isConnecting && <div className="absolute inset-0 flex items-center justify-center bg-gray-800 text-gray-400">No Video Preview</div>}
+          </div>
+
+          <div className="flex justify-center gap-4">
+            <button onClick={handleToggleCamera} disabled={!isConnected} className={`p-3 rounded-full ${isCameraEnabled ? "bg-indigo-600" : "bg-gray-600"} text-white`}>
+              {isCameraEnabled ? <Video /> : <VideoOff />}
+            </button>
+            <button onClick={handleToggleMic} disabled={!isConnected} className={`p-3 rounded-full ${isMicEnabled ? "bg-indigo-600" : "bg-gray-600"} text-white`}>
+              {isMicEnabled ? <Mic /> : <MicOff />}
+            </button>
+          </div>
+
+          {!isConnected ? (
+            <button onClick={handleStartStream} disabled={isConnecting || !roomName || !youtubeStreamKey} className="w-full py-2 px-4 rounded-md text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 flex items-center justify-center gap-2">
+              {isConnecting ? <Loader2 className="animate-spin mr-2" /> : <Radio className="mr-2" />}
+              Start Stream
+            </button>
+          ) : (
+            <button onClick={handleStopStream} className="w-full py-2 px-4 rounded-md text-sm font-medium text-white bg-red-600 hover:bg-red-700 flex items-center justify-center gap-2">
+              <PowerOff className="mr-2" /> Stop Stream
+            </button>
+          )}
+
+          {error && (
+            <div className="flex items-center p-3 rounded-md bg-red-500/10 text-red-400 text-sm">
+              <AlertCircle className="w-4 h-4 mr-2" />
+              <span>{error.message}</span>
+            </div>
+          )}
+          {isConnected && !error && (
+            <div className="flex items-center p-3 rounded-md bg-green-500/10 text-green-400 text-sm">
+              <CheckCircle2 className="w-4 h-4 mr-2" />
+              <span>LiveKit Room Connected. Live streaming active!</span>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
