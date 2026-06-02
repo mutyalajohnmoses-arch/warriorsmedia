@@ -117,7 +117,7 @@ export async function disconnectFromLiveKitRoom(room: Room | null): Promise<void
 
     // Stop all local tracks
     if (room.localParticipant) {
-      room.localParticipant.tracks.forEach((publication) => {
+      room.localParticipant.trackPublications.forEach((publication) => {
         if (publication.track) {
           publication.track.stop();
         }
