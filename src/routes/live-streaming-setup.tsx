@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { useLiveKitRoom } from "@/hooks/useLiveKitRoom";
-import { RoomEvent } from "livekit-client"; // Added to monitor track events
+import { RoomEvent } from "livekit-client";
 import { toast } from "sonner";
 import {
   Video,
@@ -22,8 +22,8 @@ import {
   Key
 } from "lucide-react";
 
-// Importing our clean server functions from the isolated server file
-import { generateLiveKitToken, startLiveKitEgress, stopLiveKitEgress } from "./live-actions.server";
+// కరెక్ట్ సర్వర్ యాక్షన్ ఇంపోర్ట్ పాత్ (బిల్డ్ ఎర్రర్‌ను ఫిక్స్ చేస్తుంది)
+import { generateLiveKitToken, startLiveKitEgress, stopLiveKitEgress } from "@/server/live-actions.server";
 
 export const Route = createFileRoute("/live-streaming-setup")({
   component: LiveStreamingSetupPage,
@@ -40,9 +40,9 @@ function LiveStreamingSetupPage() {
   const [privacyStatus, setPrivacyStatus] = useState("public");
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
 
-  // Connection System States
+  // States
   const [isConnecting, setIsConnecting] = useState(false);
-  const [isEgressActive, setIsEgressActive] = useState(false); // Tracks actual YouTube connection state
+  const [isEgressActive, setIsEgressActive] = useState(false); 
   const [isCameraEnabled, setIsCameraEnabled] = useState(true);
   const [isMicEnabled, setIsMicEnabled] = useState(true);
   const [liveKitToken, setLiveKitToken] = useState<string | null>(null);
@@ -51,22 +51,18 @@ function LiveStreamingSetupPage() {
   const [participantName, setParticipantName] = useState("Host");
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  // Server Hook Triggers
   const generateToken = useServerFn(generateLiveKitToken);
   const startEgress = useServerFn(startLiveKitEgress);
   const stopEgress = useServerFn(stopLiveKitEgress);
 
-  // Standardize the room naming format uniformly across token generation and egress execution
   const safeRoomName = streamTitle ? `room-${streamTitle.toLowerCase().replace(/[^a-z0-9]/g, "-")}` : "live-studio-room";
 
-  // LiveKit Room Integration Hook
   const { room, isConnected, error, connect, disconnect, toggleCameraTrack, toggleMicTrack } = useLiveKitRoom({
     url: liveKitUrl || "",
     token: liveKitToken || "",
     roomName: safeRoomName,
     onConnected: () => {
-      // Changed from success toast to informative toast because YouTube pipeline hasn't been triggered yet
-      toast.info("Connected to Studio. Finalizing camera stream initialization...");
+      toast.info("Studio కి కనెక్ట్ అయింది. కెమెరా ఫీడ్ లోడ్ అవుతోంది...");
     },
     onDisconnected: () => {
       setIsConnecting(false);
@@ -80,16 +76,14 @@ function LiveStreamingSetupPage() {
     },
   });
 
-  // 🔥 CRITICAL FIX: Track Publishing Synchronizer Loop
+  // కెమెరా ట్రాక్ పూర్తిగా పబ్లిష్ అయిన తర్వాతే యూట్యూబ్‌కి కనెక్ట్ చేసే లాజిక్
   useEffect(() => {
     if (!room || !isConnected || currentEgressId || isEgressActive) return;
 
     const triggerYouTubeEgressPipeline = async () => {
       try {
         setIsConnecting(true);
-        const toastId = toast.loading("Opening pipeline link directly to YouTube Live...");
-        
-        console.log(`[Egress] Instantiating stream relay for target room ID: ${safeRoomName}`);
+        const toastId = toast.loading("YouTube Live కి స్ట్రీమ్ కనెక్ట్ చేస్తున్నాము...");
         
         const egressResp = await startEgress({
           data: { roomName: safeRoomName, youtubeStreamKey }
@@ -98,24 +92,21 @@ function LiveStreamingSetupPage() {
         if (egressResp?.egressId) {
           setCurrentEgressId(egressResp.egressId);
           setIsEgressActive(true);
-          toast.success("You are now LIVE on YouTube! Check your YouTube Dashboard.", { id: toastId });
+          toast.success("మీరు ఇప్పుడు YouTube లో LIVE లో ఉన్నారు!", { id: toastId });
         }
       } catch (err: any) {
-        console.error("[Egress Failure Exception]", err);
+        console.error(err);
         toast.error(`YouTube sync connection failed: ${err.message}`);
       } finally {
         setIsConnecting(false);
       }
     };
 
-    // If tracks are already live and published, start the egress pipeline immediately
     if (room.localParticipant?.isLocalTrackPublished) {
       triggerYouTubeEgressPipeline();
     } else {
-      // Otherwise, hook an active event listener to wait until media streams finish rendering
       room.once(RoomEvent.LocalTrackPublished, () => {
-        // Safe 1-second buffer delay to allow WebRTC stream frames to initialize completely
-        setTimeout(triggerYouTubeEgressPipeline, 1000);
+        setTimeout(triggerYouTubeEgressPipeline, 1000); 
       });
     }
   }, [isConnected, room, safeRoomName, youtubeStreamKey, currentEgressId, isEgressActive]);
@@ -152,7 +143,7 @@ function LiveStreamingSetupPage() {
 
   const handleStartBroadcasting = async () => {
     if (!streamTitle || !youtubeStreamKey) {
-      toast.error("Please fill in both Stream Title and YouTube Stream Key.");
+      toast.error("దయచేసి Stream Title మరియు YouTube Stream Key ఎంటర్ చేయండి.");
       return;
     }
 
@@ -165,8 +156,6 @@ function LiveStreamingSetupPage() {
       if (tokenResponse?.token && tokenResponse?.url) {
         setLiveKitToken(tokenResponse.token);
         setLiveKitUrl(tokenResponse.url);
-      } else {
-        throw new Error("Invalid response token payload received.");
       }
     } catch (err: any) {
       toast.error(`Studio boot failed: ${err.message}`);
@@ -180,7 +169,7 @@ function LiveStreamingSetupPage() {
         await stopEgress({ data: { egressId: currentEgressId } });
       }
     } catch (err) {
-      console.error("Egress teardown error", err);
+      console.error(err);
     }
 
     if (isConnected) {
@@ -363,3 +352,28 @@ function LiveStreamingSetupPage() {
             </button>
           ) : (
             <button
+              onClick={handleStopBroadcasting}
+              className="w-full py-3 rounded-xl text-xs font-bold text-white bg-transparent border border-red-600/40 hover:bg-red-600/10 flex items-center justify-center gap-2 transition"
+            >
+              <PowerOff className="w-3.5 h-3.5 text-red-500" /> End Stream Broadcast
+            </button>
+          )}
+        </div>
+
+        {error && (
+          <div className="flex items-center p-2.5 rounded-lg bg-red-500/10 text-red-400 text-xs">
+            <AlertCircle className="w-4 h-4 mr-2 flex-shrink-0" />
+            <span>{error.message}</span>
+          </div>
+        )}
+        {isEgressActive && (
+          <div className="flex items-center p-2.5 rounded-lg bg-green-500/10 text-green-400 text-xs">
+            <CheckCircle2 className="w-4 h-4 mr-2 flex-shrink-0" />
+            <span>Stream Key active! Sending video feeds directly to YouTube...</span>
+          </div>
+        )}
+      </div>
+
+    </div>
+  );
+}
