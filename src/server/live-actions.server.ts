@@ -1,3 +1,4 @@
+
 import { createServerFn } from "@tanstack/react-start";
 import { AccessToken, EgressClient } from "livekit-server-sdk";
 
@@ -42,7 +43,7 @@ export const startLiveKitEgress = createServerFn({ method: "POST" })
     const egressClient = new EgressClient(url, apiKey, apiSecret);
     const youtubeRtmpUrl = `rtmps://a.rtmp.youtube.com/live2/${data.youtubeStreamKey}`;
 
-    // Layout config missing అవ్వడం వల్లే 'file' crash వచ్చింది. దీన్ని ఇక్కడ ఫిక్స్ చేశాను.
+    // Layout configuration fixes the missing 'file' runtime crash
     const response = await egressClient.startRoomCompositeEgress(data.roomName, {
       layout: "single", 
       rtmp: {
