@@ -51,7 +51,7 @@ export const getOrRefreshYouTubeToken = createServerFn({ method: "POST" })
       });
 
       // Check if token is expired or about to expire (within 5 minutes)
-      const expiresAt = new Date(channel.token_expires_at).getTime();
+      const expiresAt = new Date(channel.token_expires_at ?? 0).getTime();
       const now = Date.now();
       const expirationBuffer = 5 * 60 * 1000; // 5 minutes
 
