@@ -1,4 +1,3 @@
-
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, useRef } from "react";
 import { useServerFn } from "@tanstack/react-start";
@@ -17,13 +16,17 @@ import {
   AlertCircle,
   CheckCircle2,
   FileText,
-  Image as ImageIcon,
   Tv,
-  Key
+  LogIn
 } from "lucide-react";
 
-// ఫిక్స్డ్ రిలేటివ్ పాత్ ఇంపోర్ట్ - ఇది క్లైంట్ బిల్డ్ ఎర్రర్ రాకుండా కాపాడుతుంది
-import { generateLiveKitToken, startLiveKitEgress, stopLiveKitEgress } from "@/lib/live-actions.functions";
+// కరెక్ట్ అలియాస్ పాత్ ఇంపోర్ట్
+import { 
+  generateLiveKitToken, 
+  createYouTubeLivePipeline, 
+  startLiveKitEgress, 
+  stopLiveKitEgress 
+} from "@/server/live-actions";
 
 export const Route = createFileRoute("/live-streaming-setup")({
   component: LiveStreamingSetupPage,
@@ -32,15 +35,13 @@ export const Route = createFileRoute("/live-streaming-setup")({
 function LiveStreamingSetupPage() {
   const navigate = useNavigate();
 
-  // YouTube Config Form States
+  // YouTube Setup States
   const [streamTitle, setStreamTitle] = useState("");
   const [streamDescription, setStreamDescription] = useState("");
-  const [youtubeStreamKey, setYoutubeStreamKey] = useState("");
-  const [streamCategory, setStreamCategory] = useState("22");
   const [privacyStatus, setPrivacyStatus] = useState("public");
-  const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
+  const [googleToken, setGoogleToken] = useState<string | null>(null);
 
-  // Connection System States
+  // Connection Pipeline States
   const [isConnecting, setIsConnecting] = useState(false);
   const [isEgressActive, setIsEgressActive] = useState(false); 
   const [isCameraEnabled, setIsCameraEnabled] = useState(true);
@@ -48,12 +49,15 @@ function LiveStreamingSetupPage() {
   const [liveKitToken, setLiveKitToken] = useState<string | null>(null);
   const [liveKitUrl, setLiveKitUrl] = useState<string | null>(null);
   const [currentEgressId, setCurrentEgressId] = useState<string | null>(null);
+  const [generatedRtmpUrl, setGeneratedRtmpUrl] = useState<string | null>(null);
   const [participantName, setParticipantName] = useState("Host");
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  const generateToken = useServerFn(generateLiveKitToken);
-  const startEgress = useServerFn(startLiveKitEgress);
-  const stopEgress = useServerFn(stopLiveKitEgress);
+  // Server Functions Hooks
+  const generateTokenFn = useServerFn(generateLiveKitToken);
+  const createYouTubePipelineFn = useServerFn(createYouTubeLivePipeline);
+  const startEgressFn = useServerFn(startLiveKitEgress);
+  const stopEgressFn = useServerFn(stopLiveKitEgress);
 
   const safeRoomName = streamTitle ? `room-${streamTitle.toLowerCase().replace(/[^a-z0-9]/g, "-")}` : "live-studio-room";
 
@@ -62,73 +66,88 @@ function LiveStreamingSetupPage() {
     token: liveKitToken || "",
     roomName: safeRoomName,
     onConnected: () => {
-      toast.info("Studio కి కనెక్ట్ అయింది. మీడియా ఫీడ్ సిద్ధం చేస్తున్నాము...");
+      toast.info("LiveKit Studio Connected. Launching Egress pipeline...");
     },
     onDisconnected: () => {
       setIsConnecting(false);
       setIsEgressActive(false);
       setCurrentEgressId(null);
-      toast.info("Broadcast Studio Session Closed.");
+      setGeneratedRtmpUrl(null);
     },
     onError: (err) => {
       setIsConnecting(false);
-      toast.error(`LiveKit Error: ${err.message}`);
+      toast.error(`Studio Error: ${err.message}`);
     },
   });
 
-  // కెమెరా మరియు ఆడియో ట్రాక్స్ సక్సెస్ ఫుల్ గా లోడ్ అయ్యాకే యూట్యూబ్ ఈగ్రెస్స్ స్టార్ట్ అవుతుంది
-  useEffect(() => {
-    if (!room || !isConnected || currentEgressId || isEgressActive) return;
+  // Google OAuth తో లాగిన్ అవ్వడం (YouTube Live Scopes తో)
+  const handleGoogleLogin = async () => {
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          scopes: "https://www.googleapis.com/auth/youtube.force-ssl https://www.googleapis.com/auth/youtube.readonly",
+          queryParams: { access_type: "offline", prompt: "consent" }
+        },
+      });
+      if (error) throw error;
+    } catch (err: any) {
+      toast.error(`Google Login Failed: ${err.message}`);
+    }
+  };
 
-    const triggerYouTubeEgressPipeline = async () => {
+  // Session నుండి Google Access Token ని ఎక్స్‌ట్రాక్ట్ చేయడం
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        setGoogleToken(session.provider_token || null);
+        const { data } = await supabase.from("profiles").select("full_name").eq("id", session.user.id).maybeSingle();
+        if (data?.full_name) setParticipantName(data.full_name);
+      }
+    };
+    checkSession();
+  }, []);
+
+  // LiveKit కి కనెక్ట్ అయ్యాక ఆటోమేటిక్‌గా Egress స్టార్ట్ చేసి YouTube కి పంపడం
+  useEffect(() => {
+    if (!room || !isConnected || !generatedRtmpUrl || currentEgressId || isEgressActive) return;
+
+    const pipelineExecution = async () => {
       try {
         setIsConnecting(true);
-        const toastId = toast.loading("YouTube Live కి కనెక్ట్ చేస్తున్నాము...");
+        const tId = toast.loading("LiveKit Egress స్టార్ట్ అవుతోంది. YouTube కి కనెక్ట్ చేస్తున్నాము...");
         
-        const egressResp = await startEgress({
-          data: { roomName: safeRoomName, youtubeStreamKey }
+        const res = await startEgressFn({
+          data: { roomName: safeRoomName, youtubeRtmpUrl: generatedRtmpUrl }
         });
 
-        if (egressResp?.egressId) {
-          setCurrentEgressId(egressResp.egressId);
+        if (res?.egressId) {
+          setCurrentEgressId(res.egressId);
           setIsEgressActive(true);
-          toast.success("మీరు ఇప్పుడు YouTube లో LIVE లో ఉన్నారు!", { id: toastId });
+          toast.success("SUCCESS: మీ స్ట్రీమ్ ఇప్పుడు YouTube Live లో నడుస్తోంది!", { id: tId });
         }
       } catch (err: any) {
-        console.error(err);
-        toast.error(`YouTube sync connection failed: ${err.message}`);
+        toast.error(`Egress pipeline failed: ${err.message}`);
       } finally {
         setIsConnecting(false);
       }
     };
 
-    if ((room.localParticipant?.videoTrackPublications.size ?? 0) > 0) {
-      triggerYouTubeEgressPipeline();
+    if (room.localParticipant?.isLocalTrackPublished) {
+      pipelineExecution();
     } else {
       room.once(RoomEvent.LocalTrackPublished, () => {
-        setTimeout(triggerYouTubeEgressPipeline, 1000); 
+        setTimeout(pipelineExecution, 1000);
       });
     }
-  }, [isConnected, room, safeRoomName, youtubeStreamKey, currentEgressId, isEgressActive]);
+  }, [isConnected, room, generatedRtmpUrl, safeRoomName, currentEgressId, isEgressActive]);
 
   useEffect(() => {
     if (liveKitToken && liveKitUrl && !isConnected) {
       connect();
     }
   }, [liveKitToken, liveKitUrl, isConnected, connect]);
-
-  useEffect(() => {
-    const fetchProfile = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        const { data } = await supabase.from("profiles").select("full_name").eq("id", session.user.id).maybeSingle();
-        if (data?.full_name) setParticipantName(data.full_name);
-      } else {
-        navigate({ to: "/" });
-      }
-    };
-    fetchProfile();
-  }, [navigate]);
 
   useEffect(() => {
     if (room && videoRef.current) {
@@ -141,15 +160,33 @@ function LiveStreamingSetupPage() {
     }
   }, [room, isCameraEnabled]);
 
-  const handleStartBroadcasting = async () => {
-    if (!streamTitle || !youtubeStreamKey) {
-      toast.error("దయచేసి Stream Title మరియు YouTube Stream Key ఎంటర్ చేయండి.");
+  // COMPLETE PIPELINE FLOW TRIGGER
+  const handleStartFullPipeline = async () => {
+    if (!googleToken) {
+      toast.error("దయచేసి మొదట Google తో లాగిన్ అవ్వండి.");
+      return;
+    }
+    if (!streamTitle) {
+      toast.error("Stream Title ఎంటర్ చేయండి.");
       return;
     }
 
     setIsConnecting(true);
     try {
-      const tokenResponse = await generateToken({
+      // STEP 1 & 2: YouTube లో Broadcast మరియు Stream ఆటోమేటిక్ గా క్రియేట్ చేసి RTMP పొందడం
+      const ytId = toast.loading("YouTube Broadcast & Stream క్రియేట్ చేస్తున్నాము...");
+      const ytPipeline = await createYouTubePipelineFn({
+        data: { accessToken: googleToken, title: streamTitle, description: streamDescription, privacy: privacyStatus }
+      });
+
+      if (!ytPipeline?.youtubeRtmpUrl) {
+        throw new Error("Could not fetch RTMP endpoints from YouTube API.");
+      }
+      setGeneratedRtmpUrl(ytPipeline.youtubeRtmpUrl);
+      toast.success("YouTube RTMP URL విజయవంతంగా పొందింది!", { id: ytId });
+
+      // STEP 3: LiveKit రూమ్ కోసం టోకెన్ తెచ్చుకోవడం
+      const tokenResponse = await generateTokenFn({
         data: { roomName: safeRoomName, participantName },
       });
 
@@ -158,48 +195,65 @@ function LiveStreamingSetupPage() {
         setLiveKitUrl(tokenResponse.url);
       }
     } catch (err: any) {
-      toast.error(`Studio boot failed: ${err.message}`);
+      toast.error(`Pipeline Failed: ${err.message}`);
       setIsConnecting(false);
     }
   };
 
-  const handleStopBroadcasting = async () => {
+  const handleStopPipeline = async () => {
+    setIsConnecting(true);
     try {
       if (currentEgressId) {
-        await stopEgress({ data: { egressId: currentEgressId } });
+        await stopEgressFn({ data: { egressId: currentEgressId } });
       }
-    } catch (err) {
-      console.error(err);
+    } catch (e) {
+      console.error(e);
     }
-
     if (isConnected) {
       await disconnect();
-      setLiveKitToken(null);
-      setLiveKitUrl(null);
-      setCurrentEgressId(null);
-      setIsEgressActive(false);
-      setIsConnecting(false);
     }
+    setLiveKitToken(null);
+    setLiveKitUrl(null);
+    setCurrentEgressId(null);
+    setGeneratedRtmpUrl(null);
+    setIsEgressActive(false);
+    setIsConnecting(false);
+    toast.success("Streaming Studio Session Closed.");
   };
 
   return (
     <div className="min-h-screen bg-[#0f0f0f] text-[#f1f1f1] flex flex-col lg:flex-row p-6 gap-6">
       
-      {/* LEFT INPUT FORM */}
+      {/* LEFT: CONFIGURATION FORM */}
       <div className="w-full lg:w-5/12 bg-[#1f1f1f] border border-[#2f2f2f] rounded-xl p-6 shadow-2xl flex flex-col gap-4">
         <div className="flex items-center gap-2 border-b border-[#2f2f2f] pb-3">
           <Tv className="text-red-500 w-5 h-5" />
-          <h2 className="text-lg font-bold tracking-wide">Stream Configuration</h2>
+          <h2 className="text-lg font-bold tracking-wide">YouTube Live Automatons</h2>
         </div>
 
+        {/* GOOGLE LOGIN STEP */}
+        {!googleToken ? (
+          <button
+            onClick={handleGoogleLogin}
+            className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center justify-center gap-2 font-semibold text-sm transition"
+          >
+            <LogIn className="w-4 h-4" /> Step 1: Login with Google (YouTube Scopes)
+          </button>
+        ) : (
+          <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg text-xs text-blue-400 flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-blue-500 flex-shrink-0" />
+            <span>Google Authentic Integration Active (Token Synchronized)</span>
+          </div>
+        )}
+
         <div>
-          <label className="text-xs font-semibold text-gray-400 block mb-1">Stream Title</label>
+          <label className="text-xs font-semibold text-gray-400 block mb-1">Stream Title (YouTube)</label>
           <div className="relative">
             <FileText className="absolute left-3 top-3 w-4 h-4 text-gray-500" />
             <input
               type="text"
-              placeholder="e.g., Live Morning worship"
-              className="w-full bg-[#121212] border border-[#333] rounded-lg pl-10 pr-4 py-2.5 text-sm focus:border-red-500 outline-none"
+              placeholder="Enter live video event title"
+              className="w-full bg-[#121212] border border-[#333] rounded-lg pl-10 pr-4 py-2.5 text-sm focus:border-red-500 outline-none text-white"
               value={streamTitle}
               onChange={(e) => setStreamTitle(e.target.value)}
               disabled={isConnected}
@@ -210,9 +264,9 @@ function LiveStreamingSetupPage() {
         <div>
           <label className="text-xs font-semibold text-gray-400 block mb-1">Description</label>
           <textarea
-            rows={2}
-            placeholder="Tell your viewers about this live stream..."
-            className="w-full bg-[#121212] border border-[#333] rounded-lg px-4 py-2 text-sm focus:border-red-500 outline-none resize-none"
+            rows={3}
+            placeholder="Describe what this live stream is about..."
+            className="w-full bg-[#121212] border border-[#333] rounded-lg px-4 py-2 text-sm focus:border-red-500 outline-none resize-none text-white"
             value={streamDescription}
             onChange={(e) => setStreamDescription(e.target.value)}
             disabled={isConnected}
@@ -220,81 +274,34 @@ function LiveStreamingSetupPage() {
         </div>
 
         <div>
-          <label className="text-xs font-semibold text-gray-400 block mb-1">YouTube Stream Key</label>
-          <div className="relative">
-            <Key className="absolute left-3 top-3 w-4 h-4 text-gray-500" />
-            <input
-              type="password"
-              placeholder="Paste your standard YouTube RTMP Key here"
-              className="w-full bg-[#121212] border border-[#333] rounded-lg pl-10 pr-4 py-2.5 text-sm focus:border-red-500 outline-none"
-              value={youtubeStreamKey}
-              onChange={(e) => setYoutubeStreamKey(e.target.value)}
-              disabled={isConnected}
-            />
-          </div>
+          <label className="text-xs font-semibold text-gray-400 block mb-1">Privacy Visibility</label>
+          <select
+            className="w-full bg-[#121212] border border-[#333] rounded-lg px-3 py-2.5 text-sm text-gray-300 outline-none"
+            value={privacyStatus}
+            onChange={(e) => setPrivacyStatus(e.target.value)}
+            disabled={isConnected}
+          >
+            <option value="public">🌐 Public (Everyone can view)</option>
+            <option value="unlisted">🔗 Unlisted (Only via link)</option>
+            <option value="private">🔒 Private (Only you can view)</option>
+          </select>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="text-xs font-semibold text-gray-400 block mb-1">Category</label>
-            <select
-              className="w-full bg-[#121212] border border-[#333] rounded-lg px-3 py-2 text-sm text-gray-300 outline-none"
-              value={streamCategory}
-              onChange={(e) => setStreamCategory(e.target.value)}
-              disabled={isConnected}
-            >
-              <option value="22">People & Blogs</option>
-              <option value="29">Nonprofits & Activism</option>
-              <option value="10">Music</option>
-            </select>
+        {generatedRtmpUrl && (
+          <div className="p-3 bg-zinc-900 border border-zinc-800 rounded-lg">
+            <p className="text-[10px] text-gray-500 font-bold uppercase mb-1">Auto-Generated Target Endpoints</p>
+            <p className="text-xs text-red-400 font-mono break-all select-all">{generatedRtmpUrl}</p>
           </div>
-          <div>
-            <label className="text-xs font-semibold text-gray-400 block mb-1">Visibility</label>
-            <select
-              className="w-full bg-[#121212] border border-[#333] rounded-lg px-3 py-2 text-sm text-gray-300 outline-none"
-              value={privacyStatus}
-              onChange={(e) => setPrivacyStatus(e.target.value)}
-              disabled={isConnected}
-            >
-              <option value="public">🌐 Public</option>
-              <option value="unlisted">🔗 Unlisted</option>
-              <option value="private">🔒 Private</option>
-            </select>
-          </div>
-        </div>
-
-        <div>
-          <label className="text-xs font-semibold text-gray-400 block mb-1">Stream Thumbnail</label>
-          <div className="border border-dashed border-[#333] rounded-lg p-3 bg-[#121212] flex flex-col items-center justify-center relative min-h-[90px]">
-            {thumbnailPreview ? (
-              <img src={thumbnailPreview} alt="Preview" className="absolute inset-0 w-full h-full object-cover rounded-lg" />
-            ) : (
-              <>
-                <ImageIcon className="w-6 h-6 text-gray-500 mb-1" />
-                <span className="text-xs text-gray-400">Click to upload banner</span>
-              </>
-            )}
-            <input
-              type="file"
-              accept="image/*"
-              className="absolute inset-0 opacity-0 cursor-pointer"
-              onChange={(e) => {
-                if (e.target.files?.[0]) setThumbnailPreview(URL.createObjectURL(e.target.files[0]));
-              }}
-              disabled={isConnected}
-            />
-          </div>
-        </div>
+        )}
       </div>
 
-      {/* RIGHT MONITOR VIEW PANEL */}
+      {/* RIGHT: LIVE STUDIO MONITOR */}
       <div className="w-full lg:w-7/12 bg-[#1f1f1f] border border-[#2f2f2f] rounded-xl p-6 shadow-2xl flex flex-col gap-4 justify-between">
-        
         <div className="flex items-center justify-between border-b border-[#2f2f2f] pb-3">
           <div className="flex items-center gap-2">
             <span className={`w-2.5 h-2.5 rounded-full ${isEgressActive ? "bg-red-500 animate-pulse" : "bg-gray-600"}`}></span>
             <span className="text-xs font-bold uppercase tracking-wider text-gray-300">
-              {isEgressActive ? "STUDIO FEED ONLINE (LIVE TO YOUTUBE)" : "STUDIO FEED OFFLINE"}
+              {isEgressActive ? "LIVE TO YOUTUBE" : "STUDIO IDLE"}
             </span>
           </div>
         </div>
@@ -303,12 +310,12 @@ function LiveStreamingSetupPage() {
           {isConnecting && (
             <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-10 gap-2 text-xs">
               <Loader2 className="animate-spin text-red-500 w-6 h-6" />
-              <p className="text-gray-400 font-medium">Synchronizing streaming pipes...</p>
+              <p className="text-gray-400 font-medium">Executing Pipeline: Creating YouTube Broadcast & LiveKit Egress...</p>
             </div>
           )}
           {isConnected && !isCameraEnabled && (
             <div className="absolute inset-0 bg-[#121212] flex flex-col items-center justify-center text-gray-500 text-xs gap-1">
-              <VideoOff className="w-8 h-8" /> Video Track Muted
+              <VideoOff className="w-8 h-8" /> Camera Feed Suspended
             </div>
           )}
           {isConnected && isCameraEnabled && (
@@ -317,12 +324,11 @@ function LiveStreamingSetupPage() {
           {!isConnected && !isConnecting && (
             <div className="text-center text-gray-600 flex flex-col items-center gap-1.5 text-xs">
               <Radio className="w-10 h-10 text-[#2e2e2e]" />
-              <p>Configure and click "Start Stream Broadcast" below</p>
+              <p>Complete configurations to activate pipeline</p>
             </div>
           )}
         </div>
 
-        {/* HW Toggle Toggles */}
         <div className="flex justify-center gap-4">
           <button
             onClick={() => { toggleCameraTrack(!isCameraEnabled); setIsCameraEnabled(!isCameraEnabled); }}
@@ -340,22 +346,21 @@ function LiveStreamingSetupPage() {
           </button>
         </div>
 
-        {/* Master CTA Operations */}
         <div>
           {!isConnected ? (
             <button
-              onClick={handleStartBroadcasting}
-              disabled={isConnecting || !streamTitle || !youtubeStreamKey}
-              className="w-full py-3 rounded-xl text-xs font-bold text-white bg-red-600 hover:bg-red-700 disabled:bg-gray-800 disabled:text-gray-500 flex items-center justify-center gap-2 transition"
+              onClick={handleStartFullPipeline}
+              disabled={isConnecting || !googleToken || !streamTitle}
+              className="w-full py-3.5 rounded-xl text-xs font-bold text-white bg-red-600 hover:bg-red-700 disabled:bg-gray-800 disabled:text-gray-500 flex items-center justify-center gap-2 transition uppercase tracking-wider"
             >
-              <Radio className="w-3.5 h-3.5" /> Start Stream Broadcast
+              <Radio className="w-4 h-4" /> Trigger Automation Pipeline
             </button>
           ) : (
             <button
-              onClick={handleStopBroadcasting}
-              className="w-full py-3 rounded-xl text-xs font-bold text-white bg-transparent border border-red-600/40 hover:bg-red-600/10 flex items-center justify-center gap-2 transition"
+              onClick={handleStopPipeline}
+              className="w-full py-3.5 rounded-xl text-xs font-bold text-white bg-transparent border border-red-600/40 hover:bg-red-600/10 flex items-center justify-center gap-2 transition uppercase tracking-wider"
             >
-              <PowerOff className="w-3.5 h-3.5 text-red-500" /> End Stream Broadcast
+              <PowerOff className="w-4 h-4 text-red-500" /> Disconnect Stream
             </button>
           )}
         </div>
@@ -369,11 +374,11 @@ function LiveStreamingSetupPage() {
         {isEgressActive && (
           <div className="flex items-center p-2.5 rounded-lg bg-green-500/10 text-green-400 text-xs">
             <CheckCircle2 className="w-4 h-4 mr-2 flex-shrink-0" />
-            <span>Stream Key active! Sending video feeds directly to YouTube...</span>
+            <span>Egress Pipeline running! Data feeding directly into YouTube Live Control Room.</span>
           </div>
         )}
       </div>
 
     </div>
   );
-}
+        }
