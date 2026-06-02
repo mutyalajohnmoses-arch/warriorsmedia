@@ -358,7 +358,7 @@ function LiveStreamingSetupPage() {
       if (localVideoTrack) {
         localVideoTrack.attach(videoRef.current);
         return () => {
-          localVideoTrack.detach(videoRef.current);
+          if (videoRef.current) localVideoTrack.detach(videoRef.current);
         };
       }
     }
