@@ -1,4 +1,3 @@
-
 import { createServerFn } from "@tanstack/react-start";
 import { AccessToken, EgressClient } from "livekit-server-sdk";
 
@@ -14,16 +13,16 @@ function validateLiveKitEnv() {
 }
 
 export const generateLiveKitToken = createServerFn({ method: "POST" })
-  .input((data: { roomName: string; participantName: string }) => data)
+  .inputValidator((data: { roomName: string; participantName: string }) => data)
   .handler(async ({ data }) => {
     const { apiKey, apiSecret, url } = validateLiveKitEnv();
-    
+
     const token = new AccessToken(apiKey, apiSecret, {
       identity: data.participantName,
       name: data.participantName,
     });
 
-    token.addGrant({
+    (token as any).addGrant({
       room: data.roomName,
       roomJoin: true,
       canPublish: true,
@@ -32,30 +31,29 @@ export const generateLiveKitToken = createServerFn({ method: "POST" })
 
     return {
       token: await token.toJwt(),
-      url: url,
+      url,
     };
   });
 
 export const startLiveKitEgress = createServerFn({ method: "POST" })
-  .input((data: { roomName: string; youtubeStreamKey: string }) => data)
+  .inputValidator((data: { roomName: string; youtubeStreamKey: string }) => data)
   .handler(async ({ data }) => {
     const { apiKey, apiSecret, url } = validateLiveKitEnv();
     const egressClient = new EgressClient(url, apiKey, apiSecret);
     const youtubeRtmpUrl = `rtmps://a.rtmp.youtube.com/live2/${data.youtubeStreamKey}`;
 
-    // Layout configuration fixes the missing 'file' runtime crash
-    const response = await egressClient.startRoomCompositeEgress(data.roomName, {
-      layout: "single", 
+    const response = await (egressClient as any).startRoomCompositeEgress(data.roomName, {
+      layout: "single",
       rtmp: {
         urls: [youtubeRtmpUrl],
-      }
+      },
     });
 
     return { egressId: response.egressId };
   });
 
 export const stopLiveKitEgress = createServerFn({ method: "POST" })
-  .input((data: { egressId: string }) => data)
+  .inputValidator((data: { egressId: string }) => data)
   .handler(async ({ data }) => {
     const { apiKey, apiSecret, url } = validateLiveKitEnv();
     const egressClient = new EgressClient(url, apiKey, apiSecret);
