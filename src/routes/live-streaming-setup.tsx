@@ -57,11 +57,6 @@ function LiveStreamingSetupPage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [aiPrompt, setAiPrompt] = useState("");
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
-  
-
-  // Free AI Thumbnail States
-  const [freeAiPrompt, setFreeAiPrompt] = useState("");
-  const [isGeneratingFree, setIsGeneratingFree] = useState(false);
 
   // Connection Pipelines
   const [isConnecting, setIsConnecting] = useState(false);
@@ -287,39 +282,6 @@ function LiveStreamingSetupPage() {
     }
   };
 
-  // Handle Free AI Thumbnail Generation using Pollinations AI
-  const handleGenerateFreeThumbnail = async () => {
-    const promptToUse = freeAiPrompt.trim() || streamTitle.trim();
-    if (!promptToUse) {
-      toast.error("Please enter a Stream Title or Free Prompt to create an AI Thumbnail.");
-      return;
-    }
-
-    setIsGeneratingFree(true);
-    const toastId = toast.loading("Generating Free AI Thumbnail via Pollinations...");
-    console.log("[Free AI Thumbnail] Generating with prompt:", promptToUse);
-
-    try {
-      // Encode the prompt safely for URL generation
-      const encodedPrompt = encodeURIComponent(promptToUse);
-      const generatedUrl = `https://image.pollinations.ai/p/${encodedPrompt}?width=1280&height=720&model=flux`;
-
-      // Trigger a quick fetch request to ensure the image asset builds successfully
-      const response = await fetch(generatedUrl);
-      if (!response.ok) {
-        throw new Error("Pollinations AI server responded with an error setup status.");
-      }
-
-      // Update the main preview asset state with the generated URL
-      setPreviewUrl(generatedUrl);
-      toast.success("Free AI Thumbnail generated successfully!", { id: toastId });
-    } catch (err: any) {
-      console.error("[Free AI Thumbnail] Error:", err);
-      toast.error(`Free Generation Failed: ${err?.message || "Unknown error"}`, { id: toastId });
-    } finally {
-      setIsGeneratingFree(false);
-    }
-  };
 
   const handleStartFullPipeline = async () => {
     if (!googleToken) {
@@ -527,48 +489,6 @@ function LiveStreamingSetupPage() {
           </div>
         </div>
         {/* --- END OF THUMBNAIL MODULE --- */}
-
-        {/* --- FREE AI THUMBNAIL MODULE --- */}
-        <div className="border border-[#2f2f2f] rounded-lg p-4 bg-[#161616] flex flex-col gap-3 mt-1">
-          <div className="flex items-center justify-between border-b border-[#2f2f2f] pb-2">
-            <div className="flex items-center gap-2 text-xs font-semibold text-gray-300">
-              <Sparkles className="w-4 h-4 text-cyan-400" />
-              <span>Free AI Thumbnail Creation (Flux Model)</span>
-            </div>
-            <span className="text-[9px] text-cyan-400 font-mono bg-cyan-500/10 px-1.5 py-0.5 rounded-full uppercase tracking-wider">Free Tier</span>
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <input
-              type="text"
-              placeholder="Free AI Prompt (Optional: defaults to title)"
-              className="w-full bg-[#121212] border border-zinc-800 rounded-md px-2.5 py-1.5 text-xs text-white placeholder-zinc-600 outline-none focus:border-cyan-500"
-              value={freeAiPrompt}
-              onChange={(e) => setFreeAiPrompt(e.target.value)}
-              disabled={isConnected || isGeneratingFree}
-            />
-
-            <button
-              type="button"
-              onClick={handleGenerateFreeThumbnail}
-              disabled={isConnected || isGeneratingFree}
-              className="w-full py-2 px-3 bg-cyan-600/10 border border-cyan-600/30 hover:bg-cyan-600/20 text-cyan-400 font-medium text-xs rounded-lg flex items-center justify-center gap-1.5 transition disabled:opacity-50"
-            >
-              {isGeneratingFree ? (
-                <>
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  <span>Generating Free Artwork...</span>
-                </>
-              ) : (
-                <>
-                  <Wand2 className="w-3.5 h-3.5" />
-                  <span>Generate Free Artwork via AI</span>
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-        {/* --- END OF FREE AI THUMBNAIL MODULE --- */}
 
         <div>
           <label className="text-xs font-semibold text-gray-400 block mb-1">Privacy Visibility</label>
