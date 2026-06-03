@@ -149,7 +149,7 @@ export const stopLiveKitEgress = createServerFn({ method: "POST" })
 export const generateAIThumbnailServerFn = createServerFn({
   method: "POST",
 })
-  .validator((data: { prompt: string; streamTitle: string; baseImageB64?: string | null }) => data)
+  .inputValidator((data: { prompt: string; streamTitle: string; baseImageB64?: string | null }) => data)
   .handler(async ({ data }) => {
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
