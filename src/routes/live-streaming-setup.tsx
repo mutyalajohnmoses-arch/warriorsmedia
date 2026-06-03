@@ -21,14 +21,16 @@ import {
   Image as ImageIcon,
   Upload,
   Sparkles,
-  Wand2
+  Wand2,
+  Layers
 } from "lucide-react";
 
 import {
   generateLiveKitToken,
   createYouTubeLivePipeline,
   startLiveKitEgress,
-  stopLiveKitEgress
+  stopLiveKitEgress,
+  generateAIThumbnailServerFn // Real server function imported here
 } from "@/lib/live-actions.functions";
 import { getOrRefreshYouTubeToken } from "@/lib/youtube-token-manager.functions";
 
@@ -50,6 +52,7 @@ function LiveStreamingSetupPage() {
   // Thumbnail States
   const [thumbnailMode, setThumbnailMode] = useState<"manual" | "ai">("manual");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [referenceFile, setReferenceFile] = useState<File | null>(null); // Optional AI reference image state
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [aiPrompt, setAiPrompt] = useState("");
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
@@ -70,6 +73,7 @@ function LiveStreamingSetupPage() {
   const createYouTubePipelineFn = useServerFn(createYouTubeLivePipeline);
   const startEgressFn = useServerFn(startLiveKitEgress);
   const stopEgressFn = useServerFn(stopLiveKitEgress);
+  const generateAIThumbnailFn = useServerFn(generateAIThumbnailServerFn); // Hook initialization
 
   const safeRoomName = streamTitle ? `room-${streamTitle.toLowerCase().replace(/[^a-z0-9]/g, "-")}` : "live-studio-room";
 
@@ -144,7 +148,7 @@ function LiveStreamingSetupPage() {
     const pipelineExecution = async () => {
       try {
         setIsConnecting(true);
-        const tId = toast.loading("YouTube కి లైవ్ కనెక్ట్ చేస్తున్నాము...");
+        const tId = toast.loading("Connecting live stream to YouTube...");
         
         const res = await startEgressFn({
           data: { roomName: safeRoomName, youtubeRtmpUrl: generatedRtmpUrl }
@@ -153,7 +157,7 @@ function LiveStreamingSetupPage() {
         if (res?.egressId) {
           setCurrentEgressId(res.egressId);
           setIsEgressActive(true);
-          toast.success("SUCCESS: మీ స్ట్రీమ్ ఇప్పుడు YouTube Live లో నడుస్తోంది!", { id: tId });
+          toast.success("SUCCESS: Your stream is now live on YouTube!", { id: tId });
         }
       } catch (err: any) {
         toast.error(`Egress pipeline failed: ${err.message}`);
@@ -197,23 +201,56 @@ function LiveStreamingSetupPage() {
     }
   };
 
+  // Function to handle optional AI reference photo
+  const handleReferenceFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setReferenceFile(e.target.files[0]);
+      toast.success("AI reference photo attached successfully!");
+    }
+  };
+
+  // Helper function to convert image file to Base64 string
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
+  // Replaced old simulation code with real OpenAI API caller logic
   const handleGenerateAIThumbnail = async () => {
     const promptToUse = aiPrompt.trim() || streamTitle.trim();
     if (!promptToUse) {
-      toast.error("AI Thumbnail క్రియేట్ చేయడానికి కనీసం Stream Title లేదా Custom Prompt ఎంటర్ చేయండి.");
+      toast.error("Please enter a Stream Title or Custom Prompt to create an AI Thumbnail.");
       return;
     }
 
     setIsGeneratingAI(true);
-    const toastId = toast.loading("AI Thumbnail జనరేట్ చేస్తున్నాము...");
+    const toastId = toast.loading("Generating AI Thumbnail...");
     
     try {
-      // Future Edge Function hookup point. Currently simulates generation placeholder
-      await new Promise((resolve) => setTimeout(resolve, 2500));
+      let baseImageB64: string | null = null;
+      if (referenceFile) {
+        baseImageB64 = await fileToBase64(referenceFile);
+      }
+
+      // Backend server function execution
+      const res = await generateAIThumbnailFn({
+        data: { 
+          prompt: aiPrompt, 
+          streamTitle: streamTitle,
+          baseImageB64: baseImageB64
+        }
+      });
       
-      // Temporary unplash placeholder representing successfully created AI asset
-      setPreviewUrl(`https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop`);
-      toast.success("AI Thumbnail విజయవంతంగా జనరేట్ అయింది!", { id: toastId });
+      if (res?.imageUrl) {
+        setPreviewUrl(res.imageUrl);
+        toast.success("AI Thumbnail generated successfully!", { id: toastId });
+      } else {
+        throw new Error("No image response received from backend endpoints.");
+      }
     } catch (err: any) {
       toast.error(`AI Generation Failed: ${err.message}`, { id: toastId });
     } finally {
@@ -223,17 +260,17 @@ function LiveStreamingSetupPage() {
 
   const handleStartFullPipeline = async () => {
     if (!googleToken) {
-      toast.error("దయచేసి మొదట Google తో లాగిన్ అవ్వండి.");
+      toast.error("Please log in with Google first.");
       return;
     }
     if (!streamTitle) {
-      toast.error("Stream Title ఎంటర్ చేయండి.");
+      toast.error("Please enter a Stream Title.");
       return;
     }
 
     setIsConnecting(true);
     try {
-      const ytId = toast.loading("YouTube Broadcast & Stream క్రియేట్ చేస్తున్నాము...");
+      const ytId = toast.loading("Creating YouTube Broadcast & Stream...");
       const ytPipeline = await createYouTubePipelineFn({
         data: { accessToken: googleToken, title: streamTitle, description: streamDescription, privacy: privacyStatus }
       });
@@ -242,7 +279,7 @@ function LiveStreamingSetupPage() {
         throw new Error("Could not fetch RTMP endpoints from YouTube API.");
       }
       setGeneratedRtmpUrl(ytPipeline.youtubeRtmpUrl);
-      toast.success("YouTube RTMP URL విజయవంతంగా పొందింది!", { id: ytId });
+      toast.success("YouTube RTMP URL received successfully!", { id: ytId });
 
       const tokenResponse = await generateTokenFn({
         data: { roomName: safeRoomName, participantName },
@@ -392,6 +429,17 @@ function LiveStreamingSetupPage() {
                     onChange={(e) => setAiPrompt(e.target.value)}
                     disabled={isConnected || isGeneratingAI}
                   />
+
+                  {/* Reference Image Picker Setup */}
+                  <label className="w-full py-1.5 px-2 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded-md flex items-center justify-between text-[11px] cursor-pointer text-gray-400 hover:text-white transition">
+                    <span className="flex items-center gap-1.5 truncate">
+                      <Layers className="w-3.5 h-3.5 text-zinc-500" />
+                      {referenceFile ? referenceFile.name : "Attach Reference Photo (Optional)"}
+                    </span>
+                    <span className="text-[10px] text-amber-500 font-mono bg-amber-500/10 px-1 rounded">Photo AI</span>
+                    <input type="file" accept="image/*" onChange={handleReferenceFileChange} className="hidden" disabled={isConnected || isGeneratingAI} />
+                  </label>
+
                   <button
                     type="button"
                     onClick={handleGenerateAIThumbnail}
