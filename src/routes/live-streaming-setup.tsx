@@ -57,6 +57,7 @@ function LiveStreamingSetupPage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [aiPrompt, setAiPrompt] = useState("");
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+  
 
   // Free AI Thumbnail States
   const [freeAiPrompt, setFreeAiPrompt] = useState("");
