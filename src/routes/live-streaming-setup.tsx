@@ -17,7 +17,11 @@ import {
   CheckCircle2,
   FileText,
   Tv,
-  Link2
+  Link2,
+  Image as ImageIcon,
+  Upload,
+  Sparkles,
+  Wand2
 } from "lucide-react";
 
 import {
@@ -42,6 +46,13 @@ function LiveStreamingSetupPage() {
   const [googleToken, setGoogleToken] = useState<string | null>(null);
   const [isYouTubeLinked, setIsYouTubeLinked] = useState<boolean>(false);
   const [isCheckingChannel, setIsCheckingChannel] = useState<boolean>(true);
+
+  // Thumbnail States
+  const [thumbnailMode, setThumbnailMode] = useState<"manual" | "ai">("manual");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
 
   // Connection Pipelines
   const [isConnecting, setIsConnecting] = useState(false);
@@ -177,6 +188,39 @@ function LiveStreamingSetupPage() {
     }
   }, [room, isCameraEnabled]);
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setSelectedFile(file);
+      setPreviewUrl(URL.createObjectURL(file));
+      toast.success("Thumbnail image selected successfully!");
+    }
+  };
+
+  const handleGenerateAIThumbnail = async () => {
+    const promptToUse = aiPrompt.trim() || streamTitle.trim();
+    if (!promptToUse) {
+      toast.error("AI Thumbnail క్రియేట్ చేయడానికి కనీసం Stream Title లేదా Custom Prompt ఎంటర్ చేయండి.");
+      return;
+    }
+
+    setIsGeneratingAI(true);
+    const toastId = toast.loading("AI Thumbnail జనరేట్ చేస్తున్నాము...");
+    
+    try {
+      // Future Edge Function hookup point. Currently simulates generation placeholder
+      await new Promise((resolve) => setTimeout(resolve, 2500));
+      
+      // Temporary unplash placeholder representing successfully created AI asset
+      setPreviewUrl(`https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop`);
+      toast.success("AI Thumbnail విజయవంతంగా జనరేట్ అయింది!", { id: toastId });
+    } catch (err: any) {
+      toast.error(`AI Generation Failed: ${err.message}`, { id: toastId });
+    } finally {
+      setIsGeneratingAI(false);
+    }
+  };
+
   const handleStartFullPipeline = async () => {
     if (!googleToken) {
       toast.error("దయచేసి మొదట Google తో లాగిన్ అవ్వండి.");
@@ -294,6 +338,85 @@ function LiveStreamingSetupPage() {
           />
         </div>
 
+        {/* --- BRAND NEW THUMBNAIL MODULE --- */}
+        <div className="border border-[#2f2f2f] rounded-lg p-4 bg-[#161616] flex flex-col gap-3">
+          <div className="flex items-center justify-between border-b border-[#2f2f2f] pb-2">
+            <div className="flex items-center gap-2 text-xs font-semibold text-gray-300">
+              <ImageIcon className="w-4 h-4 text-red-400" />
+              <span>Video Thumbnail Configuration</span>
+            </div>
+            <div className="flex bg-[#121212] p-0.5 rounded-md border border-zinc-800">
+              <button
+                type="button"
+                onClick={() => setThumbnailMode("manual")}
+                className={`px-2.5 py-1 text-[11px] font-medium rounded transition flex items-center gap-1 ${thumbnailMode === "manual" ? "bg-zinc-800 text-white shadow" : "text-gray-500 hover:text-gray-300"}`}
+              >
+                <Upload className="w-3 h-3" /> Manual
+              </button>
+              <button
+                type="button"
+                onClick={() => setThumbnailMode("ai")}
+                className={`px-2.5 py-1 text-[11px] font-medium rounded transition flex items-center gap-1 ${thumbnailMode === "ai" ? "bg-zinc-800 text-white shadow" : "text-gray-500 hover:text-gray-300"}`}
+              >
+                <Sparkles className="w-3 h-3 text-amber-400" /> AI Create
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+            <div className="sm:col-span-5 aspect-video bg-[#121212] border border-zinc-800 rounded-lg flex items-center justify-center overflow-hidden relative group">
+              {previewUrl ? (
+                <img src={previewUrl} alt="Thumbnail preview" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-[10px] text-zinc-600 font-medium text-center p-2">No preview asset specified</span>
+              )}
+            </div>
+
+            <div className="sm:col-span-7 flex flex-col gap-2">
+              {thumbnailMode === "manual" ? (
+                <div>
+                  <label className="w-full py-2.5 px-3 bg-zinc-900 border border-dashed border-zinc-700 hover:border-zinc-500 rounded-lg flex items-center justify-center gap-2 text-xs font-medium cursor-pointer text-gray-300 hover:text-white transition">
+                    <Upload className="w-3.5 h-3.5 text-zinc-400" />
+                    <span>Upload Image File</span>
+                    <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" disabled={isConnected} />
+                  </label>
+                  <p className="text-[10px] text-zinc-500 mt-1">Recommended size: 1280x720 (16:9 ratio)</p>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-1.5">
+                  <input
+                    type="text"
+                    placeholder="AI Prompt (Optional: defaults to title)"
+                    className="w-full bg-[#121212] border border-zinc-800 rounded-md px-2.5 py-1.5 text-xs text-white placeholder-zinc-600 outline-none focus:border-amber-500"
+                    value={aiPrompt}
+                    onChange={(e) => setAiPrompt(e.target.value)}
+                    disabled={isConnected || isGeneratingAI}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleGenerateAIThumbnail}
+                    disabled={isConnected || isGeneratingAI}
+                    className="w-full py-2 px-3 bg-amber-600/10 border border-amber-600/30 hover:bg-amber-600/20 text-amber-400 font-medium text-xs rounded-lg flex items-center justify-center gap-1.5 transition disabled:opacity-50"
+                  >
+                    {isGeneratingAI ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Generating Art Asset...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Wand2 className="w-3.5 h-3.5" />
+                        <span>Generate Artwork via AI</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+        {/* --- END OF THUMBNAIL MODULE --- */}
+
         <div>
           <label className="text-xs font-semibold text-gray-400 block mb-1">Privacy Visibility</label>
           <select
@@ -401,4 +524,4 @@ function LiveStreamingSetupPage() {
 
     </div>
   );
-    }
+}
