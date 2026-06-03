@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState, useRef } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,16 +17,16 @@ import {
   CheckCircle2,
   FileText,
   Tv,
-  LogIn
+  Link2
 } from "lucide-react";
 
-// కరెక్ట్ అలియాస్ పాత్ ఇంపోర్ట్ (బిల్డ్ ఎర్రర్‌ను పూర్తిగా ఫిక్స్ చేస్తుంది)
 import {
   generateLiveKitToken,
   createYouTubeLivePipeline,
   startLiveKitEgress,
   stopLiveKitEgress
 } from "@/lib/live-actions.functions";
+import { getOrRefreshYouTubeToken } from "@/lib/youtube-token-manager.functions";
 
 export const Route = createFileRoute("/live-streaming-setup")({
   component: LiveStreamingSetupPage,
@@ -40,6 +40,8 @@ function LiveStreamingSetupPage() {
   const [streamDescription, setStreamDescription] = useState("");
   const [privacyStatus, setPrivacyStatus] = useState("public");
   const [googleToken, setGoogleToken] = useState<string | null>(null);
+  const [isYouTubeLinked, setIsYouTubeLinked] = useState<boolean>(false);
+  const [isCheckingChannel, setIsCheckingChannel] = useState<boolean>(true);
 
   // Connection Pipelines
   const [isConnecting, setIsConnecting] = useState(false);
@@ -79,31 +81,50 @@ function LiveStreamingSetupPage() {
     },
   });
 
-  const handleGoogleLogin = async () => {
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          scopes: "https://www.googleapis.com/auth/youtube.force-ssl https://www.googleapis.com/auth/youtube.readonly",
-          queryParams: { access_type: "offline", prompt: "consent" }
-        },
-      });
-      if (error) throw error;
-    } catch (err: any) {
-      toast.error(`Google Login Failed: ${err.message}`);
-    }
-  };
+  const fetchYouTubeFn = useServerFn(getOrRefreshYouTubeToken);
 
   useEffect(() => {
+    let cancelled = false;
     const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        setGoogleToken(session.provider_token || null);
-        const { data } = await supabase.from("profiles").select("full_name").eq("id", session.user.id).maybeSingle();
-        if (data?.full_name) setParticipantName(data.full_name);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          if (!cancelled) setIsCheckingChannel(false);
+          return;
+        }
+
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("full_name")
+          .eq("id", session.user.id)
+          .maybeSingle();
+        if (profile?.full_name && !cancelled) setParticipantName(profile.full_name);
+
+        const { data: channel } = await supabase
+          .from("youtube_channels")
+          .select("id, is_connected")
+          .eq("user_id", session.user.id)
+          .eq("is_connected", true)
+          .maybeSingle();
+
+        if (channel && !cancelled) {
+          setIsYouTubeLinked(true);
+          try {
+            const tok = await fetchYouTubeFn({ data: { userId: session.user.id } });
+            if (!cancelled) setGoogleToken(tok.access_token);
+          } catch (err: any) {
+            console.error("[live-streaming-setup] token fetch failed", err);
+            if (!cancelled) {
+              toast.error("YouTube token refresh failed. Please reconnect your channel from the dashboard.");
+            }
+          }
+        }
+      } finally {
+        if (!cancelled) setIsCheckingChannel(false);
       }
     };
     checkSession();
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
@@ -223,18 +244,27 @@ function LiveStreamingSetupPage() {
           <h2 className="text-lg font-bold tracking-wide">YouTube Live Automations</h2>
         </div>
 
-        {!googleToken ? (
-          <button
-            onClick={handleGoogleLogin}
+        {isCheckingChannel ? (
+          <div className="p-3 bg-zinc-900 border border-zinc-800 rounded-lg text-xs text-gray-400 flex items-center gap-2">
+            <Loader2 className="w-4 h-4 animate-spin" /> Checking YouTube connection…
+          </div>
+        ) : isYouTubeLinked && googleToken ? (
+          <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg text-xs text-green-400 flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
+            <span>YouTube Channel Connected — ready to stream</span>
+          </div>
+        ) : isYouTubeLinked && !googleToken ? (
+          <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg text-xs text-yellow-400 flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 text-yellow-500 flex-shrink-0 mt-0.5" />
+            <span>Token expired. Please reconnect from the dashboard to refresh.</span>
+          </div>
+        ) : (
+          <Link
+            to="/dashboard"
             className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center justify-center gap-2 font-semibold text-sm transition"
           >
-            <LogIn className="w-4 h-4" /> Step 1: Login with Google
-          </button>
-        ) : (
-          <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg text-xs text-blue-400 flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-blue-500 flex-shrink-0" />
-            <span>Google Integration Active</span>
-          </div>
+            <Link2 className="w-4 h-4" /> Connect YouTube Channel in Dashboard
+          </Link>
         )}
 
         <div>
