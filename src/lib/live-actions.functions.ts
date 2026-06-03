@@ -1,248 +1,159 @@
 
-import { createServerFn } from "@tanstack/react-start";
-import { AccessToken, EgressClient, StreamOutput, StreamProtocol } from "livekit-server-sdk";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { useEffect, useState, useRef } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { supabase } from "@/integrations/supabase/client";
+import { useLiveKitRoom } from "@/hooks/useLiveKitRoom";
+import { RoomEvent } from "livekit-client";
+import { toast } from "sonner";
+import {
+  Video,
+  Mic,
+  MicOff,
+  VideoOff,
+  Loader2,
+  Radio,
+  PowerOff,
+  AlertCircle,
+  CheckCircle2,
+  FileText,
+  Tv,
+  Link2,
+  Image as ImageIcon,
+  Upload,
+  Sparkles,
+  Wand2,
+  Layers
+} from "lucide-react";
 
-function validateLiveKitEnv() {
-  const apiKey = process.env.LIVEKIT_API_KEY;
-  const apiSecret = process.env.LIVEKIT_API_SECRET;
-  const url = process.env.LIVEKIT_URL;
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
-  if (!apiKey || !apiSecret || !url) {
-    throw new Error("Missing LiveKit environment configurations.");
-  }
-  return { apiKey, apiSecret, url };
-}
+import {
+  generateLiveKitToken,
+  createYouTubeLivePipeline,
+  startLiveKitEgress,
+  stopLiveKitEgress,
+  generateAIThumbnailServerFn // Real server function imported here
+} from "@/lib/live-actions.functions";
+import { getOrRefreshYouTubeToken } from "@/lib/youtube-token-manager.functions";
 
-export const generateLiveKitToken = createServerFn({ method: "POST" })
-  .inputValidator((data: { roomName: string; participantName: string }) => data)
-  .handler(async ({ data }) => {
-    const { apiKey, apiSecret, url } = validateLiveKitEnv();
+export const Route = createFileRoute("/live-streaming-setup")({
+  component: LiveStreamingSetupPage,
+});
 
-    const token = new AccessToken(apiKey, apiSecret, {
-      identity: data.participantName,
-      name: data.participantName,
-    });
+function LiveStreamingSetupPage() {
+  const navigate = useNavigate();
 
-    (token as any).addGrant({
-      room: data.roomName,
-      roomJoin: true,
-      canPublish: true,
-      canSubscribe: true,
-    });
+  // YouTube States
+  const [streamTitle, setStreamTitle] = useState("");
+  const [streamDescription, setStreamDescription] = useState("");
+  const [privacyStatus, setPrivacyStatus] = useState("public");
+  const [googleToken, setGoogleToken] = useState<string | null>(null);
+  const [isYouTubeLinked, setIsYouTubeLinked] = useState<boolean>(false);
+  const [isCheckingChannel, setIsCheckingChannel] = useState<boolean>(true);
 
-    return {
-      token: await token.toJwt(),
-      url,
-    };
-  });
+  // Thumbnail States
+  const [thumbnailMode, setThumbnailMode] = useState<"manual" | "ai">("manual");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [referenceFile, setReferenceFile] = useState<File | null>(null); // Optional AI reference image state
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+  const [premiumError, setPremiumError] = useState<string | null>(null);
+  const [freeAiPrompt, setFreeAiPrompt] = useState("");
+  const [isGeneratingFree, setIsGeneratingFree] = useState(false);
 
-async function ytFetch(accessToken: string, path: string, init: RequestInit = {}) {
-  const res = await fetch(`https://www.googleapis.com/youtube/v3/${path}`, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-      ...(init.headers || {}),
+  // Connection Pipelines
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [isEgressActive, setIsEgressActive] = useState(false); 
+  const [isCameraEnabled, setIsCameraEnabled] = useState(true);
+  const [isMicEnabled, setIsMicEnabled] = useState(true);
+  const [liveKitToken, setLiveKitToken] = useState<string | null>(null);
+  const [liveKitUrl, setLiveKitUrl] = useState<string | null>(null);
+  const [currentEgressId, setCurrentEgressId] = useState<string | null>(null);
+  const [generatedRtmpUrl, setGeneratedRtmpUrl] = useState<string | null>(null);
+  const [participantName, setParticipantName] = useState("Host");
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  const generateTokenFn = useServerFn(generateLiveKitToken);
+  const createYouTubePipelineFn = useServerFn(createYouTubeLivePipeline);
+  const startEgressFn = useServerFn(startLiveKitEgress);
+  const stopEgressFn = useServerFn(stopLiveKitEgress);
+  const generateAIThumbnailFn = useServerFn(generateAIThumbnailServerFn); // Hook initialization
+
+  const safeRoomName = streamTitle ? `room-${streamTitle.toLowerCase().replace(/[^a-z0-9]/g, "-")}` : "live-studio-room";
+
+  const { room, isConnected, error, connect, disconnect, toggleCameraTrack, toggleMicTrack } = useLiveKitRoom({
+    url: liveKitUrl || "",
+    token: liveKitToken || "",
+    roomName: safeRoomName,
+    onConnected: () => {
+      toast.info("LiveKit Studio Connected. Launching Egress pipeline...");
+    },
+    onDisconnected: () => {
+      setIsConnecting(false);
+      setIsEgressActive(false);
+      setCurrentEgressId(null);
+      setGeneratedRtmpUrl(null);
+    },
+    onError: (err) => {
+      setIsConnecting(false);
+      toast.error(`Studio Error: ${err.message}`);
     },
   });
-  const text = await res.text();
-  let json: any;
-  try { json = text ? JSON.parse(text) : {}; } catch { json = { raw: text }; }
-  if (!res.ok) {
-    throw new Error(`YouTube API ${res.status}: ${json?.error?.message || text}`);
-  }
-  return json;
-}
 
-export const createYouTubeLivePipeline = createServerFn({ method: "POST" })
-  .inputValidator((data: { accessToken: string; title: string; description: string; privacy: string }) => data)
-  .handler(async ({ data }) => {
-    // A: broadcast
-    const broadcast = await ytFetch(data.accessToken, "liveBroadcasts?part=snippet,status,contentDetails", {
-      method: "POST",
-      body: JSON.stringify({
-        snippet: {
-          title: data.title,
-          description: data.description,
-          scheduledStartTime: new Date().toISOString(),
-        },
-        status: {
-          privacyStatus: data.privacy,
-          selfDeclaredMadeForKids: false,
-        },
-        contentDetails: {
-          enableAutoStart: true,
-          enableAutoEnd: true,
-        },
-      }),
-    });
+  const fetchYouTubeFn = useServerFn(getOrRefreshYouTubeToken);
 
-    // B: stream
-    const stream = await ytFetch(data.accessToken, "liveStreams?part=snippet,cdn", {
-      method: "POST",
-      body: JSON.stringify({
-        snippet: { title: `${data.title} - Stream` },
-        cdn: {
-          frameRate: "30fps",
-          ingestionType: "rtmp",
-          resolution: "720p",
-        },
-      }),
-    });
-
-    const broadcastId = broadcast.id;
-    const streamId = stream.id;
-    const rtmpUrl = stream.cdn?.ingestionInfo?.ingestionAddress;
-    const streamKey = stream.cdn?.ingestionInfo?.streamName;
-
-    if (!broadcastId || !streamId || !rtmpUrl || !streamKey) {
-      throw new Error("Failed to retrieve YouTube RTMP details.");
-    }
-
-    // C: bind
-    await ytFetch(
-      data.accessToken,
-      `liveBroadcasts/bind?id=${broadcastId}&part=id,contentDetails&streamId=${streamId}`,
-      { method: "POST" },
-    );
-
-    return {
-      broadcastId,
-      streamId,
-      youtubeRtmpUrl: `${rtmpUrl}/${streamKey}`,
-    };
-  });
-
-export const startLiveKitEgress = createServerFn({ method: "POST" })
-  .inputValidator((data: { roomName: string; youtubeRtmpUrl: string }) => data)
-  .handler(async ({ data }) => {
-    const { apiKey, apiSecret, url } = validateLiveKitEnv();
-    const egressClient = new EgressClient(url, apiKey, apiSecret);
-
-    console.log("[startLiveKitEgress] Starting egress for room:", data.roomName);
-
-    const response = await egressClient.startRoomCompositeEgress(
-      data.roomName,
-      {
-        stream: new StreamOutput({
-          protocol: StreamProtocol.RTMP,
-          urls: [data.youtubeRtmpUrl],
-        }),
-      },
-      { layout: "grid" },
-    );
-
-    console.log("[startLiveKitEgress] Egress started:", response.egressId);
-    return { egressId: response.egressId };
-  });
-
-export const stopLiveKitEgress = createServerFn({ method: "POST" })
-  .inputValidator((data: { egressId: string }) => data)
-  .handler(async ({ data }) => {
-    const { apiKey, apiSecret, url } = validateLiveKitEnv();
-    const egressClient = new EgressClient(url, apiKey, apiSecret);
-    const response = await egressClient.stopEgress(data.egressId);
-    return { egressId: response.egressId };
-  }); 
-
-// --- మీ పాత కోడ్ పైన ఉంది, ఈ క్రింది ఫంక్షన్‌ను కింద యాడ్ చేశాను ---
-
-export const generateAIThumbnailServerFn = createServerFn({
-  method: "POST",
-})
-  .inputValidator((data: { prompt: string; streamTitle: string; baseImageB64?: string | null }) => data)
-  .handler(async ({ data }) => {
-    const apiKey = process.env.OPENAI_API_KEY;
-
-    if (!apiKey) {
-      throw new Error("OPENAI_CONFIG_ERROR: Missing API Key");
-    }
-
-    // 1. Fallback Rule: If custom prompt is empty, use the stream title
-    const userCorePrompt = data.prompt.trim() || data.streamTitle.trim();
-    if (!userCorePrompt) {
-      throw new Error("Cannot generate image: Both prompt and stream title are empty.");
-    }
-
-    // 2. Build a high-quality systemized prompt wrapper (Anti-text rule included)
-    let finalPromptDescription = `Create a professional, high-quality vibrant 16:9 cinematic YouTube live stream thumbnail. Subject: ${userCorePrompt}. Style: Clean digital art, immersive graphic composition, vivid studio lighting. Strict Rule: DO NOT include any text, typography, letters, or words on the canvas.`;
-
-    try {
-      // 3. Multi-modal logic: Context via OpenAI GPT-4o Vision
-      if (data.baseImageB64) {
-        const visionResponse = await fetch("https://api.openai.com/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${apiKey}`,
-          },
-          body: JSON.stringify({
-            model: "gpt-4o",
-            messages: [
-              {
-                role: "user",
-                content: [
-                  { type: "text", text: "Describe the visual subject, art style, character framing, and color palette of this image in detail so it can be re-created or heavily referenced in a new DALL-E 3 prompt." },
-                  { type: "image_url", image_url: { url: data.baseImageB64 } }
-                ]
-              }
-            ]
-          }),
-        });
-
-        if (visionResponse.ok) {
-          const visionData = await visionResponse.json();
-          const visualContext = visionData.choices[0]?.message?.content || "";
-          finalPromptDescription += ` Heavily adapt and incorporate the visual elements, subject framing, and character reference features described here: ${visualContext}`;
+  useEffect(() => {
+    let cancelled = false;
+    const checkSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          if (!cancelled) setIsCheckingChannel(false);
+          return;
         }
+
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("full_name")
+          .eq("id", session.user.id)
+          .maybeSingle();
+        if (profile?.full_name && !cancelled) setParticipantName(profile.full_name);
+
+        const { data: channel } = await supabase
+          .from("youtube_channels")
+          .select("id, is_connected")
+          .eq("user_id", session.user.id)
+          .eq("is_connected", true)
+          .maybeSingle();
+
+        if (channel && !cancelled) {
+          setIsYouTubeLinked(true);
+          try {
+            const tok = await fetchYouTubeFn({ data: { userId: session.user.id } });
+            if (!cancelled) setGoogleToken(tok.access_token);
+          } catch (err: any) {
+            console.error("[live-streaming-setup] token fetch failed", err);
+            if (!cancelled) {
+              toast.error("YouTube token refresh failed. Please reconnect your channel from the dashboard.");
+            }
+          }
+        }
+      } finally {
+        if (!cancelled) setIsCheckingChannel(false);
       }
+    };
+    checkSession();
+    return () => { cancelled = true; };
+  }, []);
 
-      // 4. Hit DALL-E 3 with proper 16:9 landscape dimensions
-      const response = await fetch("https://api.openai.com/v1/images/generations", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model: "dall-e-3",
-          prompt: finalPromptDescription,
-          n: 1,
-          size: "1792x1024", // Fixed landscape orientation for perfect YouTube framing
-          quality: "standard",
-        }),
-      });
+  useEffect(() => {
+    if (!room || !isConnected || !generatedRtmpUrl || currentEgressId || isEgressActive) return;
 
-      if (!response.ok) {
-        const errorData = await response.json();
-
-        console.error("OpenAI DALL-E Error:", errorData);
-
-        throw new Error(
-          `OPENAI_ERROR: ${errorData.error?.code || "generation_failed"}`
-        );
-      }
-
-      const result = await response.json();
-      const imageUrl = result.data[0]?.url;
-
-      if (!imageUrl) {
-        throw new Error("No image URL received from OpenAI.");
-      }
-
-      return { imageUrl };
-    } catch (error: any) {
-      console.error("Server API Error during image creation:", error);
-
-      if (
-        error.message?.includes("OPENAI_ERROR") ||
-        error.message?.includes("OPENAI_CONFIG_ERROR")
-      ) {
-        throw error;
-      }
-
-      throw new Error(
-        `OPENAI_ERROR: ${error.message || "unknown_error"}`
-      );
-    }
-  });
+    const pipelineExecution = async () => {
+      try {
+        setIsConnecting(true);
+        const tId = toast.loading("Connecting live stream to YouTube...");
+        
+        const res = await start
