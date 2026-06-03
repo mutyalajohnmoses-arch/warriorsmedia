@@ -21,12 +21,12 @@ import {
 } from "lucide-react";
 
 // కరెక్ట్ అలియాస్ పాత్ ఇంపోర్ట్ (బిల్డ్ ఎర్రర్‌ను పూర్తిగా ఫిక్స్ చేస్తుంది)
-import { 
-  generateLiveKitToken, 
-  createYouTubeLivePipeline, 
-  startLiveKitEgress, 
-  stopLiveKitEgress 
-} from "@/server/live-actions";
+import {
+  generateLiveKitToken,
+  createYouTubeLivePipeline,
+  startLiveKitEgress,
+  stopLiveKitEgress
+} from "@/lib/live-actions.functions";
 
 export const Route = createFileRoute("/live-streaming-setup")({
   component: LiveStreamingSetupPage,
