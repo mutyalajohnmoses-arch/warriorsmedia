@@ -142,4 +142,90 @@ export const stopLiveKitEgress = createServerFn({ method: "POST" })
     const egressClient = new EgressClient(url, apiKey, apiSecret);
     const response = await egressClient.stopEgress(data.egressId);
     return { egressId: response.egressId };
+  }); 
+
+// --- మీ పాత కోడ్ పైన ఉంది, ఈ క్రింది ఫంక్షన్‌ను కింద యాడ్ చేశాను ---
+
+export const generateAIThumbnailServerFn = createServerFn({
+  method: "POST",
+})
+  .validator((data: { prompt: string; streamTitle: string; baseImageB64?: string | null }) => data)
+  .handler(async ({ data }) => {
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      throw new Error("Missing OPENAI_API_KEY environment variable on the server.");
+    }
+
+    // 1. Fallback Rule: If custom prompt is empty, use the stream title
+    const userCorePrompt = data.prompt.trim() || data.streamTitle.trim();
+    if (!userCorePrompt) {
+      throw new Error("Cannot generate image: Both prompt and stream title are empty.");
+    }
+
+    // 2. Build a high-quality systemized prompt wrapper (Anti-text rule included)
+    let finalPromptDescription = `Create a professional, high-quality vibrant 16:9 cinematic YouTube live stream thumbnail. Subject: ${userCorePrompt}. Style: Clean digital art, immersive graphic composition, vivid studio lighting. Strict Rule: DO NOT include any text, typography, letters, or words on the canvas.`;
+
+    try {
+      // 3. Multi-modal logic: Context via OpenAI GPT-4o Vision
+      if (data.baseImageB64) {
+        const visionResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model: "gpt-4o",
+            messages: [
+              {
+                role: "user",
+                content: [
+                  { type: "text", text: "Describe the visual subject, art style, character framing, and color palette of this image in detail so it can be re-created or heavily referenced in a new DALL-E 3 prompt." },
+                  { type: "image_url", image_url: { url: data.baseImageB64 } }
+                ]
+              }
+            ]
+          }),
+        });
+
+        if (visionResponse.ok) {
+          const visionData = await visionResponse.json();
+          const visualContext = visionData.choices[0]?.message?.content || "";
+          finalPromptDescription += ` Heavily adapt and incorporate the visual elements, subject framing, and character reference features described here: ${visualContext}`;
+        }
+      }
+
+      // 4. Hit DALL-E 3 with proper 16:9 landscape dimensions
+      const response = await fetch("https://api.openai.com/v1/images/generations", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: "dall-e-3",
+          prompt: finalPromptDescription,
+          n: 1,
+          size: "1792x1024", // Fixed landscape orientation for perfect YouTube framing
+          quality: "standard",
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error?.message || "OpenAI API returned an error status.");
+      }
+
+      const result = await response.json();
+      const imageUrl = result.data[0]?.url;
+
+      if (!imageUrl) {
+        throw new Error("No image URL received from OpenAI.");
+      }
+
+      return { imageUrl };
+    } catch (error: any) {
+      console.error("Server API Error during image creation:", error);
+      throw new Error(error.message || "Failed to process image creation workflow.");
+    }
   });
