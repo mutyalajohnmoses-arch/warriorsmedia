@@ -125,7 +125,7 @@ function LiveStreamingSetupPage() {
         }
       } catch (err: any) {
         toast.error(`Egress pipeline failed: ${err.message}`);
-      } block {
+      } finally {
         setIsConnecting(false);
       }
     };
