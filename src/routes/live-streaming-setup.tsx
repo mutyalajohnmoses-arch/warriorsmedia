@@ -56,6 +56,7 @@ function LiveStreamingSetupPage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [aiPrompt, setAiPrompt] = useState("");
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+  
 
   // Connection Pipelines
   const [isConnecting, setIsConnecting] = useState(false);
