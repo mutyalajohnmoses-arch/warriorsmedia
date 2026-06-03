@@ -130,7 +130,7 @@ function LiveStreamingSetupPage() {
       }
     };
 
-    if (room.localParticipant?.isLocalTrackPublished) {
+    if ((room.localParticipant?.videoTrackPublications.size ?? 0) > 0) {
       pipelineExecution();
     } else {
       room.once(RoomEvent.LocalTrackPublished, () => {
