@@ -40,6 +40,8 @@ function LiveStreamingSetupPage() {
   const [streamDescription, setStreamDescription] = useState("");
   const [privacyStatus, setPrivacyStatus] = useState("public");
   const [googleToken, setGoogleToken] = useState<string | null>(null);
+  const [isYouTubeLinked, setIsYouTubeLinked] = useState<boolean>(false);
+  const [isCheckingChannel, setIsCheckingChannel] = useState<boolean>(true);
 
   // Connection Pipelines
   const [isConnecting, setIsConnecting] = useState(false);
