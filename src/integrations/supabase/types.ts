@@ -160,6 +160,7 @@ export type Database = {
           channel_id: string | null
           created_at: string | null
           id: string
+          published_at: string | null
           title: string | null
           video_id: string | null
         }
@@ -167,6 +168,7 @@ export type Database = {
           channel_id?: string | null
           created_at?: string | null
           id?: string
+          published_at?: string | null
           title?: string | null
           video_id?: string | null
         }
@@ -174,6 +176,7 @@ export type Database = {
           channel_id?: string | null
           created_at?: string | null
           id?: string
+          published_at?: string | null
           title?: string | null
           video_id?: string | null
         }

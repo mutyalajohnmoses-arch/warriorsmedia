@@ -1,0 +1,1 @@
+ALTER TABLE public.youtube_videos ADD COLUMN IF NOT EXISTS published_at timestamp with time zone;
