@@ -244,18 +244,27 @@ function LiveStreamingSetupPage() {
           <h2 className="text-lg font-bold tracking-wide">YouTube Live Automations</h2>
         </div>
 
-        {!googleToken ? (
-          <button
-            onClick={handleGoogleLogin}
+        {isCheckingChannel ? (
+          <div className="p-3 bg-zinc-900 border border-zinc-800 rounded-lg text-xs text-gray-400 flex items-center gap-2">
+            <Loader2 className="w-4 h-4 animate-spin" /> Checking YouTube connection…
+          </div>
+        ) : isYouTubeLinked && googleToken ? (
+          <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg text-xs text-green-400 flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
+            <span>YouTube Channel Connected — ready to stream</span>
+          </div>
+        ) : isYouTubeLinked && !googleToken ? (
+          <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg text-xs text-yellow-400 flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 text-yellow-500 flex-shrink-0 mt-0.5" />
+            <span>Token expired. Please reconnect from the dashboard to refresh.</span>
+          </div>
+        ) : (
+          <Link
+            to="/dashboard"
             className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center justify-center gap-2 font-semibold text-sm transition"
           >
-            <LogIn className="w-4 h-4" /> Step 1: Login with Google
-          </button>
-        ) : (
-          <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg text-xs text-blue-400 flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-blue-500 flex-shrink-0" />
-            <span>Google Integration Active</span>
-          </div>
+            <Link2 className="w-4 h-4" /> Connect YouTube Channel in Dashboard
+          </Link>
         )}
 
         <div>
