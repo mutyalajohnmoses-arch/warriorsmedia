@@ -81,31 +81,50 @@ function LiveStreamingSetupPage() {
     },
   });
 
-  const handleGoogleLogin = async () => {
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          scopes: "https://www.googleapis.com/auth/youtube.force-ssl https://www.googleapis.com/auth/youtube.readonly",
-          queryParams: { access_type: "offline", prompt: "consent" }
-        },
-      });
-      if (error) throw error;
-    } catch (err: any) {
-      toast.error(`Google Login Failed: ${err.message}`);
-    }
-  };
+  const fetchYouTubeFn = useServerFn(getOrRefreshYouTubeToken);
 
   useEffect(() => {
+    let cancelled = false;
     const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        setGoogleToken(session.provider_token || null);
-        const { data } = await supabase.from("profiles").select("full_name").eq("id", session.user.id).maybeSingle();
-        if (data?.full_name) setParticipantName(data.full_name);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          if (!cancelled) setIsCheckingChannel(false);
+          return;
+        }
+
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("full_name")
+          .eq("id", session.user.id)
+          .maybeSingle();
+        if (profile?.full_name && !cancelled) setParticipantName(profile.full_name);
+
+        const { data: channel } = await supabase
+          .from("youtube_channels")
+          .select("id, is_connected")
+          .eq("user_id", session.user.id)
+          .eq("is_connected", true)
+          .maybeSingle();
+
+        if (channel && !cancelled) {
+          setIsYouTubeLinked(true);
+          try {
+            const tok = await fetchYouTubeFn({ data: { userId: session.user.id } });
+            if (!cancelled) setGoogleToken(tok.access_token);
+          } catch (err: any) {
+            console.error("[live-streaming-setup] token fetch failed", err);
+            if (!cancelled) {
+              toast.error("YouTube token refresh failed. Please reconnect your channel from the dashboard.");
+            }
+          }
+        }
+      } finally {
+        if (!cancelled) setIsCheckingChannel(false);
       }
     };
     checkSession();
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
