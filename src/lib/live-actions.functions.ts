@@ -153,8 +153,9 @@ export const generateAIThumbnailServerFn = createServerFn({
   .inputValidator((data: { prompt: string; streamTitle: string; baseImageB64?: string | null }) => data)
   .handler(async ({ data }) => {
     const apiKey = process.env.OPENAI_API_KEY;
+
     if (!apiKey) {
-      throw new Error("Missing OPENAI_API_KEY environment variable on the server.");
+      throw new Error("OPENAI_CONFIG_ERROR: Missing API Key");
     }
 
     // 1. Fallback Rule: If custom prompt is empty, use the stream title
@@ -214,7 +215,12 @@ export const generateAIThumbnailServerFn = createServerFn({
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error?.message || "OpenAI API returned an error status.");
+
+        console.error("OpenAI DALL-E Error:", errorData);
+
+        throw new Error(
+          `OPENAI_ERROR: ${errorData.error?.code || "generation_failed"}`
+        );
       }
 
       const result = await response.json();
@@ -227,6 +233,16 @@ export const generateAIThumbnailServerFn = createServerFn({
       return { imageUrl };
     } catch (error: any) {
       console.error("Server API Error during image creation:", error);
-      throw new Error(error.message || "Failed to process image creation workflow.");
+
+      if (
+        error.message?.includes("OPENAI_ERROR") ||
+        error.message?.includes("OPENAI_CONFIG_ERROR")
+      ) {
+        throw error;
+      }
+
+      throw new Error(
+        `OPENAI_ERROR: ${error.message || "unknown_error"}`
+      );
     }
   });
