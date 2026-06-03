@@ -229,7 +229,8 @@ function LiveStreamingSetupPage() {
 
     setIsGeneratingAI(true);
     const toastId = toast.loading("Generating AI Thumbnail...");
-    
+    console.log("[AI Thumbnail] Starting generation", { promptToUse, streamTitle, hasRef: !!referenceFile });
+
     try {
       let baseImageB64: string | null = null;
       if (referenceFile) {
@@ -238,25 +239,48 @@ function LiveStreamingSetupPage() {
 
       // Backend server function execution
       const res = await generateAIThumbnailFn({
-        data: { 
-          prompt: aiPrompt, 
+        data: {
+          prompt: promptToUse,
           streamTitle: streamTitle,
-          baseImageB64: baseImageB64
-        }
+          baseImageB64: baseImageB64,
+        },
       });
-      
+
+      console.log("[AI Thumbnail] Server response:", res);
+
       if (res?.imageUrl) {
         setPreviewUrl(res.imageUrl);
         toast.success("AI Thumbnail generated successfully!", { id: toastId });
       } else {
-        throw new Error("No image response received from backend endpoints.");
+        console.error("[AI Thumbnail] Empty imageUrl in response", res);
+        toast.error("AI Generation Failed: No image URL was returned from the server.", { id: toastId });
       }
     } catch (err: any) {
-      toast.error(`AI Generation Failed: ${err.message}`, { id: toastId });
+      console.error("[AI Thumbnail] Generation error:", err);
+      const raw = String(err?.message || err || "Unknown error");
+      const lower = raw.toLowerCase();
+
+      let friendly = raw;
+      if (lower.includes("quota") || lower.includes("insufficient_quota")) {
+        friendly = "OpenAI quota exceeded. Please check your OpenAI plan and billing.";
+      } else if (lower.includes("billing") || lower.includes("payment")) {
+        friendly = "OpenAI billing issue. Add a valid payment method to your OpenAI account.";
+      } else if (lower.includes("rate") && lower.includes("limit")) {
+        friendly = "OpenAI rate limit hit. Please wait a moment and try again.";
+      } else if (lower.includes("timeout") || lower.includes("etimedout") || lower.includes("network")) {
+        friendly = "Network timeout reaching OpenAI. Please try again.";
+      } else if (lower.includes("content_policy") || lower.includes("safety")) {
+        friendly = "Prompt was rejected by OpenAI's content policy. Try rephrasing.";
+      } else if (lower.includes("openai_api_key") || lower.includes("missing openai")) {
+        friendly = "Server is missing OPENAI_API_KEY. Add it in project secrets.";
+      }
+
+      toast.error(`AI Generation Failed: ${friendly}`, { id: toastId });
     } finally {
       setIsGeneratingAI(false);
     }
   };
+
 
   const handleStartFullPipeline = async () => {
     if (!googleToken) {
