@@ -72,8 +72,8 @@ const IG_USERNAME = "mutyala_john_moses";
 const modules = [
   {
     icon: Radio,
-    title: "Live Streaming",
-    desc: "Worship services & events in HD",
+    title: "Youtube",
+    desc: "Live Streaming & Upload Videos & events in HD",
     tag: "LIVE NOW",
   },
 
