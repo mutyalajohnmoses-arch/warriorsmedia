@@ -6,6 +6,13 @@ import {
   Cross,
   LogOut,
   Radio,
+
+  Instagram,
+  Facebook,
+
+  Target,
+  Clapperboard,
+  Music4,
   Music2,
   Film,
   HandHeart,
@@ -15,7 +22,7 @@ import {
   MessageCircle,
   Sparkles,
   ArrowRight,
-  Instagram,
+ 
   RefreshCw,
   Music,
   Headphones,
@@ -70,13 +77,13 @@ const modules = [
     tag: "LIVE NOW",
   },
 
-   { icon: Radio, title: "Live Streaming", desc: "Church services & events in HD", tag: "LIVE NOW" },
+
 
    { icon: Instagram, title: "Instagram", desc: "Manage Instagram content & analytics", tag: "SOCIAL" },
 
    { icon: Facebook, title: "Facebook", desc: "Manage Facebook pages & audience engagement", tag: "SOCIAL" },
 
-   { icon: MessageCircle, title: "WhatsApp", desc: "Connect and manage ministry communications", tag: "BETA" },
+
 
    { icon: Target, title: "Warriors Lead Engine", desc: "Generate and manage business leads", tag: "NEW" },
 
