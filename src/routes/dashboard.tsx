@@ -155,15 +155,18 @@ function Home() {
   const [hasYouTubeChannel, setHasYouTubeChannel] = useState(false);
   const [connectedChannel, setConnectedChannel] = useState<ConnectedYouTubeChannel | null>(null);
 
-  const handleModuleClick = (title: string) => {
-    if (title === "Live Streaming") {
-      if (!youtubeConnected) {
-        console.log("[Dashboard] Please connect YouTube channel first");
-        return;
-      }
-      navigate({ to: "/live-streaming-setup" });
+ 
+const handleModuleClick = (title: string) => {
+  if (title === "Live Streaming") {
+    if (!youtubeConnected) {
+      console.log("[Dashboard] Please connect YouTube channel first");
+      return;
     }
-  };
+    navigate({ to: "/live-streaming-setup" });
+  } else if (title === "Instagram") {
+    navigate({ to: "/instagram" });
+  }
+};
 
   const fetchIg = useServerFn(getInstagramStats);
   const fetchTeamProfilesServerFn = useServerFn(getInstagramProfiles);
