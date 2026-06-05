@@ -157,7 +157,7 @@ function Home() {
 
  
 const handleModuleClick = (title: string) => {
-  if (title === "Live Streaming") {
+  if (title === "youtube") {
     if (!youtubeConnected) {
       console.log("[Dashboard] Please connect YouTube channel first");
       return;
