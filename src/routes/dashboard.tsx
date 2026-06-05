@@ -156,15 +156,21 @@ function Home() {
   const [connectedChannel, setConnectedChannel] = useState<ConnectedYouTubeChannel | null>(null);
 
  
+
 const handleModuleClick = (title: string) => {
-  if (title === "youtube") {
+  if (title === "Youtube") {
+
     if (!youtubeConnected) {
       console.log("[Dashboard] Please connect YouTube channel first");
       return;
     }
+
     navigate({ to: "/live-streaming-setup" });
+
   } else if (title === "Instagram") {
+
     navigate({ to: "/instagram" });
+
   }
 };
 
