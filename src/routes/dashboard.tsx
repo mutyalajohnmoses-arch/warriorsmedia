@@ -92,8 +92,8 @@ const modules = [
    { icon: Music4, title: "Warriors AI Music", desc: "Create Christian songs and music with AI", tag: "AI" },
   {
     icon: MessageCircle,
-    title: "WhatsApp Bridge",
-    desc: "Sync ministry chats seamlessly",
+    title: "WhatsApp",
+    desc: "Chat with Community",
     tag: "BETA",
   },
 ];
@@ -107,7 +107,7 @@ const teamMembers = [
     instagramUrl: "https://www.instagram.com/mutyala_john_moses?igsh=MWdjbjg5ZnYwdGN2bQ==",
   },
   {
-    name: "Akul Raju",
+    name: "Andra Akula Raju",
     roles: ["Voice Analyst", "Coordinator"],
     icon: Headphones,
     instagram: "akula_adler",
