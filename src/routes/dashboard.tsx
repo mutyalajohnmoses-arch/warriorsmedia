@@ -69,7 +69,7 @@ const modules = [
     desc: "Worship services & events in HD",
     tag: "LIVE NOW",
   },
-  
+
    { icon: Radio, title: "Live Streaming", desc: "Church services & events in HD", tag: "LIVE NOW" },
 
    { icon: Instagram, title: "Instagram", desc: "Manage Instagram content & analytics", tag: "SOCIAL" },
