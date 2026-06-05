@@ -69,12 +69,20 @@ const modules = [
     desc: "Worship services & events in HD",
     tag: "LIVE NOW",
   },
-  { icon: Film, title: "Reels", desc: "Short-form Christian content feed", tag: "TRENDING" },
-  { icon: Music2, title: "Worship Music", desc: "Telugu & global worship library", tag: "NEW" },
-  { icon: HandHeart, title: "Prayer Wall", desc: "Share & lift up requests together", tag: "" },
-  { icon: Users, title: "Community", desc: "Churches, teams & WhatsApp groups", tag: "" },
-  { icon: Mic2, title: "Studio Booking", desc: "Recording, video & live production", tag: "" },
-  { icon: Video, title: "Video Editor", desc: "AI-assisted reels & sermon edits", tag: "SOON" },
+  
+   { icon: Radio, title: "Live Streaming", desc: "Church services & events in HD", tag: "LIVE NOW" },
+
+   { icon: Instagram, title: "Instagram", desc: "Manage Instagram content & analytics", tag: "SOCIAL" },
+
+   { icon: Facebook, title: "Facebook", desc: "Manage Facebook pages & audience engagement", tag: "SOCIAL" },
+
+   { icon: MessageCircle, title: "WhatsApp", desc: "Connect and manage ministry communications", tag: "BETA" },
+
+   { icon: Target, title: "Warriors Lead Engine", desc: "Generate and manage business leads", tag: "NEW" },
+
+   { icon: Clapperboard, title: "Warriors AI Video Editor", desc: "AI-powered video editing & content creation", tag: "AI" },
+
+   { icon: Music4, title: "Warriors AI Music", desc: "Create Christian songs and music with AI", tag: "AI" },
   {
     icon: MessageCircle,
     title: "WhatsApp Bridge",
