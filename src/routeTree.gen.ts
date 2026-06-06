@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as StudioRouteImport } from './routes/studio'
 import { Route as LiveStreamingSetupRouteImport } from './routes/live-streaming-setup'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
@@ -25,6 +26,11 @@ import { Route as InstagramAnalyticsRouteImport } from './routes/instagram/analy
 import { Route as InstagramAiRouteImport } from './routes/instagram/ai'
 import { Route as AuthGoogleCallbackRouteImport } from './routes/auth.google.callback'
 
+const StudioRoute = StudioRouteImport.update({
+  id: '/studio',
+  path: '/studio',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LiveStreamingSetupRoute = LiveStreamingSetupRouteImport.update({
   id: '/live-streaming-setup',
   path: '/live-streaming-setup',
@@ -105,6 +111,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/live-streaming-setup': typeof LiveStreamingSetupRoute
+  '/studio': typeof StudioRoute
   '/instagram/ai': typeof InstagramAiRoute
   '/instagram/analytics': typeof InstagramAnalyticsRoute
   '/instagram/comments': typeof InstagramCommentsRoute
@@ -122,6 +129,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/live-streaming-setup': typeof LiveStreamingSetupRoute
+  '/studio': typeof StudioRoute
   '/instagram/ai': typeof InstagramAiRoute
   '/instagram/analytics': typeof InstagramAnalyticsRoute
   '/instagram/comments': typeof InstagramCommentsRoute
@@ -140,6 +148,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/live-streaming-setup': typeof LiveStreamingSetupRoute
+  '/studio': typeof StudioRoute
   '/instagram/ai': typeof InstagramAiRoute
   '/instagram/analytics': typeof InstagramAnalyticsRoute
   '/instagram/comments': typeof InstagramCommentsRoute
@@ -159,6 +168,7 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/live-streaming-setup'
+    | '/studio'
     | '/instagram/ai'
     | '/instagram/analytics'
     | '/instagram/comments'
@@ -176,6 +186,7 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/live-streaming-setup'
+    | '/studio'
     | '/instagram/ai'
     | '/instagram/analytics'
     | '/instagram/comments'
@@ -193,6 +204,7 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/live-streaming-setup'
+    | '/studio'
     | '/instagram/ai'
     | '/instagram/analytics'
     | '/instagram/comments'
@@ -211,6 +223,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRoute: typeof DashboardRoute
   LiveStreamingSetupRoute: typeof LiveStreamingSetupRoute
+  StudioRoute: typeof StudioRoute
   InstagramAiRoute: typeof InstagramAiRoute
   InstagramAnalyticsRoute: typeof InstagramAnalyticsRoute
   InstagramCommentsRoute: typeof InstagramCommentsRoute
@@ -227,6 +240,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/studio': {
+      id: '/studio'
+      path: '/studio'
+      fullPath: '/studio'
+      preLoaderRoute: typeof StudioRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/live-streaming-setup': {
       id: '/live-streaming-setup'
       path: '/live-streaming-setup'
@@ -339,6 +359,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRoute: DashboardRoute,
   LiveStreamingSetupRoute: LiveStreamingSetupRoute,
+  StudioRoute: StudioRoute,
   InstagramAiRoute: InstagramAiRoute,
   InstagramAnalyticsRoute: InstagramAnalyticsRoute,
   InstagramCommentsRoute: InstagramCommentsRoute,
