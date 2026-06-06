@@ -9,11 +9,28 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as StudioRouteImport } from './routes/studio'
 import { Route as LiveStreamingSetupRouteImport } from './routes/live-streaming-setup'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as InstagramIndexRouteImport } from './routes/instagram/index'
+import { Route as InstagramUploadRouteImport } from './routes/instagram/upload'
+import { Route as InstagramStoriesRouteImport } from './routes/instagram/stories'
+import { Route as InstagramSettingsRouteImport } from './routes/instagram/settings'
+import { Route as InstagramReelsRouteImport } from './routes/instagram/reels'
+import { Route as InstagramLiveRouteImport } from './routes/instagram/live'
+import { Route as InstagramInboxRouteImport } from './routes/instagram/inbox'
+import { Route as InstagramContentRouteImport } from './routes/instagram/content'
+import { Route as InstagramCommentsRouteImport } from './routes/instagram/comments'
+import { Route as InstagramAnalyticsRouteImport } from './routes/instagram/analytics'
+import { Route as InstagramAiRouteImport } from './routes/instagram/ai'
 import { Route as AuthGoogleCallbackRouteImport } from './routes/auth.google.callback'
 
+const StudioRoute = StudioRouteImport.update({
+  id: '/studio',
+  path: '/studio',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LiveStreamingSetupRoute = LiveStreamingSetupRouteImport.update({
   id: '/live-streaming-setup',
   path: '/live-streaming-setup',
@@ -29,6 +46,61 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InstagramIndexRoute = InstagramIndexRouteImport.update({
+  id: '/instagram/',
+  path: '/instagram/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InstagramUploadRoute = InstagramUploadRouteImport.update({
+  id: '/instagram/upload',
+  path: '/instagram/upload',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InstagramStoriesRoute = InstagramStoriesRouteImport.update({
+  id: '/instagram/stories',
+  path: '/instagram/stories',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InstagramSettingsRoute = InstagramSettingsRouteImport.update({
+  id: '/instagram/settings',
+  path: '/instagram/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InstagramReelsRoute = InstagramReelsRouteImport.update({
+  id: '/instagram/reels',
+  path: '/instagram/reels',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InstagramLiveRoute = InstagramLiveRouteImport.update({
+  id: '/instagram/live',
+  path: '/instagram/live',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InstagramInboxRoute = InstagramInboxRouteImport.update({
+  id: '/instagram/inbox',
+  path: '/instagram/inbox',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InstagramContentRoute = InstagramContentRouteImport.update({
+  id: '/instagram/content',
+  path: '/instagram/content',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InstagramCommentsRoute = InstagramCommentsRouteImport.update({
+  id: '/instagram/comments',
+  path: '/instagram/comments',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InstagramAnalyticsRoute = InstagramAnalyticsRouteImport.update({
+  id: '/instagram/analytics',
+  path: '/instagram/analytics',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InstagramAiRoute = InstagramAiRouteImport.update({
+  id: '/instagram/ai',
+  path: '/instagram/ai',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthGoogleCallbackRoute = AuthGoogleCallbackRouteImport.update({
   id: '/auth/google/callback',
   path: '/auth/google/callback',
@@ -39,12 +111,36 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/live-streaming-setup': typeof LiveStreamingSetupRoute
+  '/studio': typeof StudioRoute
+  '/instagram/ai': typeof InstagramAiRoute
+  '/instagram/analytics': typeof InstagramAnalyticsRoute
+  '/instagram/comments': typeof InstagramCommentsRoute
+  '/instagram/content': typeof InstagramContentRoute
+  '/instagram/inbox': typeof InstagramInboxRoute
+  '/instagram/live': typeof InstagramLiveRoute
+  '/instagram/reels': typeof InstagramReelsRoute
+  '/instagram/settings': typeof InstagramSettingsRoute
+  '/instagram/stories': typeof InstagramStoriesRoute
+  '/instagram/upload': typeof InstagramUploadRoute
+  '/instagram/': typeof InstagramIndexRoute
   '/auth/google/callback': typeof AuthGoogleCallbackRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/live-streaming-setup': typeof LiveStreamingSetupRoute
+  '/studio': typeof StudioRoute
+  '/instagram/ai': typeof InstagramAiRoute
+  '/instagram/analytics': typeof InstagramAnalyticsRoute
+  '/instagram/comments': typeof InstagramCommentsRoute
+  '/instagram/content': typeof InstagramContentRoute
+  '/instagram/inbox': typeof InstagramInboxRoute
+  '/instagram/live': typeof InstagramLiveRoute
+  '/instagram/reels': typeof InstagramReelsRoute
+  '/instagram/settings': typeof InstagramSettingsRoute
+  '/instagram/stories': typeof InstagramStoriesRoute
+  '/instagram/upload': typeof InstagramUploadRoute
+  '/instagram': typeof InstagramIndexRoute
   '/auth/google/callback': typeof AuthGoogleCallbackRoute
 }
 export interface FileRoutesById {
@@ -52,6 +148,18 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/live-streaming-setup': typeof LiveStreamingSetupRoute
+  '/studio': typeof StudioRoute
+  '/instagram/ai': typeof InstagramAiRoute
+  '/instagram/analytics': typeof InstagramAnalyticsRoute
+  '/instagram/comments': typeof InstagramCommentsRoute
+  '/instagram/content': typeof InstagramContentRoute
+  '/instagram/inbox': typeof InstagramInboxRoute
+  '/instagram/live': typeof InstagramLiveRoute
+  '/instagram/reels': typeof InstagramReelsRoute
+  '/instagram/settings': typeof InstagramSettingsRoute
+  '/instagram/stories': typeof InstagramStoriesRoute
+  '/instagram/upload': typeof InstagramUploadRoute
+  '/instagram/': typeof InstagramIndexRoute
   '/auth/google/callback': typeof AuthGoogleCallbackRoute
 }
 export interface FileRouteTypes {
@@ -60,14 +168,54 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/live-streaming-setup'
+    | '/studio'
+    | '/instagram/ai'
+    | '/instagram/analytics'
+    | '/instagram/comments'
+    | '/instagram/content'
+    | '/instagram/inbox'
+    | '/instagram/live'
+    | '/instagram/reels'
+    | '/instagram/settings'
+    | '/instagram/stories'
+    | '/instagram/upload'
+    | '/instagram/'
     | '/auth/google/callback'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard' | '/live-streaming-setup' | '/auth/google/callback'
+  to:
+    | '/'
+    | '/dashboard'
+    | '/live-streaming-setup'
+    | '/studio'
+    | '/instagram/ai'
+    | '/instagram/analytics'
+    | '/instagram/comments'
+    | '/instagram/content'
+    | '/instagram/inbox'
+    | '/instagram/live'
+    | '/instagram/reels'
+    | '/instagram/settings'
+    | '/instagram/stories'
+    | '/instagram/upload'
+    | '/instagram'
+    | '/auth/google/callback'
   id:
     | '__root__'
     | '/'
     | '/dashboard'
     | '/live-streaming-setup'
+    | '/studio'
+    | '/instagram/ai'
+    | '/instagram/analytics'
+    | '/instagram/comments'
+    | '/instagram/content'
+    | '/instagram/inbox'
+    | '/instagram/live'
+    | '/instagram/reels'
+    | '/instagram/settings'
+    | '/instagram/stories'
+    | '/instagram/upload'
+    | '/instagram/'
     | '/auth/google/callback'
   fileRoutesById: FileRoutesById
 }
@@ -75,11 +223,30 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRoute: typeof DashboardRoute
   LiveStreamingSetupRoute: typeof LiveStreamingSetupRoute
+  StudioRoute: typeof StudioRoute
+  InstagramAiRoute: typeof InstagramAiRoute
+  InstagramAnalyticsRoute: typeof InstagramAnalyticsRoute
+  InstagramCommentsRoute: typeof InstagramCommentsRoute
+  InstagramContentRoute: typeof InstagramContentRoute
+  InstagramInboxRoute: typeof InstagramInboxRoute
+  InstagramLiveRoute: typeof InstagramLiveRoute
+  InstagramReelsRoute: typeof InstagramReelsRoute
+  InstagramSettingsRoute: typeof InstagramSettingsRoute
+  InstagramStoriesRoute: typeof InstagramStoriesRoute
+  InstagramUploadRoute: typeof InstagramUploadRoute
+  InstagramIndexRoute: typeof InstagramIndexRoute
   AuthGoogleCallbackRoute: typeof AuthGoogleCallbackRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/studio': {
+      id: '/studio'
+      path: '/studio'
+      fullPath: '/studio'
+      preLoaderRoute: typeof StudioRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/live-streaming-setup': {
       id: '/live-streaming-setup'
       path: '/live-streaming-setup'
@@ -101,6 +268,83 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/instagram/': {
+      id: '/instagram/'
+      path: '/instagram'
+      fullPath: '/instagram/'
+      preLoaderRoute: typeof InstagramIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/instagram/upload': {
+      id: '/instagram/upload'
+      path: '/instagram/upload'
+      fullPath: '/instagram/upload'
+      preLoaderRoute: typeof InstagramUploadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/instagram/stories': {
+      id: '/instagram/stories'
+      path: '/instagram/stories'
+      fullPath: '/instagram/stories'
+      preLoaderRoute: typeof InstagramStoriesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/instagram/settings': {
+      id: '/instagram/settings'
+      path: '/instagram/settings'
+      fullPath: '/instagram/settings'
+      preLoaderRoute: typeof InstagramSettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/instagram/reels': {
+      id: '/instagram/reels'
+      path: '/instagram/reels'
+      fullPath: '/instagram/reels'
+      preLoaderRoute: typeof InstagramReelsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/instagram/live': {
+      id: '/instagram/live'
+      path: '/instagram/live'
+      fullPath: '/instagram/live'
+      preLoaderRoute: typeof InstagramLiveRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/instagram/inbox': {
+      id: '/instagram/inbox'
+      path: '/instagram/inbox'
+      fullPath: '/instagram/inbox'
+      preLoaderRoute: typeof InstagramInboxRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/instagram/content': {
+      id: '/instagram/content'
+      path: '/instagram/content'
+      fullPath: '/instagram/content'
+      preLoaderRoute: typeof InstagramContentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/instagram/comments': {
+      id: '/instagram/comments'
+      path: '/instagram/comments'
+      fullPath: '/instagram/comments'
+      preLoaderRoute: typeof InstagramCommentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/instagram/analytics': {
+      id: '/instagram/analytics'
+      path: '/instagram/analytics'
+      fullPath: '/instagram/analytics'
+      preLoaderRoute: typeof InstagramAnalyticsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/instagram/ai': {
+      id: '/instagram/ai'
+      path: '/instagram/ai'
+      fullPath: '/instagram/ai'
+      preLoaderRoute: typeof InstagramAiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth/google/callback': {
       id: '/auth/google/callback'
       path: '/auth/google/callback'
@@ -115,6 +359,18 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRoute: DashboardRoute,
   LiveStreamingSetupRoute: LiveStreamingSetupRoute,
+  StudioRoute: StudioRoute,
+  InstagramAiRoute: InstagramAiRoute,
+  InstagramAnalyticsRoute: InstagramAnalyticsRoute,
+  InstagramCommentsRoute: InstagramCommentsRoute,
+  InstagramContentRoute: InstagramContentRoute,
+  InstagramInboxRoute: InstagramInboxRoute,
+  InstagramLiveRoute: InstagramLiveRoute,
+  InstagramReelsRoute: InstagramReelsRoute,
+  InstagramSettingsRoute: InstagramSettingsRoute,
+  InstagramStoriesRoute: InstagramStoriesRoute,
+  InstagramUploadRoute: InstagramUploadRoute,
+  InstagramIndexRoute: InstagramIndexRoute,
   AuthGoogleCallbackRoute: AuthGoogleCallbackRoute,
 }
 export const routeTree = rootRouteImport
