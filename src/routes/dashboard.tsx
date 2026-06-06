@@ -58,7 +58,7 @@ type TeamProfile = {
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
     meta: [
-      { title: "Home — Warriors Media" },
+      { title: "Command Center — Warriors Media" },
       { name: "description", content: "Your sanctuary of worship, community and Christian media." },
       { name: "referrer", content: "no-referrer" },
     ],
@@ -68,7 +68,6 @@ export const Route = createFileRoute("/dashboard")({
 
 const IG_USERNAME = "mutyala_john_moses";
 
-// Kept completely primitive to pass TanStack route tree checks safely
 const modules = [
   {
     icon: Radio,
@@ -177,19 +176,7 @@ function Home() {
         return null;
       }
 
-      console.log("[Dashboard] Calling getConnectedYouTubeChannel", {
-        userId: session.user.id,
-        reason,
-      });
       const channel = await getChannelFn({ data: { userId: session.user.id } });
-      console.log("[Dashboard] getConnectedYouTubeChannel returned", {
-        found: Boolean(channel),
-        channelId: channel?.channel_id,
-        dbChannelId: channel?.id,
-        title: channel?.title,
-        reason,
-      });
-
       setYoutubeConnected(Boolean(channel));
       setHasYouTubeChannel(Boolean(channel));
       setConnectedChannel(channel ?? null);
@@ -261,10 +248,6 @@ function Home() {
   };
 
   const handleChannelConnect = (channelInfo?: YouTubeChannelInfo) => {
-    console.log("[Dashboard] Channel connected callback received", {
-      channelId: channelInfo?.channelId,
-      title: channelInfo?.title,
-    });
     setYoutubeConnected(true);
     setHasYouTubeChannel(true);
     refreshYouTubeChannel("connect-callback").catch((error) => {
@@ -273,44 +256,30 @@ function Home() {
   };
 
   const handleChannelDisconnect = () => {
-    console.log("[Dashboard] Channel disconnected callback received");
     setYoutubeConnected(false);
     setHasYouTubeChannel(false);
     setConnectedChannel(null);
   };
 
-  // Helper inside component scope to supply distinct luxury color patterns safely
-  const getModuleStyles = (title: string) => {
-    switch (title) {
-      case "Youtube": return { gradient: "from-blue-500/10 to-indigo-500/5", glow: "hover:shadow-[0_0_30px_-5px_rgba(37,99,235,0.2)]" };
-      case "Instagram": return { gradient: "from-pink-500/10 to-purple-500/5", glow: "hover:shadow-[0_0_30px_-5px_rgba(139,92,246,0.2)]" };
-      case "Facebook": return { gradient: "from-blue-600/10 to-cyan-500/5", glow: "hover:shadow-[0_0_30px_-5px_rgba(37,99,235,0.15)]" };
-      case "Warriors Lead Engine": return { gradient: "from-amber-500/10 to-orange-500/5", glow: "hover:shadow-[0_0_30px_-5px_rgba(251,191,36,0.2)]" };
-      case "Warriors AI Video Editor": return { gradient: "from-purple-500/10 to-blue-500/5", glow: "hover:shadow-[0_0_30px_-5px_rgba(139,92,246,0.3)]" };
-      case "Warriors AI Music": return { gradient: "from-indigo-500/10 to-purple-500/5", glow: "hover:shadow-[0_0_30px_-5px_rgba(139,92,246,0.3)]" };
-      default: return { gradient: "from-emerald-500/10 to-teal-500/5", glow: "hover:shadow-[0_0_30px_-5px_rgba(16,185,129,0.15)]" };
-    }
-  };
-
   return (
-    <main className="min-h-screen bg-[#020617] text-white selection:bg-blue-500/30 overflow-x-hidden relative font-sans antialiased">
-      {/* Luxury Background Ambient Lighting */}
-      <div className="absolute top-[-10%] left-[-10%] w-[600px] h-[600px] bg-blue-600/10 rounded-full blur-[160px] pointer-events-none" />
-      <div className="absolute top-[20%] right-[-5%] w-[500px] h-[500px] bg-purple-600/10 rounded-full blur-[140px] pointer-events-none" />
-      <div className="absolute bottom-[5%] left-[15%] w-[700px] h-[700px] bg-amber-500/5 rounded-full blur-[180px] pointer-events-none" />
+    <main className="min-h-screen bg-[#090d16] text-slate-100 selection:bg-amber-500/30 overflow-x-hidden relative font-sans antialiased">
+      {/* Brand Identity Warm Glow fields */}
+      <div className="absolute top-[-10%] left-[-5%] w-[600px] h-[600px] bg-amber-500/[0.04] rounded-full blur-[150px] pointer-events-none" />
+      <div className="absolute top-[30%] right-[-10%] w-[500px] h-[500px] bg-yellow-600/[0.03] rounded-full blur-[130px] pointer-events-none" />
+      <div className="absolute bottom-[10%] left-[10%] w-[600px] h-[600px] bg-amber-600/[0.03] rounded-full blur-[160px] pointer-events-none" />
 
-      {/* Premium Glass Header */}
-      <header className="sticky top-0 z-50 border-b border-slate-800/60 bg-[#020617]/70 backdrop-blur-xl">
+      {/* Cyber Gold & Obsidian Header */}
+      <header className="sticky top-0 z-50 border-b border-amber-500/10 bg-[#090d16]/80 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
-              <span className="font-black text-lg tracking-tighter text-white">W</span>
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-yellow-400 via-amber-500 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/10 border border-yellow-300/20">
+              <span className="font-black text-lg tracking-tighter text-neutral-950">W</span>
             </div>
             <div>
-              <h1 className="font-bold text-lg tracking-tight leading-none bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
+              <h1 className="font-black text-lg tracking-tight leading-none bg-gradient-to-r from-white via-amber-200 to-yellow-400 bg-clip-text text-transparent">
                 WARRIORS MEDIA
               </h1>
-              <p className="text-[10px] font-semibold tracking-[0.25em] text-purple-400 uppercase mt-1">
+              <p className="text-[10px] font-bold tracking-[0.2em] text-amber-400/90 uppercase mt-1">
                 {profile?.full_name || "COMMAND CENTER"}
               </p>
             </div>
@@ -318,55 +287,54 @@ function Home() {
           
           <button
             onClick={handleLogout}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800/80 text-slate-300 hover:text-white transition-all duration-300 text-xs font-semibold tracking-wide shadow-md"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-neutral-900/80 hover:bg-neutral-800 border border-amber-500/20 text-amber-400 hover:text-amber-300 transition-all duration-300 text-xs font-bold shadow-md shadow-amber-500/[0.02]"
           >
-            <LogOut className="w-3.5 h-3.5 text-slate-400" />
+            <LogOut className="w-3.5 h-3.5" />
             Logout
           </button>
         </div>
       </header>
 
-      {/* Main Panel Content Area */}
+      {/* Main Container Workspace */}
       <div className="max-w-7xl mx-auto px-6 py-10 space-y-12 relative z-10">
         
-        {/* Dynamic Welcome Premium Command Box */}
-        <section className="relative overflow-hidden rounded-[24px] bg-[#0F172A]/40 backdrop-blur-xl border border-slate-800/80 p-8 flex flex-col md:flex-row md:items-center justify-between min-h-[180px] shadow-2xl transition-all duration-500 ease-out">
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 via-purple-600/5 to-transparent pointer-events-none" />
-          <div className="absolute right-[20%] top-0 bottom-0 w-[120px] bg-gradient-to-r from-white/0 via-white/[0.015] to-white/0 transform -skew-x-12 pointer-events-none" />
+        {/* Brand Command Header Banner */}
+        <section className="relative overflow-hidden rounded-[20px] bg-[#121824]/60 border border-amber-500/10 p-8 flex flex-col md:flex-row md:items-center justify-between min-h-[160px] shadow-xl">
+          <div className="absolute inset-0 bg-gradient-to-r from-amber-500/[0.05] via-transparent to-transparent pointer-events-none" />
           
           <div className="space-y-2 max-w-2xl">
-            <div className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 px-3 py-1 rounded-full text-[10px] font-bold text-blue-300 uppercase tracking-widest">
-              <Sparkles className="w-3 h-3 text-amber-400" />
-              <span>Ecosystem Operational</span>
+            <div className="inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 px-3 py-0.5 rounded-md text-[10px] font-bold text-amber-400 uppercase tracking-wider">
+              <Sparkles className="w-3 h-3" />
+              <span>System Core Online</span>
             </div>
-            <h2 className="text-2xl font-extrabold tracking-tight text-white sm:text-3xl">
+            <h2 className="text-2xl font-black tracking-tight text-white sm:text-3xl">
               Sanctuary Media Control Matrix
             </h2>
-            <p className="text-xs sm:text-sm text-slate-400 leading-relaxed max-w-xl">
-              Welcome to your premium Christian Media hub. Deploy AI production engines, inspect cross-platform outreach arrays, and monitor system diagnostics seamlessly.
+            <p className="text-xs sm:text-sm text-slate-400 leading-relaxed max-w-xl font-medium">
+              Welcome to your workspace. Deploy AI engines, track stats, and manage social ecosystem pipelines under your brand identity framework.
             </p>
           </div>
 
-          <div className="mt-4 md:mt-0 flex items-center gap-3 bg-slate-950/40 border border-slate-800/60 p-3.5 rounded-xl">
-            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+          <div className="mt-4 md:mt-0 flex items-center gap-3 bg-neutral-950/60 border border-amber-500/10 p-3 rounded-xl">
+            <div className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />
             <div className="text-left">
-              <span className="text-[10px] block text-slate-500 font-mono tracking-wider uppercase">Identity Verified</span>
-              <span className="text-xs font-semibold text-slate-300">{profile?.email || "Session Active"}</span>
+              <span className="text-[9px] block text-slate-500 font-mono tracking-wider uppercase">Identity Profile</span>
+              <span className="text-xs font-bold text-amber-200/90">{profile?.email || "Session Active"}</span>
             </div>
           </div>
         </section>
 
-        {/* YouTube Integration Status Box */}
+        {/* YouTube Core Integration Status */}
         <section className="space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-800/60 pb-3">
-            <div>
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-4 bg-blue-500 rounded-full" />
-                <h2 className="font-bold text-lg tracking-tight text-white">YouTube Integration</h2>
+          <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
+            <div className="flex items-center gap-3">
+              <div className="w-1 h-5 bg-amber-500 rounded-full" />
+              <div>
+                <h2 className="font-black text-base uppercase tracking-wider text-white">YouTube Integration</h2>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {youtubeConnected ? "Array fully functional" : "Awaiting secure authorization"}
+                </p>
               </div>
-              <p className="text-xs text-slate-400 mt-0.5">
-                {youtubeConnected ? "Streaming array established" : "Awaiting secure OAuth authorization"}
-              </p>
             </div>
             <div className="scale-95 origin-right">
               <YouTubeCreateMenu
@@ -379,67 +347,66 @@ function Home() {
           </div>
 
           {youtubeConnected && connectedChannel && (
-            <div className="p-1 rounded-[24px] bg-gradient-to-r from-blue-500/20 to-purple-500/20 transition-all duration-300">
-              <div className="bg-[#111827]/95 backdrop-blur-xl rounded-[23px] p-2">
+            <div className="p-[1px] rounded-[20px] bg-gradient-to-r from-amber-500/20 to-yellow-500/10">
+              <div className="bg-neutral-900/95 rounded-[19px] p-2">
                 <YouTubeChannelStats channel={connectedChannel} />
               </div>
             </div>
           )}
         </section>
 
-        {/* Modules Layout Grid Component */}
+        {/* Rebuilt Premium Gold & Carbon Module Grid */}
         <section className="space-y-4">
-          <div className="flex items-center gap-2 border-b border-slate-800/60 pb-3">
-            <div className="w-1.5 h-4 bg-purple-500 rounded-full" />
-            <h2 className="font-bold text-lg tracking-tight text-white">Ecosystem Modules</h2>
+          <div className="flex items-center gap-3 border-b border-slate-800/80 pb-3">
+            <div className="w-1 h-5 bg-amber-500 rounded-full" />
+            <h2 className="font-black text-base uppercase tracking-wider text-white">Ecosystem Modules</h2>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {modules.map((module) => {
               const Icon = module.icon;
               const isDisabled = module.title === "Live Streaming" && !youtubeConnected;
-              const styleConfig = getModuleStyles(module.title);
 
               return (
                 <button
                   key={module.title}
                   onClick={() => handleModuleClick(module.title)}
                   disabled={isDisabled}
-                  className={`p-6 rounded-[24px] backdrop-blur-xl border transition-all duration-500 group relative overflow-hidden text-left ${
+                  className={`p-6 rounded-[20px] border transition-all duration-300 group relative overflow-hidden text-left ${
                     isDisabled
-                      ? "border-slate-900 bg-slate-950/20 opacity-40 cursor-not-allowed"
-                      : `bg-[#111827]/60 border-slate-800/60 hover:border-slate-700/80 ${styleConfig.glow} cursor-pointer hover:-translate-y-1`
+                      ? "border-neutral-900 bg-neutral-950/20 opacity-30 cursor-not-allowed"
+                      : "bg-[#111622]/80 border-slate-800/80 hover:border-amber-500/30 hover:shadow-xl hover:shadow-amber-500/[0.02] cursor-pointer hover:-translate-y-1"
                   }`}
                 >
                   {!isDisabled && (
-                    <div className={`absolute inset-0 bg-gradient-to-br ${styleConfig.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none`} />
+                    <div className="absolute inset-0 bg-gradient-to-br from-amber-500/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
                   )}
                   
                   <div className="flex items-start justify-between mb-5 relative z-10">
-                    <div className={`p-3 rounded-xl transition-colors duration-300 ${
+                    <div className={`p-2.5 rounded-xl transition-colors duration-300 ${
                       isDisabled 
-                        ? "bg-slate-900 text-slate-600" 
-                        : "bg-slate-950/80 border border-slate-800/80 text-blue-400 group-hover:text-purple-400 group-hover:border-purple-500/30"
+                        ? "bg-neutral-900 text-neutral-700" 
+                        : "bg-neutral-950 border border-slate-800 text-amber-400/90 group-hover:text-yellow-400 group-hover:border-amber-500/40"
                     }`}>
-                      <Icon className="w-5 h-5 transition-transform duration-500 group-hover:scale-110" />
+                      <Icon className="w-5 h-5 transition-transform duration-300 group-hover:scale-105" />
                     </div>
                     {module.tag && (
-                      <span className={`text-[9px] uppercase tracking-widest font-bold px-2.5 py-1 rounded-md border ${
-                        module.tag.includes("AI") 
-                          ? "bg-purple-500/10 text-purple-400 border-purple-500/20" 
-                          : "bg-slate-950/80 text-slate-400 border-slate-800"
+                      <span className={`text-[9px] uppercase tracking-widest font-bold px-2 py-0.5 rounded border ${
+                        module.tag.includes("AI") || module.tag.includes("LIVE")
+                          ? "bg-amber-500/10 text-amber-400 border-amber-500/20" 
+                          : "bg-neutral-950 text-slate-400 border-slate-800"
                       }`}>
                         {module.tag}
                       </span>
                     )}
                   </div>
                   
-                  <div className="relative z-10 space-y-1.5">
+                  <div className="relative z-10 space-y-1">
                     <h3 className="font-bold text-sm text-white tracking-tight flex items-center justify-between">
                       <span>{module.title}</span>
-                      {!isDisabled && <ArrowUpRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all duration-300 text-slate-400" />}
+                      {!isDisabled && <ArrowUpRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all duration-300 text-amber-400/70" />}
                     </h3>
-                    <p className="text-xs text-slate-400 leading-relaxed font-normal">{module.desc}</p>
+                    <p className="text-xs text-slate-400 leading-relaxed font-normal font-sans">{module.desc}</p>
                   </div>
                 </button>
               );
@@ -447,31 +414,31 @@ function Home() {
           </div>
         </section>
 
-        {/* Automation Toolbox Cards Section */}
+        {/* Automation Utility Slots */}
         <section className="space-y-4">
-          <div className="flex items-center gap-2 border-b border-slate-800/60 pb-3">
-            <div className="w-1.5 h-4 bg-amber-500 rounded-full" />
-            <h2 className="font-bold text-lg tracking-tight text-white">Automation Utilities</h2>
+          <div className="flex items-center gap-3 border-b border-slate-800/80 pb-3">
+            <div className="w-1 h-5 bg-amber-500 rounded-full" />
+            <h2 className="font-black text-base uppercase tracking-wider text-white">Automation Utilities</h2>
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-[#111827]/40 backdrop-blur-xl border border-slate-800/60 p-1 rounded-[24px] shadow-xl">
-              <div className="p-1 bg-slate-950/20 rounded-[23px]">
+            <div className="bg-[#111622]/40 border border-slate-800/80 p-1 rounded-[20px] shadow-md">
+              <div className="p-1 bg-neutral-950/20 rounded-[19px]">
                 <YouTubeDownloader />
               </div>
             </div>
-            <div className="bg-[#111827]/40 backdrop-blur-xl border border-slate-800/60 p-1 rounded-[24px] shadow-xl">
-              <div className="p-1 bg-slate-950/20 rounded-[23px]">
+            <div className="bg-[#111622]/40 border border-slate-800/80 p-1 rounded-[20px] shadow-md">
+              <div className="p-1 bg-neutral-950/20 rounded-[19px]">
                 <YouTubeMetaExtractor />
               </div>
             </div>
           </div>
         </section>
 
-        {/* Community Guild Profile Grid */}
+        {/* Rebuilt Team Panel Section */}
         <section className="space-y-4">
-          <div className="flex items-center gap-2 border-b border-slate-800/60 pb-3">
-            <div className="w-1.5 h-4 bg-emerald-500 rounded-full" />
-            <h2 className="font-bold text-lg tracking-tight text-white">Ecosystem Guild & Creators</h2>
+          <div className="flex items-center gap-3 border-b border-slate-800/80 pb-3">
+            <div className="w-1 h-5 bg-amber-500 rounded-full" />
+            <h2 className="font-black text-base uppercase tracking-wider text-white">Ecosystem Guild & Creators</h2>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -485,30 +452,30 @@ function Home() {
                   href={member.instagramUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="rounded-[24px] bg-[#111827]/40 backdrop-blur-xl border border-slate-800/60 p-6 hover:border-slate-700/80 transition-all duration-300 group hover:-translate-y-0.5 flex flex-col justify-between relative overflow-hidden shadow-lg hover:shadow-[0_0_30px_-10px_rgba(139,92,246,0.15)]"
+                  className="rounded-[20px] bg-[#111622]/50 border border-slate-800/80 p-6 hover:border-amber-500/20 transition-all duration-300 group hover:-translate-y-0.5 flex flex-col justify-between relative overflow-hidden shadow-md"
                 >
-                  <div className="absolute inset-0 bg-gradient-to-b from-purple-500/[0.02] to-transparent pointer-events-none" />
+                  <div className="absolute inset-0 bg-gradient-to-b from-amber-500/[0.01] to-transparent pointer-events-none" />
                   
                   <div>
                     <div className="flex items-center justify-between mb-4">
-                      <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800/80 text-slate-400 group-hover:text-purple-400 group-hover:border-purple-500/20 transition-all">
+                      <div className="p-2 rounded-xl bg-neutral-950 border border-slate-800 text-slate-400 group-hover:text-amber-400 group-hover:border-amber-500/20 transition-all">
                         <Icon className="w-4 h-4" />
                       </div>
-                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-950 border border-slate-800 text-[10px] font-mono text-slate-400 group-hover:text-pink-400 transition-colors">
+                      <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-neutral-950 border border-slate-800 text-[10px] font-mono text-slate-400 group-hover:text-amber-400 transition-colors">
                         <Instagram className="w-3 h-3" />
                         <span>@{member.instagram}</span>
                       </div>
                     </div>
                     
-                    <h3 className="font-bold text-base text-white tracking-tight group-hover:text-blue-400 transition-colors">
+                    <h3 className="font-bold text-base text-white tracking-tight group-hover:text-amber-400 transition-colors">
                       {member.name}
                     </h3>
                     
-                    <div className="flex flex-wrap gap-1.5 mt-2.5 mb-5">
+                    <div className="flex flex-wrap gap-1 mt-2.5 mb-5">
                       {member.roles.map((role) => (
                         <span 
                           key={role} 
-                          className="text-[10px] font-medium bg-slate-900 text-slate-400 px-2.5 py-0.5 rounded-md border border-slate-800/60"
+                          className="text-[10px] font-medium bg-neutral-950 text-slate-400 px-2 py-0.5 rounded border border-slate-800/50"
                         >
                           {role}
                         </span>
@@ -517,13 +484,13 @@ function Home() {
                   </div>
 
                   {profileInstance && (
-                    <div className="pt-4 border-t border-slate-800/60 grid grid-cols-2 gap-2 text-center font-mono">
-                      <div className="bg-slate-950/50 p-2 rounded-xl border border-slate-900">
-                        <span className="block text-xs font-bold text-white tracking-tight">{profileInstance.followers}</span>
+                    <div className="pt-4 border-t border-slate-800/80 grid grid-cols-2 gap-2 text-center font-mono">
+                      <div className="bg-neutral-950/40 p-2 rounded-xl border border-neutral-900">
+                        <span className="block text-xs font-bold text-amber-200/90 tracking-tight">{profileInstance.followers}</span>
                         <span className="text-[9px] text-slate-500 uppercase tracking-wider">Followers</span>
                       </div>
-                      <div className="bg-slate-950/50 p-2 rounded-xl border border-slate-900">
-                        <span className="block text-xs font-bold text-white tracking-tight">{profileInstance.posts}</span>
+                      <div className="bg-neutral-950/40 p-2 rounded-xl border border-neutral-900">
+                        <span className="block text-xs font-bold text-amber-200/90 tracking-tight">{profileInstance.posts}</span>
                         <span className="text-[9px] text-slate-500 uppercase tracking-wider">Posts</span>
                       </div>
                     </div>
