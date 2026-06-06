@@ -28,6 +28,8 @@ import {
   Palette,
   Camera,
   ArrowUpRight,
+  ShieldCheck,
+  Zap,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getInstagramStats, getInstagramProfiles } from "@/lib/instagram.functions";
@@ -58,8 +60,8 @@ type TeamProfile = {
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
     meta: [
-      { title: "Command Center — Warriors Media" },
-      { name: "description", content: "Your sanctuary of worship, community and Christian media." },
+      { title: "Dashboard — Warriors Media" },
+      { name: "description", content: "The digital ecosystem for modern Christian technology, media, and worship automation." },
       { name: "referrer", content: "no-referrer" },
     ],
   }),
@@ -71,20 +73,20 @@ const IG_USERNAME = "mutyala_john_moses";
 const modules = [
   {
     icon: Radio,
-    title: "Youtube",
-    desc: "Live Streaming & Upload Videos & events in HD",
-    tag: "LIVE NOW",
+    title: "YouTube Studio",
+    desc: "Broadcast live streams and scale events in ultra-high fidelity.",
+    tag: "Live",
   },
-  { icon: Instagram, title: "Instagram", desc: "Manage Instagram content & analytics", tag: "SOCIAL" },
-  { icon: Facebook, title: "Facebook", desc: "Manage Facebook pages & audience engagement", tag: "SOCIAL" },
-  { icon: Target, title: "Warriors Lead Engine", desc: "Generate and manage business leads", tag: "NEW" },
-  { icon: Clapperboard, title: "Warriors AI Video Editor", desc: "AI-powered video editing & content creation", tag: "AI" },
-  { icon: Music4, title: "Warriors AI Music", desc: "Create Christian songs and music with AI", tag: "AI" },
+  { icon: Instagram, title: "Instagram Core", desc: "Automate social content workflows and audience pipelines.", tag: "Social" },
+  { icon: Facebook, title: "Facebook Graph", desc: "Sync platform engagements and scale reach across metadata channels.", tag: "Social" },
+  { icon: Target, title: "Warriors Lead Engine", desc: "AI optimization engine engineered to optimize ministry outreach.", tag: "Next-Gen" },
+  { icon: Clapperboard, title: "AI Video Editor", desc: "Intelligent auto-cuts, smart captions, and semantic timeline rendering.", tag: "AI Engine" },
+  { icon: Music4, title: "AI Worship Music", desc: "Synthesize instrumental orchestrations and sacred arrangements.", tag: "AI Engine" },
   {
     icon: MessageCircle,
-    title: "WhatsApp",
-    desc: "Chat with Community",
-    tag: "BETA",
+    title: "WhatsApp Core",
+    desc: "Seamless contextual automation hooks for community management.",
+    tag: "Beta",
   },
 ];
 
@@ -146,13 +148,10 @@ function Home() {
   const [connectedChannel, setConnectedChannel] = useState<ConnectedYouTubeChannel | null>(null);
 
   const handleModuleClick = (title: string) => {
-    if (title === "Youtube") {
-      if (!youtubeConnected) {
-        console.log("[Dashboard] Please connect YouTube channel first");
-        return;
-      }
+    if (title === "YouTube Studio") {
+      if (!youtubeConnected) return;
       navigate({ to: "/live-streaming-setup" });
-    } else if (title === "Instagram") {
+    } else if (title === "Instagram Core") {
       navigate({ to: "/instagram" });
     }
   };
@@ -163,13 +162,11 @@ function Home() {
 
   const refreshYouTubeChannel = useCallback(
     async (reason: string) => {
-      console.log("[Dashboard] Refreshing YouTube channel state", { reason });
       const {
         data: { session },
       } = await supabase.auth.getSession();
 
       if (!session) {
-        console.log("[Dashboard] No Supabase session while refreshing YouTube channel");
         setYoutubeConnected(false);
         setHasYouTubeChannel(false);
         setConnectedChannel(null);
@@ -262,78 +259,82 @@ function Home() {
   };
 
   return (
-    <main className="min-h-screen bg-[#090d16] text-slate-100 selection:bg-amber-500/30 overflow-x-hidden relative font-sans antialiased">
-      {/* Brand Identity Warm Glow fields */}
-      <div className="absolute top-[-10%] left-[-5%] w-[600px] h-[600px] bg-amber-500/[0.04] rounded-full blur-[150px] pointer-events-none" />
-      <div className="absolute top-[30%] right-[-10%] w-[500px] h-[500px] bg-yellow-600/[0.03] rounded-full blur-[130px] pointer-events-none" />
-      <div className="absolute bottom-[10%] left-[10%] w-[600px] h-[600px] bg-amber-600/[0.03] rounded-full blur-[160px] pointer-events-none" />
+    <main className="min-h-screen bg-[#030712] text-slate-200 selection:bg-purple-500/30 overflow-x-hidden relative font-sans antialiased">
+      {/* SaaS Ambient Blur Glows */}
+      <div className="absolute top-[-15%] left-[10%] w-[800px] h-[500px] bg-gradient-to-br from-purple-600/10 to-indigo-600/5 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute top-[40%] right-[-10%] w-[600px] h-[600px] bg-pink-600/[0.04] rounded-full blur-[160px] pointer-events-none" />
+      <div className="absolute bottom-[5%] left-[-5%] w-[700px] h-[700px] bg-purple-800/[0.03] rounded-full blur-[180px] pointer-events-none" />
 
-      {/* Cyber Gold & Obsidian Header */}
-      <header className="sticky top-0 z-50 border-b border-amber-500/10 bg-[#090d16]/80 backdrop-blur-md">
+      {/* Linear Style Global Banner Accent Line */}
+      <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-purple-500/40 to-transparent absolute top-0 left-0 z-50" />
+
+      {/* Modern Minimal Header */}
+      <header className="sticky top-0 z-50 border-b border-white/[0.04] bg-[#030712]/70 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-yellow-400 via-amber-500 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/10 border border-yellow-300/20">
-              <span className="font-black text-lg tracking-tighter text-neutral-950">W</span>
+          <div className="flex items-center gap-3.5">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-b from-purple-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-purple-500/10 ring-1 ring-white/20">
+              <Sparkles className="w-4 h-4 text-white" />
             </div>
             <div>
-              <h1 className="font-black text-lg tracking-tight leading-none bg-gradient-to-r from-white via-amber-200 to-yellow-400 bg-clip-text text-transparent">
-                WARRIORS MEDIA
-              </h1>
-              <p className="text-[10px] font-bold tracking-[0.2em] text-amber-400/90 uppercase mt-1">
-                {profile?.full_name || "COMMAND CENTER"}
+              <div className="flex items-center gap-2">
+                <h1 className="font-semibold text-sm tracking-tight text-white uppercase font-mono">
+                  Warriors Media
+                </h1>
+                <span className="text-[10px] bg-white/[0.06] border border-white/[0.08] text-purple-300 px-1.5 py-0.5 rounded-md font-mono">v3.0</span>
+              </div>
+              <p className="text-[11px] text-slate-400 font-medium mt-0.5">
+                {profile?.full_name || "Cloud Environment Workspace"}
               </p>
             </div>
           </div>
           
           <button
             onClick={handleLogout}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-neutral-900/80 hover:bg-neutral-800 border border-amber-500/20 text-amber-400 hover:text-amber-300 transition-all duration-300 text-xs font-bold shadow-md shadow-amber-500/[0.02]"
+            className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.07] border border-white/[0.08] text-slate-300 hover:text-white transition-all duration-200 text-xs font-medium shadow-sm"
           >
-            <LogOut className="w-3.5 h-3.5" />
-            Logout
+            <LogOut className="w-3.5 h-3.5 text-slate-400" />
+            Sign out
           </button>
         </div>
       </header>
 
-      {/* Main Container Workspace */}
-      <div className="max-w-7xl mx-auto px-6 py-10 space-y-12 relative z-10">
+      {/* Dashboard Canvas Container */}
+      <div className="max-w-7xl mx-auto px-6 py-12 space-y-12 relative z-10">
         
-        {/* Brand Command Header Banner */}
-        <section className="relative overflow-hidden rounded-[20px] bg-[#121824]/60 border border-amber-500/10 p-8 flex flex-col md:flex-row md:items-center justify-between min-h-[160px] shadow-xl">
-          <div className="absolute inset-0 bg-gradient-to-r from-amber-500/[0.05] via-transparent to-transparent pointer-events-none" />
+        {/* Premium Hub Hero Segment */}
+        <section className="relative overflow-hidden rounded-[20px] bg-gradient-to-b from-white/[0.03] to-transparent border border-white/[0.06] p-8 md:p-10 flex flex-col md:flex-row md:items-center justify-between min-h-[180px] shadow-2xl backdrop-blur-md">
+          <div className="absolute inset-0 bg-gradient-to-tr from-purple-500/[0.03] via-transparent to-pink-500/[0.02] pointer-events-none" />
           
-          <div className="space-y-2 max-w-2xl">
-            <div className="inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 px-3 py-0.5 rounded-md text-[10px] font-bold text-amber-400 uppercase tracking-wider">
-              <Sparkles className="w-3 h-3" />
-              <span>System Core Online</span>
+          <div className="space-y-3 max-w-2xl">
+            <div className="inline-flex items-center gap-2 bg-purple-500/10 border border-purple-500/20 px-2.5 py-0.5 rounded-full text-[11px] font-medium text-purple-300 font-mono">
+              <Zap className="w-3 h-3" />
+              <span>AI Pipeline Matrix Online</span>
             </div>
-            <h2 className="text-2xl font-black tracking-tight text-white sm:text-3xl">
-              Sanctuary Media Control Matrix
+            <h2 className="text-3xl font-semibold tracking-tight text-white font-sans">
+              Intelligent Sanctum Workspace
             </h2>
-            <p className="text-xs sm:text-sm text-slate-400 leading-relaxed max-w-xl font-medium">
-              Welcome to your workspace. Deploy AI engines, track stats, and manage social ecosystem pipelines under your brand identity framework.
+            <p className="text-sm text-slate-400 leading-relaxed font-normal max-w-lg">
+              Synchronize media pipelines, coordinate digital infrastructure, and manage ministry growth vectors powered by autonomous software agents.
             </p>
           </div>
 
-          <div className="mt-4 md:mt-0 flex items-center gap-3 bg-neutral-950/60 border border-amber-500/10 p-3 rounded-xl">
-            <div className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />
+          <div className="mt-6 md:mt-0 flex items-center gap-3.5 bg-neutral-950/40 border border-white/[0.05] p-3.5 rounded-2xl backdrop-blur-md min-w-[240px]">
+            <div className="w-2 h-2 rounded-full bg-purple-400 shadow-md shadow-purple-400 animate-pulse" />
             <div className="text-left">
-              <span className="text-[9px] block text-slate-500 font-mono tracking-wider uppercase">Identity Profile</span>
-              <span className="text-xs font-bold text-amber-200/90">{profile?.email || "Session Active"}</span>
+              <span className="text-[10px] block text-slate-500 font-mono tracking-wider uppercase">Active Operator</span>
+              <span className="text-xs font-medium text-slate-300">{profile?.email || "System Authenticated"}</span>
             </div>
           </div>
         </section>
 
-        {/* YouTube Core Integration Status */}
+        {/* Integration Cluster - YouTube Control */}
         <section className="space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
-            <div className="flex items-center gap-3">
-              <div className="w-1 h-5 bg-amber-500 rounded-full" />
+          <div className="flex items-center justify-between border-b border-white/[0.06] pb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-1.5 h-4 bg-purple-500 rounded-full shadow-[0_0_8px_rgba(168,85,247,0.5)]" />
               <div>
-                <h2 className="font-black text-base uppercase tracking-wider text-white">YouTube Integration</h2>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  {youtubeConnected ? "Array fully functional" : "Awaiting secure authorization"}
-                </p>
+                <h2 className="font-semibold text-sm tracking-wide text-white uppercase font-mono">Streaming Gateways</h2>
+                <p className="text-xs text-slate-500 mt-0.5">Stream infrastructure links and ingest routes.</p>
               </div>
             </div>
             <div className="scale-95 origin-right">
@@ -347,66 +348,67 @@ function Home() {
           </div>
 
           {youtubeConnected && connectedChannel && (
-            <div className="p-[1px] rounded-[20px] bg-gradient-to-r from-amber-500/20 to-yellow-500/10">
-              <div className="bg-neutral-900/95 rounded-[19px] p-2">
+            <div className="p-[1px] rounded-[20px] bg-gradient-to-b from-white/[0.08] to-transparent shadow-xl">
+              <div className="bg-[#050a17]/95 rounded-[19px] p-2 backdrop-blur-2xl">
                 <YouTubeChannelStats channel={connectedChannel} />
               </div>
             </div>
           )}
         </section>
 
-        {/* Rebuilt Premium Gold & Carbon Module Grid */}
+        {/* Glassmorphic SaaS Module Grid */}
         <section className="space-y-4">
-          <div className="flex items-center gap-3 border-b border-slate-800/80 pb-3">
-            <div className="w-1 h-5 bg-amber-500 rounded-full" />
-            <h2 className="font-black text-base uppercase tracking-wider text-white">Ecosystem Modules</h2>
+          <div className="flex items-center gap-2.5 border-b border-white/[0.06] pb-3">
+            <div className="w-1.5 h-4 bg-purple-500 rounded-full shadow-[0_0_8px_rgba(168,85,247,0.5)]" />
+            <h2 className="font-semibold text-sm tracking-wide text-white uppercase font-mono">System App Engines</h2>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {modules.map((module) => {
               const Icon = module.icon;
-              const isDisabled = module.title === "Live Streaming" && !youtubeConnected;
+              const isDisabled = module.title === "YouTube Studio" && !youtubeConnected;
 
               return (
                 <button
                   key={module.title}
                   onClick={() => handleModuleClick(module.title)}
                   disabled={isDisabled}
-                  className={`p-6 rounded-[20px] border transition-all duration-300 group relative overflow-hidden text-left ${
+                  className={`p-6 rounded-[20px] border text-left relative overflow-hidden transition-all duration-300 group ${
                     isDisabled
-                      ? "border-neutral-900 bg-neutral-950/20 opacity-30 cursor-not-allowed"
-                      : "bg-[#111622]/80 border-slate-800/80 hover:border-amber-500/30 hover:shadow-xl hover:shadow-amber-500/[0.02] cursor-pointer hover:-translate-y-1"
+                      ? "border-white/[0.02] bg-white/[0.01] opacity-25 cursor-not-allowed"
+                      : "bg-white/[0.02] hover:bg-white/[0.04] border-white/[0.05] hover:border-purple-500/30 hover:shadow-2xl hover:shadow-purple-500/[0.02] cursor-pointer hover:-translate-y-0.5"
                   }`}
                 >
+                  {/* Hover interactive inner gradient glow */}
                   {!isDisabled && (
-                    <div className="absolute inset-0 bg-gradient-to-br from-amber-500/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+                    <div className="absolute inset-0 bg-gradient-to-br from-purple-500/[0.02] via-transparent to-pink-500/[0.01] opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
                   )}
                   
-                  <div className="flex items-start justify-between mb-5 relative z-10">
-                    <div className={`p-2.5 rounded-xl transition-colors duration-300 ${
+                  <div className="flex items-start justify-between mb-6 relative z-10">
+                    <div className={`p-2.5 rounded-xl transition-all duration-300 ${
                       isDisabled 
-                        ? "bg-neutral-900 text-neutral-700" 
-                        : "bg-neutral-950 border border-slate-800 text-amber-400/90 group-hover:text-yellow-400 group-hover:border-amber-500/40"
+                        ? "bg-white/[0.02] text-slate-600" 
+                        : "bg-[#090e1a] border border-white/[0.06] text-purple-400 group-hover:text-pink-400 group-hover:border-purple-500/20"
                     }`}>
-                      <Icon className="w-5 h-5 transition-transform duration-300 group-hover:scale-105" />
+                      <Icon className="w-4.5 h-4.5 transition-transform duration-300 group-hover:scale-105" />
                     </div>
                     {module.tag && (
-                      <span className={`text-[9px] uppercase tracking-widest font-bold px-2 py-0.5 rounded border ${
-                        module.tag.includes("AI") || module.tag.includes("LIVE")
-                          ? "bg-amber-500/10 text-amber-400 border-amber-500/20" 
-                          : "bg-neutral-950 text-slate-400 border-slate-800"
+                      <span className={`text-[9px] font-mono tracking-wider px-2 py-0.5 rounded-md border ${
+                        module.tag.includes("AI") || module.tag === "Live"
+                          ? "bg-purple-500/10 text-purple-300 border-purple-500/20" 
+                          : "bg-white/[0.04] text-slate-400 border-white/[0.06]"
                       }`}>
                         {module.tag}
                       </span>
                     )}
                   </div>
                   
-                  <div className="relative z-10 space-y-1">
-                    <h3 className="font-bold text-sm text-white tracking-tight flex items-center justify-between">
+                  <div className="relative z-10 space-y-1.5">
+                    <h3 className="font-medium text-sm text-white tracking-tight flex items-center justify-between">
                       <span>{module.title}</span>
-                      {!isDisabled && <ArrowUpRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all duration-300 text-amber-400/70" />}
+                      {!isDisabled && <ArrowUpRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all duration-200 text-purple-400/80" />}
                     </h3>
-                    <p className="text-xs text-slate-400 leading-relaxed font-normal font-sans">{module.desc}</p>
+                    <p className="text-xs text-slate-400 leading-relaxed font-light">{module.desc}</p>
                   </div>
                 </button>
               );
@@ -416,29 +418,29 @@ function Home() {
 
         {/* Automation Utility Slots */}
         <section className="space-y-4">
-          <div className="flex items-center gap-3 border-b border-slate-800/80 pb-3">
-            <div className="w-1 h-5 bg-amber-500 rounded-full" />
-            <h2 className="font-black text-base uppercase tracking-wider text-white">Automation Utilities</h2>
+          <div className="flex items-center gap-2.5 border-b border-white/[0.06] pb-3">
+            <div className="w-1.5 h-4 bg-purple-500 rounded-full shadow-[0_0_8px_rgba(168,85,247,0.5)]" />
+            <h2 className="font-semibold text-sm tracking-wide text-white uppercase font-mono">Automation Infrastructure</h2>
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-[#111622]/40 border border-slate-800/80 p-1 rounded-[20px] shadow-md">
-              <div className="p-1 bg-neutral-950/20 rounded-[19px]">
+            <div className="bg-white/[0.02] border border-white/[0.06] p-1 rounded-[20px] shadow-lg backdrop-blur-md">
+              <div className="p-1 bg-[#030712]/40 rounded-[19px]">
                 <YouTubeDownloader />
               </div>
             </div>
-            <div className="bg-[#111622]/40 border border-slate-800/80 p-1 rounded-[20px] shadow-md">
-              <div className="p-1 bg-neutral-950/20 rounded-[19px]">
+            <div className="bg-white/[0.02] border border-white/[0.06] p-1 rounded-[20px] shadow-lg backdrop-blur-md">
+              <div className="p-1 bg-[#030712]/40 rounded-[19px]">
                 <YouTubeMetaExtractor />
               </div>
             </div>
           </div>
         </section>
 
-        {/* Rebuilt Team Panel Section */}
+        {/* Premium Digital Guild Grid */}
         <section className="space-y-4">
-          <div className="flex items-center gap-3 border-b border-slate-800/80 pb-3">
-            <div className="w-1 h-5 bg-amber-500 rounded-full" />
-            <h2 className="font-black text-base uppercase tracking-wider text-white">Ecosystem Guild & Creators</h2>
+          <div className="flex items-center gap-2.5 border-b border-white/[0.06] pb-3">
+            <div className="w-1.5 h-4 bg-purple-500 rounded-full shadow-[0_0_8px_rgba(168,85,247,0.5)]" />
+            <h2 className="font-semibold text-sm tracking-wide text-white uppercase font-mono">Ecosystem Creators</h2>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -452,30 +454,30 @@ function Home() {
                   href={member.instagramUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="rounded-[20px] bg-[#111622]/50 border border-slate-800/80 p-6 hover:border-amber-500/20 transition-all duration-300 group hover:-translate-y-0.5 flex flex-col justify-between relative overflow-hidden shadow-md"
+                  className="rounded-[20px] bg-white/[0.01] hover:bg-white/[0.03] border border-white/[0.05] hover:border-purple-500/20 p-6 transition-all duration-300 group hover:-translate-y-0.5 flex flex-col justify-between relative overflow-hidden shadow-xl"
                 >
-                  <div className="absolute inset-0 bg-gradient-to-b from-amber-500/[0.01] to-transparent pointer-events-none" />
+                  <div className="absolute inset-0 bg-gradient-to-b from-purple-500/[0.01] to-transparent pointer-events-none" />
                   
                   <div>
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="p-2 rounded-xl bg-neutral-950 border border-slate-800 text-slate-400 group-hover:text-amber-400 group-hover:border-amber-500/20 transition-all">
+                    <div className="flex items-center justify-between mb-5">
+                      <div className="p-2.5 rounded-xl bg-[#090e1a] border border-white/[0.06] text-slate-400 group-hover:text-purple-400 group-hover:border-purple-500/20 transition-all">
                         <Icon className="w-4 h-4" />
                       </div>
-                      <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-neutral-950 border border-slate-800 text-[10px] font-mono text-slate-400 group-hover:text-amber-400 transition-colors">
-                        <Instagram className="w-3 h-3" />
+                      <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-white/[0.03] border border-white/[0.06] text-[10px] font-mono text-slate-400 group-hover:text-pink-300 transition-colors">
+                        <Instagram className="w-3 h-3 text-slate-500 group-hover:text-pink-400" />
                         <span>@{member.instagram}</span>
                       </div>
                     </div>
                     
-                    <h3 className="font-bold text-base text-white tracking-tight group-hover:text-amber-400 transition-colors">
+                    <h3 className="font-medium text-base text-white tracking-tight group-hover:text-purple-300 transition-colors">
                       {member.name}
                     </h3>
                     
-                    <div className="flex flex-wrap gap-1 mt-2.5 mb-5">
+                    <div className="flex flex-wrap gap-1.5 mt-3 mb-6">
                       {member.roles.map((role) => (
                         <span 
                           key={role} 
-                          className="text-[10px] font-medium bg-neutral-950 text-slate-400 px-2 py-0.5 rounded border border-slate-800/50"
+                          className="text-[10px] bg-white/[0.03] text-slate-400 px-2 py-0.5 rounded-md border border-white/[0.04]"
                         >
                           {role}
                         </span>
@@ -484,13 +486,13 @@ function Home() {
                   </div>
 
                   {profileInstance && (
-                    <div className="pt-4 border-t border-slate-800/80 grid grid-cols-2 gap-2 text-center font-mono">
-                      <div className="bg-neutral-950/40 p-2 rounded-xl border border-neutral-900">
-                        <span className="block text-xs font-bold text-amber-200/90 tracking-tight">{profileInstance.followers}</span>
+                    <div className="pt-4 border-t border-white/[0.05] grid grid-cols-2 gap-2 text-center font-mono">
+                      <div className="bg-white/[0.01] border border-white/[0.04] p-2 rounded-xl">
+                        <span className="block text-xs font-semibold text-slate-200 tracking-tight">{profileInstance.followers}</span>
                         <span className="text-[9px] text-slate-500 uppercase tracking-wider">Followers</span>
                       </div>
-                      <div className="bg-neutral-950/40 p-2 rounded-xl border border-neutral-900">
-                        <span className="block text-xs font-bold text-amber-200/90 tracking-tight">{profileInstance.posts}</span>
+                      <div className="bg-white/[0.01] border border-white/[0.04] p-2 rounded-xl">
+                        <span className="block text-xs font-semibold text-slate-200 tracking-tight">{profileInstance.posts}</span>
                         <span className="text-[9px] text-slate-500 uppercase tracking-wider">Posts</span>
                       </div>
                     </div>
