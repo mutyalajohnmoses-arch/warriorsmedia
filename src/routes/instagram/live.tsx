@@ -56,7 +56,7 @@ type TeamProfile = {
   posts?: string | number | null;
 };
 
-export const Route = createFileRoute("/dashboard")({
+export const Route = createFileRoute("/instagram/live")({
   head: () => ({
     meta: [
       { title: "Home — Warriors Media" },
