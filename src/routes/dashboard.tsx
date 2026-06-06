@@ -4,16 +4,20 @@ import { useCallback, useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import {
+  Cross,
   LogOut,
   Radio,
   Instagram,
   Facebook,
-  Youtube,
-  Tv,
-  Network,
-  Layers,
   Target,
   Clapperboard,
+  Music4,
+  Music2,
+  Film,
+  HandHeart,
+  Users,
+  Mic2,
+  Video,
   MessageCircle,
   Sparkles,
   ArrowRight,
@@ -24,27 +28,19 @@ import {
   Palette,
   Camera,
   ArrowUpRight,
+  ShieldCheck,
   Zap,
   CheckCircle2,
   XCircle,
   Activity,
-  Calendar,
-  BarChart3,
-  ExternalLink,
-  Play,
-  Settings,
-  Image as ImageIcon,
-  Type,
-  UploadCloud,
-  Mail,
   Sliders,
-  ShieldCheck,
-  User,
-  Globe
+  Settings,
+  Play
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getInstagramStats, getInstagramProfiles } from "@/lib/instagram.functions";
 import { getConnectedYouTubeChannel } from "@/lib/youtube-persistence.functions";
+import { YouTubeDownloader, YouTubeMetaExtractor } from "@/components/youtube-tools";
 import { YouTubeCreateMenu } from "@/components/youtube-create-menu";
 import { YouTubeChannelStats } from "@/components/youtube-channel-stats";
 import type { YouTubeChannelInfo } from "@/lib/youtube-oauth.functions";
@@ -70,13 +66,37 @@ type TeamProfile = {
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
     meta: [
-      { title: "Matrix Hub — Warriors Media" },
-      { name: "description", content: "Next-generation automation matrix for digital ministry pipelines." },
+      { title: "Dashboard — Warriors Media" },
+      { name: "description", content: "The digital ecosystem for modern Christian technology, media, and worship automation." },
       { name: "referrer", content: "no-referrer" },
     ],
   }),
   component: Home,
 });
+
+const IG_USERNAME = "mutyala_john_moses";
+
+const modules = [
+  {
+    icon: Radio,
+    title: "YouTube Studio",
+    desc: "Broadcast live streams and scale events in ultra-high fidelity.",
+    tag: "Live",
+    metric: "Pipeline Active"
+  },
+  { icon: Instagram, title: "Instagram Core", desc: "Automate social content workflows and audience pipelines.", tag: "Social", metric: "Sync Active" },
+  { icon: Facebook, title: "Facebook Graph", desc: "Sync platform engagements and scale reach across metadata channels.", tag: "Social", metric: "Graph Connected" },
+  { icon: Target, title: "Warriors Lead Engine", desc: "AI optimization engine engineered to optimize ministry outreach.", tag: "Next-Gen", metric: "AI Optimizing" },
+  { icon: Clapperboard, title: "AI Video Editor", desc: "Intelligent auto-cuts, smart captions, and semantic timeline rendering.", tag: "AI Engine", metric: "Render Core v2" },
+  { icon: Music4, title: "AI Worship Music", desc: "Synthesize instrumental orchestrations and sacred arrangements.", tag: "AI Engine", metric: "Audio Synth Engine" },
+  {
+    icon: MessageCircle,
+    title: "WhatsApp Core",
+    desc: "Seamless contextual automation hooks for community management.",
+    tag: "Beta",
+    metric: "Webhooks Ready"
+  },
+];
 
 const teamMembers = [
   {
@@ -100,19 +120,19 @@ const teamMembers = [
     instagram: "stanley_nuthalpati",
     instagramUrl: "https://www.instagram.com/stanley_nuthalpati?igsh=MWVya2Vmejk2ZG13bw==",
   },
-];
-
-export default function Home() {
-  const navigate = useNavigate();
-  const [profile, setProfile] = useState<{ full_name: string | null; email: string | null } | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [teamProfiles, setTeamProfiles] = useState<Record<string, TeamProfile>>({});
-  const [youtubeConnected, setYoutubeConnected] = useState(false);
-  const [connectedChannel, setConnectedChannel] = useState<ConnectedYouTubeChannel | null>(null);
-
-  // Streaming Gateways Configuration Mock State for UI Fidelity
-  const streamingGateways = [
-    { id: "yt", name: "YouTube Live", icon: Youtube, connected: true, isLive: false, lastStream: "2 days ago", analytics: "14.2k avg views", color: "text-red-400" },
-    { id: "fb", name: "Facebook Live", icon: Facebook, connected: true, isLive: true, lastStream: "Streaming Now", analytics: "4.8k active reach", color: "text-blue-400" },
-    { id: "ig", name: "Instagram Live", icon: Instagram, connected: true, isLive: false, lastStream: "5 days ago", analytics: "9.1k engagement", color: "text-pink-400" },
-    { id: "obs", name: "OBS Studio", icon: Tv, connected: true, isLive: true, lastStream: "Connected via WS", analytics: "1080p60 fps • 6
+  {
+    name: "Somesh Kumar",
+    roles: ["Editor", "Social Media Analyst"],
+    icon: Palette,
+    instagram: "broxx__one",
+    instagramUrl: "https://www.instagram.com/broxx__one?igsh=Ym1iY2s1bXVseDg2",
+  },
+  {
+    name: "Anand",
+    roles: ["Photographer"],
+    icon: Camera,
+    instagram: "_nandhu_000.1_",
+    instagramUrl: "https://www.instagram.com/_nandhu_000.1_?igsh=M2QyNmhrY2kxc2x6",
+  },
+  {
+    name: "Karth
