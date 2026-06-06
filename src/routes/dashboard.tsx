@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import {
+  Cross,
   LogOut,
   Radio,
   Instagram,
@@ -11,8 +12,16 @@ import {
   Target,
   Clapperboard,
   Music4,
+  Music2,
+  Film,
+  HandHeart,
+  Users,
+  Mic2,
+  Video,
   MessageCircle,
   Sparkles,
+  ArrowRight,
+  RefreshCw,
   Music,
   Headphones,
   Mic,
@@ -21,16 +30,12 @@ import {
   ArrowUpRight,
   ShieldCheck,
   Zap,
-  LayoutGrid,
-  Search,
-  Bell,
+  CheckCircle2,
+  XCircle,
+  Activity,
   Sliders,
-  Cpu,
-  Tv,
-  Workflow,
-  BarChart3,
-  TrendingUp,
-  UserCheck,
+  Settings,
+  Play
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getInstagramStats, getInstagramProfiles } from "@/lib/instagram.functions";
@@ -61,7 +66,7 @@ type TeamProfile = {
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
     meta: [
-      { title: "Command Center — Warriors Media" },
+      { title: "Dashboard — Warriors Media" },
       { name: "description", content: "The digital ecosystem for modern Christian technology, media, and worship automation." },
       { name: "referrer", content: "no-referrer" },
     ],
@@ -76,18 +81,20 @@ const modules = [
     icon: Radio,
     title: "YouTube Studio",
     desc: "Broadcast live streams and scale events in ultra-high fidelity.",
-    tag: "Live Ingest",
+    tag: "Live",
+    metric: "Pipeline Active"
   },
-  { icon: Instagram, title: "Instagram Core", desc: "Automate social content workflows and audience pipelines.", tag: "Graph API" },
-  { icon: Facebook, title: "Facebook Graph", desc: "Sync platform engagements and scale reach across metadata channels.", tag: "Social" },
-  { icon: Target, title: "Warriors Lead Engine", desc: "AI optimization engine engineered to optimize ministry outreach.", tag: "Next-Gen AI" },
-  { icon: Clapperboard, title: "AI Video Editor", desc: "Intelligent auto-cuts, smart captions, and semantic timeline rendering.", tag: "Timeline Engine" },
-  { icon: Music4, title: "AI Worship Music", desc: "Synthesize instrumental orchestrations and sacred arrangements.", tag: "Synth Engine" },
+  { icon: Instagram, title: "Instagram Core", desc: "Automate social content workflows and audience pipelines.", tag: "Social", metric: "Sync Active" },
+  { icon: Facebook, title: "Facebook Graph", desc: "Sync platform engagements and scale reach across metadata channels.", tag: "Social", metric: "Graph Connected" },
+  { icon: Target, title: "Warriors Lead Engine", desc: "AI optimization engine engineered to optimize ministry outreach.", tag: "Next-Gen", metric: "AI Optimizing" },
+  { icon: Clapperboard, title: "AI Video Editor", desc: "Intelligent auto-cuts, smart captions, and semantic timeline rendering.", tag: "AI Engine", metric: "Render Core v2" },
+  { icon: Music4, title: "AI Worship Music", desc: "Synthesize instrumental orchestrations and sacred arrangements.", tag: "AI Engine", metric: "Audio Synth Engine" },
   {
     icon: MessageCircle,
     title: "WhatsApp Core",
     desc: "Seamless contextual automation hooks for community management.",
-    tag: "Beta Router",
+    tag: "Beta",
+    metric: "Webhooks Ready"
   },
 ];
 
@@ -128,153 +135,4 @@ const teamMembers = [
     instagramUrl: "https://www.instagram.com/_nandhu_000.1_?igsh=M2QyNmhrY2kxc2x6",
   },
   {
-    name: "Karthick",
-    roles: ["Video Editor", "Designer", "Social Media Manager"],
-    icon: Camera,
-    instagram: "_karthik14_",
-    instagramUrl: "https://www.instagram.com/_karthik14_?igsh=YXFzZmhwajd4djQ4",
-  },
-];
-
-function Home() {
-  const navigate = useNavigate();
-  const router = useRouter();
-  const [profile, setProfile] = useState<{ full_name: string | null; email: string | null } | null>(
-    null,
-  );
-  const [loading, setLoading] = useState(true);
-  const [teamProfiles, setTeamProfiles] = useState<Record<string, TeamProfile>>({});
-  const [youtubeConnected, setYoutubeConnected] = useState(false);
-  const [hasYouTubeChannel, setHasYouTubeChannel] = useState(false);
-  const [connectedChannel, setConnectedChannel] = useState<ConnectedYouTubeChannel | null>(null);
-
-  const handleModuleClick = (title: string) => {
-    if (title === "YouTube Studio") {
-      if (!youtubeConnected) return;
-      navigate({ to: "/live-streaming-setup" });
-    } else if (title === "Instagram Core") {
-      navigate({ to: "/instagram" });
-    }
-  };
-
-  const fetchIg = useServerFn(getInstagramStats);
-  const fetchTeamProfilesServerFn = useServerFn(getInstagramProfiles);
-  const getChannelFn = useServerFn(getConnectedYouTubeChannel);
-
-  const refreshYouTubeChannel = useCallback(
-    async (reason: string) => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      if (!session) {
-        setYoutubeConnected(false);
-        setHasYouTubeChannel(false);
-        setConnectedChannel(null);
-        return null;
-      }
-
-      const channel = await getChannelFn({ data: { userId: session.user.id } });
-      setYoutubeConnected(Boolean(channel));
-      setHasYouTubeChannel(Boolean(channel));
-      setConnectedChannel(channel ?? null);
-      return channel ?? null;
-    },
-    [getChannelFn],
-  );
-
-  useEffect(() => {
-    const load = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (!session) {
-        navigate({ to: "/" });
-        return;
-      }
-      const { data } = await supabase
-        .from("profiles")
-        .select("full_name, email")
-        .eq("id", session.user.id)
-        .maybeSingle();
-      setProfile(data ?? { full_name: null, email: session.user.email ?? null });
-      setLoading(false);
-    };
-    load();
-  }, [navigate]);
-
-  useEffect(() => {
-    refreshYouTubeChannel("initial-dashboard-load").catch((error) => {
-      console.error("[Dashboard] Error checking YouTube connection:", error);
-      setYoutubeConnected(false);
-      setHasYouTubeChannel(false);
-      setConnectedChannel(null);
-    });
-  }, [refreshYouTubeChannel]);
-
-  useEffect(() => {
-    const handleConnected = () => {
-      refreshYouTubeChannel("youtube-channel-connected-event").catch((error) => {
-        console.error("[Dashboard] Error refreshing after YouTube connected event:", error);
-      });
-    };
-
-    window.addEventListener("youtube-channel-connected", handleConnected);
-    window.addEventListener("storage", handleConnected);
-    return () => {
-      window.removeEventListener("youtube-channel-connected", handleConnected);
-      window.removeEventListener("storage", handleConnected);
-    };
-  }, [refreshYouTubeChannel]);
-
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const usernames = teamMembers.map((m) => m.instagram);
-        const profiles = await fetchTeamProfilesServerFn({ data: usernames });
-        setTeamProfiles(profiles);
-      } catch (e) {
-        console.error("Failed to fetch team profiles:", e);
-      }
-    };
-    load();
-  }, [fetchTeamProfilesServerFn]);
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate({ to: "/" });
-  };
-
-  const handleChannelConnect = (channelInfo?: YouTubeChannelInfo) => {
-    setYoutubeConnected(true);
-    setHasYouTubeChannel(true);
-    refreshYouTubeChannel("connect-callback").catch((error) => {
-      console.error("[Dashboard] Error refreshing YouTube connection:", error);
-    });
-  };
-
-  const handleChannelDisconnect = () => {
-    setYoutubeConnected(false);
-    setHasYouTubeChannel(false);
-    setConnectedChannel(null);
-  };
-
-  return (
-    <main className="min-h-screen bg-[#030712] text-slate-200 selection:bg-purple-500/30 overflow-x-hidden relative font-sans antialiased">
-      {/* High-End Ambient Aurora Lighting Fields */}
-      <div className="absolute top-[-25%] left-[-10%] w-[1000px] h-[600px] bg-gradient-to-br from-purple-600/15 via-indigo-600/5 to-transparent rounded-full blur-[160px] pointer-events-none" />
-      <div className="absolute top-[30%] right-[-15%] w-[800px] h-[800px] bg-purple-500/[0.03] rounded-full blur-[180px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] left-[15%] w-[900px] h-[700px] bg-indigo-500/[0.04] rounded-full blur-[200px] pointer-events-none" />
-
-      {/* Futuristic Grid Overlay Pattern to mimic OS Matrix */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff02_1px,transparent_1px),linear-gradient(to_bottom,#ffffff02_1px,transparent_1px)] bg-[size:32px_32px] [mask-image:radial-gradient(ellipse_at_center,transparent_20%,#000_100%)] pointer-events-none" />
-
-      {/* Linear Style Global Top Boundary Line */}
-      <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-purple-500/40 to-transparent absolute top-0 left-0 z-50" />
-
-      {/* Premium Vercel-Style Nav Header */}
-      <header className="sticky top-0 z-50 border-b border-white/[0.04] bg-[#030712]/75 backdrop-blur-xl">
-        <div className="max-w-7xl mx-auto px-6 py-3.5 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-b from-purple-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-purple-500/20 ring-1 ring-white/10 group relative overflow-hidden">
-              <div className="absolute inset-0 bg-white/10 opacity
+    name: "Karth
