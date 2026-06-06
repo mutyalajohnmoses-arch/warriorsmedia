@@ -68,7 +68,7 @@ export const Route = createFileRoute("/dashboard")({
 
 const IG_USERNAME = "mutyala_john_moses";
 
-// Kept completely primitive to avoid breaking TanStack's route-tree crawler
+// Kept completely primitive to pass TanStack route tree checks safely
 const modules = [
   {
     icon: Radio,
@@ -185,102 +185,4 @@ function Home() {
       console.log("[Dashboard] getConnectedYouTubeChannel returned", {
         found: Boolean(channel),
         channelId: channel?.channel_id,
-        dbChannelId: channel?.id,
-        title: channel?.title,
-        reason,
-      });
-
-      setYoutubeConnected(Boolean(channel));
-      setHasYouTubeChannel(Boolean(channel));
-      setConnectedChannel(channel ?? null);
-      return channel ?? null;
-    },
-    [getChannelFn],
-  );
-
-  useEffect(() => {
-    const load = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (!session) {
-        navigate({ to: "/" });
-        return;
-      }
-      const { data } = await supabase
-        .from("profiles")
-        .select("full_name, email")
-        .eq("id", session.user.id)
-        .maybeSingle();
-      setProfile(data ?? { full_name: null, email: session.user.email ?? null });
-      setLoading(false);
-    };
-    load();
-  }, [navigate]);
-
-  useEffect(() => {
-    refreshYouTubeChannel("initial-dashboard-load").catch((error) => {
-      console.error("[Dashboard] Error checking YouTube connection:", error);
-      setYoutubeConnected(false);
-      setHasYouTubeChannel(false);
-      setConnectedChannel(null);
-    });
-  }, [refreshYouTubeChannel]);
-
-  useEffect(() => {
-    const handleConnected = () => {
-      refreshYouTubeChannel("youtube-channel-connected-event").catch((error) => {
-        console.error("[Dashboard] Error refreshing after YouTube connected event:", error);
-      });
-    };
-
-    window.addEventListener("youtube-channel-connected", handleConnected);
-    window.addEventListener("storage", handleConnected);
-    return () => {
-      window.removeEventListener("youtube-channel-connected", handleConnected);
-      window.removeEventListener("storage", handleConnected);
-    };
-  }, [refreshYouTubeChannel]);
-
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const usernames = teamMembers.map((m) => m.instagram);
-        const profiles = await fetchTeamProfilesServerFn({ data: usernames });
-        setTeamProfiles(profiles);
-      } catch (e) {
-        console.error("Failed to fetch team profiles:", e);
-      }
-    };
-    load();
-  }, [fetchTeamProfilesServerFn]);
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate({ to: "/" });
-  };
-
-  const handleChannelConnect = (channelInfo?: YouTubeChannelInfo) => {
-    console.log("[Dashboard] Channel connected callback received", {
-      channelId: channelInfo?.channelId,
-      title: channelInfo?.title,
-    });
-    setYoutubeConnected(true);
-    setHasYouTubeChannel(true);
-    refreshYouTubeChannel("connect-callback").catch((error) => {
-      console.error("[Dashboard] Error refreshing YouTube connection:", error);
-    });
-  };
-
-  const handleChannelDisconnect = () => {
-    console.log("[Dashboard] Channel disconnected callback received");
-    setYoutubeConnected(false);
-    setHasYouTubeChannel(false);
-    setConnectedChannel(null);
-  };
-
-  // Helper utility mapped inside runtime to assign premium glass asset classes safely
-  const getModuleStyles = (title: string) => {
-    switch (title) {
-      case "Youtube": return { gradient: "from-blue-500/10 to-indigo-500/5", glow: "hover:shadow-[0_0_30px_-5px_rgba(37,99,235,0.2)]" };
-      case "Instagram": return { gradient: "from-pink-500/10 to-purple-500/5", glow: "hover:shadow-
+        dbChannel
