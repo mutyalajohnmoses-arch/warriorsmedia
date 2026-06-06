@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Cross,
   LogOut,
   Radio,
   Instagram,
@@ -12,16 +11,8 @@ import {
   Target,
   Clapperboard,
   Music4,
-  Music2,
-  Film,
-  HandHeart,
-  Users,
-  Mic2,
-  Video,
   MessageCircle,
   Sparkles,
-  ArrowRight,
-  RefreshCw,
   Music,
   Headphones,
   Mic,
@@ -33,7 +24,6 @@ import {
   LayoutGrid,
   Search,
   Bell,
-  Settings,
   Sliders,
   Cpu,
   Tv,
@@ -287,31 +277,4 @@ function Home() {
         <div className="max-w-7xl mx-auto px-6 py-3.5 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-b from-purple-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-purple-500/20 ring-1 ring-white/10 group relative overflow-hidden">
-              <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-              <Sparkles className="w-4 h-4 text-white" />
-            </div>
-            <div className="h-6 w-[1px] bg-white/[0.08]" />
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="font-bold text-xs tracking-[0.15em] text-white uppercase font-mono">
-                  Warriors Media
-                </h1>
-                <span className="text-[9px] font-semibold bg-purple-500/10 border border-purple-500/20 text-purple-400 px-1.5 py-0.2 rounded-md font-mono tracking-normal">
-                  OS v3.0
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-400 font-medium mt-0.5 flex items-center gap-1.5">
-                <LayoutGrid className="w-3 h-3 text-purple-400" />
-                {profile?.full_name || "Command Center Infrastructure"}
-              </p>
-            </div>
-          </div>
-
-          {/* Center Sandbox Indicator Area */}
-          <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.02] border border-white/[0.04] text-xs text-slate-400 font-mono">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span>HQ_NODE_ACTIVE //SECURE</span>
-          </div>
-          
-          <div className="flex items-center gap-3">
-            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text
+              <div className="absolute inset-0 bg-white/10 opacity
