@@ -1,5 +1,5 @@
 
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState, useRef } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
@@ -45,11 +45,6 @@ import {
 } from "@/lib/live-actions.functions";
 import { getOrRefreshYouTubeToken } from "@/lib/youtube-token-manager.functions";
 
-export const Route = createFileRoute("/live-streaming-setup")({
-  component: LiveStreamingSetupPage,
-});
-
-// Types for Multi-Camera Setup
 interface CameraSource {
   id: string;
   name: string;
@@ -66,7 +61,8 @@ interface Scene {
   sourceIds: string[];
 }
 
-function LiveStreamingSetupPage() {
+// lazyRouteComponent ద్వారా లోడ్ అవ్వడానికి ఇక్కడ default function ఉండాలి
+export default function LiveStreamingSetupPage() {
   const navigate = useNavigate();
 
   // YouTube States
@@ -138,7 +134,7 @@ function LiveStreamingSetupPage() {
 
   const isConnectedRef = useRef(false);
 
-  // Client-only flag for execution safety
+  // Safety Client Trigger
   const [isClient, setIsClient] = useState(false);
   useEffect(() => {
     setIsClient(true);
@@ -213,7 +209,6 @@ function LiveStreamingSetupPage() {
 
   const safeRoomName = streamTitle ? `room-${streamTitle.toLowerCase().replace(/[^a-z0-9]/g, "-")}` : "live-studio-room";
 
-  // Prevent useLiveKitRoom hook execution context from failing on server side
   const { room, isConnected, connect, disconnect, toggleCameraTrack, toggleMicTrack } = useLiveKitRoom({
     url: isClient ? (liveKitUrl || "") : "",
     token: isClient ? (liveKitToken || "") : "",
@@ -231,13 +226,12 @@ function LiveStreamingSetupPage() {
     }
   });
 
-  // If building on server, render clean placeholder to avoid hydration discrepancies
   if (!isClient) {
     return <div className="p-6 text-center text-muted-foreground">Loading Broadcasting Studio Matrix...</div>;
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
+    <div className="p-6 max-w-7xl mx-auto space-y-6 text-foreground">
       {/* Header Studio Controls */}
       <div className="flex justify-between items-center bg-card p-4 border rounded-xl shadow-sm">
         <div className="flex items-center space-x-3">
@@ -253,7 +247,7 @@ function LiveStreamingSetupPage() {
         <div className="flex items-center space-x-2">
           <button 
             onClick={previewActive ? stopLocalPreview : startLocalPreview}
-            className="flex items-center space-x-2 px-3 py-1.5 border rounded-lg text-sm font-medium transition hover:bg-muted"
+            className="flex items-center space-x-2 px-3 py-1.5 border rounded-lg text-sm font-medium transition hover:bg-muted bg-background cursor-pointer"
           >
             <Tv className="w-4 h-4" />
             <span>{previewActive ? "Turn Off Monitors" : "Initialize Monitors"}</span>
@@ -331,7 +325,7 @@ function LiveStreamingSetupPage() {
                   value={streamTitle}
                   onChange={(e) => setStreamTitle(e.target.value)}
                   placeholder="e.g., Sunday Worship Live Stream" 
-                  className="w-full text-sm border rounded-lg px-3 py-2 bg-background focus:outline-hidden focus:ring-1 focus:ring-primary"
+                  className="w-full text-sm border rounded-lg px-3 py-2 bg-background focus:outline-hidden focus:ring-1 focus:ring-primary text-foreground"
                 />
               </div>
 
@@ -342,7 +336,7 @@ function LiveStreamingSetupPage() {
                   onChange={(e) => setStreamDescription(e.target.value)}
                   placeholder="Provide details about your live broadcast..." 
                   rows={3}
-                  className="w-full text-sm border rounded-lg px-3 py-2 bg-background focus:outline-hidden focus:ring-1 focus:ring-primary resize-none"
+                  className="w-full text-sm border rounded-lg px-3 py-2 bg-background focus:outline-hidden focus:ring-1 focus:ring-primary text-foreground resize-none"
                 />
               </div>
             </div>
@@ -350,7 +344,7 @@ function LiveStreamingSetupPage() {
             <div className="pt-2">
               <button 
                 disabled={!streamTitle || isConnecting}
-                className="w-full flex items-center justify-center space-x-2 py-2.5 bg-primary text-primary-foreground font-medium rounded-lg text-sm transition hover:bg-primary/90 disabled:opacity-50"
+                className="w-full flex items-center justify-center space-x-2 py-2.5 bg-primary text-primary-foreground font-medium rounded-lg text-sm transition hover:bg-primary/90 disabled:opacity-50 cursor-pointer"
               >
                 {isConnecting ? (
                   <>
