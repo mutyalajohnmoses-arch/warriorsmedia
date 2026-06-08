@@ -200,6 +200,27 @@ function LiveStreamingSetupPage() {
     return () => { cancelled = true; };
   }, []);
 
+  // Auto-init camera/mic preview on mount
+  useEffect(() => {
+    startLocalPreview();
+    return () => {
+      stopLocalPreview();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Track LiveKit connected state in a ref (used by stopLocalPreview)
+  useEffect(() => {
+    isConnectedRef.current = isConnected;
+    // When LiveKit connects, stop local preview stream so LiveKit owns the device
+    if (isConnected && localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach((t) => t.stop());
+      localStreamRef.current = null;
+      if (videoRef.current) videoRef.current.srcObject = null;
+      setPreviewActive(false);
+    }
+  }, [isConnected]);
+
   useEffect(() => {
     if (!room || !isConnected || !generatedRtmpUrl || currentEgressId || isEgressActive) return;
 
