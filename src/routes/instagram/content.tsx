@@ -32,8 +32,22 @@ function InstagramContentLibrary() {
   const [filterStatus, setFilterStatus] = useState("all");
 
   const contentItems = [
-    { id: 1, title: "Morning Worship", type: "video", status: "published", date: "2 days ago", views: 1234 },
-    { id: 2, title: "Praise & Worship", type: "reel", status: "scheduled", date: "Tomorrow", views: 0 },
+    {
+      id: 1,
+      title: "Morning Worship",
+      type: "video",
+      status: "published",
+      date: "2 days ago",
+      views: 1234,
+    },
+    {
+      id: 2,
+      title: "Praise & Worship",
+      type: "reel",
+      status: "scheduled",
+      date: "Tomorrow",
+      views: 0,
+    },
     { id: 3, title: "Prayer Session", type: "story", status: "draft", date: "Today", views: 0 },
   ];
 
@@ -91,12 +105,19 @@ function InstagramContentLibrary() {
 
         <div className="space-y-3">
           {contentItems.map((item) => (
-            <div key={item.id} className="p-4 rounded-xl border border-border bg-card/40 hover:bg-card/60 transition flex items-center justify-between">
+            <div
+              key={item.id}
+              className="p-4 rounded-xl border border-border bg-card/40 hover:bg-card/60 transition flex items-center justify-between"
+            >
               <div className="flex items-center gap-4 flex-1">
                 <div className="w-16 h-16 rounded-lg bg-black/50 flex items-center justify-center">
                   {item.type === "video" && <Video className="w-6 h-6 text-muted-foreground/50" />}
-                  {item.type === "reel" && <Clapperboard className="w-6 h-6 text-muted-foreground/50" />}
-                  {item.type === "story" && <History className="w-6 h-6 text-muted-foreground/50" />}
+                  {item.type === "reel" && (
+                    <Clapperboard className="w-6 h-6 text-muted-foreground/50" />
+                  )}
+                  {item.type === "story" && (
+                    <History className="w-6 h-6 text-muted-foreground/50" />
+                  )}
                 </div>
                 <div className="flex-1">
                   <h3 className="font-bold mb-1">{item.title}</h3>
@@ -108,11 +129,15 @@ function InstagramContentLibrary() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <span className={`px-2 py-1 rounded text-xs font-medium capitalize ${
-                  item.status === "published" ? "bg-green-500/20 text-green-500" :
-                  item.status === "scheduled" ? "bg-blue-500/20 text-blue-500" :
-                  "bg-gray-500/20 text-gray-500"
-                }`}>
+                <span
+                  className={`px-2 py-1 rounded text-xs font-medium capitalize ${
+                    item.status === "published"
+                      ? "bg-green-500/20 text-green-500"
+                      : item.status === "scheduled"
+                        ? "bg-blue-500/20 text-blue-500"
+                        : "bg-gray-500/20 text-gray-500"
+                  }`}
+                >
                   {item.status}
                 </span>
                 <button className="p-2 hover:bg-background rounded transition">

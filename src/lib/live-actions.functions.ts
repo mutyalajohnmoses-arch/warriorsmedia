@@ -1,4 +1,3 @@
-
 import { createServerFn } from "@tanstack/react-start";
 import { AccessToken, EgressClient, StreamOutput, StreamProtocol } from "livekit-server-sdk";
 
@@ -47,7 +46,11 @@ async function ytFetch(accessToken: string, path: string, init: RequestInit = {}
   });
   const text = await res.text();
   let json: any;
-  try { json = text ? JSON.parse(text) : {}; } catch { json = { raw: text }; }
+  try {
+    json = text ? JSON.parse(text) : {};
+  } catch {
+    json = { raw: text };
+  }
   if (!res.ok) {
     throw new Error(`YouTube API ${res.status}: ${json?.error?.message || text}`);
   }
@@ -55,27 +58,33 @@ async function ytFetch(accessToken: string, path: string, init: RequestInit = {}
 }
 
 export const createYouTubeLivePipeline = createServerFn({ method: "POST" })
-  .inputValidator((data: { accessToken: string; title: string; description: string; privacy: string }) => data)
+  .inputValidator(
+    (data: { accessToken: string; title: string; description: string; privacy: string }) => data,
+  )
   .handler(async ({ data }) => {
     // A: broadcast
-    const broadcast = await ytFetch(data.accessToken, "liveBroadcasts?part=snippet,status,contentDetails", {
-      method: "POST",
-      body: JSON.stringify({
-        snippet: {
-          title: data.title,
-          description: data.description,
-          scheduledStartTime: new Date().toISOString(),
-        },
-        status: {
-          privacyStatus: data.privacy,
-          selfDeclaredMadeForKids: false,
-        },
-        contentDetails: {
-          enableAutoStart: true,
-          enableAutoEnd: true,
-        },
-      }),
-    });
+    const broadcast = await ytFetch(
+      data.accessToken,
+      "liveBroadcasts?part=snippet,status,contentDetails",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          snippet: {
+            title: data.title,
+            description: data.description,
+            scheduledStartTime: new Date().toISOString(),
+          },
+          status: {
+            privacyStatus: data.privacy,
+            selfDeclaredMadeForKids: false,
+          },
+          contentDetails: {
+            enableAutoStart: true,
+            enableAutoEnd: true,
+          },
+        }),
+      },
+    );
 
     // B: stream
     const stream = await ytFetch(data.accessToken, "liveStreams?part=snippet,cdn", {
@@ -143,14 +152,16 @@ export const stopLiveKitEgress = createServerFn({ method: "POST" })
     const egressClient = new EgressClient(url, apiKey, apiSecret);
     const response = await egressClient.stopEgress(data.egressId);
     return { egressId: response.egressId };
-  }); 
+  });
 
 // --- మీ పాత కోడ్ పైన ఉంది, ఈ క్రింది ఫంక్షన్‌ను కింద యాడ్ చేశాను ---
 
 export const generateAIThumbnailServerFn = createServerFn({
   method: "POST",
 })
-  .inputValidator((data: { prompt: string; streamTitle: string; baseImageB64?: string | null }) => data)
+  .inputValidator(
+    (data: { prompt: string; streamTitle: string; baseImageB64?: string | null }) => data,
+  )
   .handler(async ({ data }) => {
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
@@ -181,11 +192,14 @@ export const generateAIThumbnailServerFn = createServerFn({
               {
                 role: "user",
                 content: [
-                  { type: "text", text: "Describe the visual subject, art style, character framing, and color palette of this image in detail so it can be re-created or heavily referenced in a new DALL-E 3 prompt." },
-                  { type: "image_url", image_url: { url: data.baseImageB64 } }
-                ]
-              }
-            ]
+                  {
+                    type: "text",
+                    text: "Describe the visual subject, art style, character framing, and color palette of this image in detail so it can be re-created or heavily referenced in a new DALL-E 3 prompt.",
+                  },
+                  { type: "image_url", image_url: { url: data.baseImageB64 } },
+                ],
+              },
+            ],
           }),
         });
 

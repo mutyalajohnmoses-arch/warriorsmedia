@@ -1,17 +1,50 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
-  Users, Briefcase, DollarSign, TrendingUp, Video, Music2, Sparkles,
-  ArrowUpRight, ArrowDownRight, MoreHorizontal, Search, Bell, Plus,
-  Play, Pause, CheckCircle2, Clock, Activity, Zap, Globe, Instagram,
-  Youtube, Twitter, Cpu, Wand2, Mic, Film, Image as ImageIcon,
-  ChevronRight, Star, Calendar, Target, LayoutGrid, MessageSquare,
+  Users,
+  Briefcase,
+  DollarSign,
+  TrendingUp,
+  Video,
+  Music2,
+  Sparkles,
+  ArrowUpRight,
+  ArrowDownRight,
+  MoreHorizontal,
+  Search,
+  Bell,
+  Plus,
+  Play,
+  Pause,
+  CheckCircle2,
+  Clock,
+  Activity,
+  Zap,
+  Globe,
+  Instagram,
+  Youtube,
+  Twitter,
+  Cpu,
+  Wand2,
+  Mic,
+  Film,
+  Image as ImageIcon,
+  ChevronRight,
+  Star,
+  Calendar,
+  Target,
+  LayoutGrid,
+  MessageSquare,
 } from "lucide-react";
 
 export const Route = createFileRoute("/studio")({
   head: () => ({
     meta: [
       { title: "Warriors Studio — Command Center" },
-      { name: "description", content: "Ultra-premium command center for Warriors Studio: team, clients, projects, revenue, social, video, music and AI tools." },
+      {
+        name: "description",
+        content:
+          "Ultra-premium command center for Warriors Studio: team, clients, projects, revenue, social, video, music and AI tools.",
+      },
     ],
   }),
   component: StudioDashboard,
@@ -20,17 +53,30 @@ export const Route = createFileRoute("/studio")({
 /* ---------- shared atoms ---------- */
 
 function GlassCard({
-  children, className = "", hover = true,
-}: { children: React.ReactNode; className?: string; hover?: boolean }) {
+  children,
+  className = "",
+  hover = true,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  hover?: boolean;
+}) {
   return (
     <div
       className={`group relative rounded-2xl p-[1px] bg-gradient-to-br from-white/25 via-white/5 to-white/15 ${
-        hover ? "transition-all duration-500 hover:from-violet-300/50 hover:via-blue-300/20 hover:to-fuchsia-300/40 hover:-translate-y-0.5" : ""
+        hover
+          ? "transition-all duration-500 hover:from-violet-300/50 hover:via-blue-300/20 hover:to-fuchsia-300/40 hover:-translate-y-0.5"
+          : ""
       } ${className}`}
     >
       <div className="relative h-full w-full rounded-2xl bg-white/[0.04] backdrop-blur-xl overflow-hidden">
-        <div className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-             style={{ background: "radial-gradient(600px circle at var(--x,50%) var(--y,50%), rgba(139,92,246,0.18), transparent 40%)" }} />
+        <div
+          className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+          style={{
+            background:
+              "radial-gradient(600px circle at var(--x,50%) var(--y,50%), rgba(139,92,246,0.18), transparent 40%)",
+          }}
+        />
         {children}
       </div>
     </div>
@@ -38,9 +84,18 @@ function GlassCard({
 }
 
 function KpiCard({
-  icon: Icon, label, value, delta, up = true, accent = "violet",
+  icon: Icon,
+  label,
+  value,
+  delta,
+  up = true,
+  accent = "violet",
 }: {
-  icon: any; label: string; value: string; delta: string; up?: boolean;
+  icon: any;
+  label: string;
+  value: string;
+  delta: string;
+  up?: boolean;
   accent?: "violet" | "blue" | "fuchsia" | "cyan";
 }) {
   const grads: Record<string, string> = {
@@ -53,12 +108,16 @@ function KpiCard({
     <GlassCard>
       <div className="p-6">
         <div className="flex items-start justify-between">
-          <div className={`inline-flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br ${grads[accent]} shadow-[0_8px_30px_-6px_rgba(139,92,246,0.5)]`}>
+          <div
+            className={`inline-flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br ${grads[accent]} shadow-[0_8px_30px_-6px_rgba(139,92,246,0.5)]`}
+          >
             <Icon className="h-5 w-5 text-white" />
           </div>
-          <span className={`inline-flex items-center gap-1 text-xs font-medium rounded-full px-2 py-1 backdrop-blur ${
-            up ? "bg-emerald-400/10 text-emerald-300" : "bg-rose-400/10 text-rose-300"
-          }`}>
+          <span
+            className={`inline-flex items-center gap-1 text-xs font-medium rounded-full px-2 py-1 backdrop-blur ${
+              up ? "bg-emerald-400/10 text-emerald-300" : "bg-rose-400/10 text-rose-300"
+            }`}
+          >
             {up ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
             {delta}
           </span>
@@ -68,14 +127,25 @@ function KpiCard({
           <p className="mt-2 text-3xl font-semibold tracking-tight text-white">{value}</p>
         </div>
         <div className="mt-5 h-1.5 rounded-full bg-white/5 overflow-hidden">
-          <div className={`h-full bg-gradient-to-r ${grads[accent]} animate-[shimmer_3s_ease-in-out_infinite]`} style={{ width: "72%" }} />
+          <div
+            className={`h-full bg-gradient-to-r ${grads[accent]} animate-[shimmer_3s_ease-in-out_infinite]`}
+            style={{ width: "72%" }}
+          />
         </div>
       </div>
     </GlassCard>
   );
 }
 
-function SectionHeader({ eyebrow, title, action }: { eyebrow: string; title: string; action?: React.ReactNode }) {
+function SectionHeader({
+  eyebrow,
+  title,
+  action,
+}: {
+  eyebrow: string;
+  title: string;
+  action?: React.ReactNode;
+}) {
   return (
     <div className="flex items-end justify-between mb-5">
       <div>
@@ -90,10 +160,25 @@ function SectionHeader({ eyebrow, title, action }: { eyebrow: string; title: str
 /* ---------- data ---------- */
 
 const team = [
-  { name: "Mutyala John Moses", role: "Music Producer", load: 82, color: "from-violet-500 to-fuchsia-500" },
+  {
+    name: "Mutyala John Moses",
+    role: "Music Producer",
+    load: 82,
+    color: "from-violet-500 to-fuchsia-500",
+  },
   { name: "Andra Akula Raju", role: "Voice Analyst", load: 64, color: "from-blue-500 to-cyan-500" },
-  { name: "Stanley Nuthalpati", role: "Lead Developer", load: 91, color: "from-fuchsia-500 to-pink-500" },
-  { name: "Somesh Kumar", role: "Social Analyst", load: 47, color: "from-indigo-500 to-violet-500" },
+  {
+    name: "Stanley Nuthalpati",
+    role: "Lead Developer",
+    load: 91,
+    color: "from-fuchsia-500 to-pink-500",
+  },
+  {
+    name: "Somesh Kumar",
+    role: "Social Analyst",
+    load: 47,
+    color: "from-indigo-500 to-violet-500",
+  },
   { name: "Karthick", role: "Video Editor", load: 73, color: "from-cyan-400 to-blue-500" },
 ];
 
@@ -112,10 +197,34 @@ const projects = [
 ];
 
 const socials = [
-  { icon: Instagram, name: "Instagram", followers: "284.2K", growth: "+4.8%", color: "from-fuchsia-500 to-pink-500" },
-  { icon: Youtube, name: "YouTube", followers: "1.2M", growth: "+7.1%", color: "from-rose-500 to-red-500" },
-  { icon: Twitter, name: "X / Twitter", followers: "92.4K", growth: "+2.3%", color: "from-sky-500 to-blue-500" },
-  { icon: Globe, name: "Website", followers: "412K /mo", growth: "+11.6%", color: "from-violet-500 to-indigo-500" },
+  {
+    icon: Instagram,
+    name: "Instagram",
+    followers: "284.2K",
+    growth: "+4.8%",
+    color: "from-fuchsia-500 to-pink-500",
+  },
+  {
+    icon: Youtube,
+    name: "YouTube",
+    followers: "1.2M",
+    growth: "+7.1%",
+    color: "from-rose-500 to-red-500",
+  },
+  {
+    icon: Twitter,
+    name: "X / Twitter",
+    followers: "92.4K",
+    growth: "+2.3%",
+    color: "from-sky-500 to-blue-500",
+  },
+  {
+    icon: Globe,
+    name: "Website",
+    followers: "412K /mo",
+    growth: "+11.6%",
+    color: "from-violet-500 to-indigo-500",
+  },
 ];
 
 const pipeline = [
@@ -186,23 +295,37 @@ function StudioDashboard() {
             </div>
             <div>
               <p className="text-sm font-semibold tracking-tight">Warriors Studio</p>
-              <p className="text-[10px] uppercase tracking-[0.25em] text-white/40">Command Center</p>
+              <p className="text-[10px] uppercase tracking-[0.25em] text-white/40">
+                Command Center
+              </p>
             </div>
           </Link>
 
           <nav className="hidden md:flex items-center gap-1 ml-6 text-sm">
             {["Overview", "Projects", "Clients", "Revenue", "Studio"].map((i, idx) => (
-              <button key={i} className={`px-3 py-1.5 rounded-lg transition ${
-                idx === 0 ? "bg-white/10 text-white" : "text-white/60 hover:text-white hover:bg-white/5"
-              }`}>{i}</button>
+              <button
+                key={i}
+                className={`px-3 py-1.5 rounded-lg transition ${
+                  idx === 0
+                    ? "bg-white/10 text-white"
+                    : "text-white/60 hover:text-white hover:bg-white/5"
+                }`}
+              >
+                {i}
+              </button>
             ))}
           </nav>
 
           <div className="ml-auto flex items-center gap-3">
             <div className="hidden md:flex items-center gap-2 rounded-xl bg-white/5 border border-white/10 px-3 py-2 w-72">
               <Search className="h-4 w-4 text-white/40" />
-              <input placeholder="Search projects, clients, assets…" className="bg-transparent outline-none text-sm placeholder:text-white/30 w-full" />
-              <kbd className="text-[10px] text-white/40 border border-white/10 rounded px-1.5 py-0.5">⌘K</kbd>
+              <input
+                placeholder="Search projects, clients, assets…"
+                className="bg-transparent outline-none text-sm placeholder:text-white/30 w-full"
+              />
+              <kbd className="text-[10px] text-white/40 border border-white/10 rounded px-1.5 py-0.5">
+                ⌘K
+              </kbd>
             </div>
             <button className="relative h-10 w-10 rounded-xl bg-white/5 border border-white/10 grid place-items-center hover:bg-white/10 transition">
               <Bell className="h-4 w-4" />
@@ -224,10 +347,16 @@ function StudioDashboard() {
               All systems nominal · Q2 on track
             </div>
             <h1 className="mt-4 text-4xl md:text-5xl font-semibold tracking-tight leading-[1.05]">
-              Good evening, <span className="bg-gradient-to-r from-violet-300 via-fuchsia-300 to-blue-300 bg-clip-text text-transparent">Moses</span>.
+              Good evening,{" "}
+              <span className="bg-gradient-to-r from-violet-300 via-fuchsia-300 to-blue-300 bg-clip-text text-transparent">
+                Moses
+              </span>
+              .
             </h1>
             <p className="mt-3 text-white/60 max-w-xl">
-              Your studio shipped <span className="text-white">14 deliverables</span> this week. Revenue is up <span className="text-emerald-300">+18.4%</span> and pipeline value crossed <span className="text-white">$420K</span>.
+              Your studio shipped <span className="text-white">14 deliverables</span> this week.
+              Revenue is up <span className="text-emerald-300">+18.4%</span> and pipeline value
+              crossed <span className="text-white">$420K</span>.
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -242,10 +371,22 @@ function StudioDashboard() {
 
         {/* KPIs */}
         <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          <KpiCard icon={DollarSign} label="Revenue (MTD)" value="$284,920" delta="+18.4%" accent="violet" />
+          <KpiCard
+            icon={DollarSign}
+            label="Revenue (MTD)"
+            value="$284,920"
+            delta="+18.4%"
+            accent="violet"
+          />
           <KpiCard icon={Briefcase} label="Active Projects" value="27" delta="+4" accent="blue" />
           <KpiCard icon={Users} label="Clients" value="142" delta="+9" accent="fuchsia" />
-          <KpiCard icon={TrendingUp} label="Pipeline Value" value="$1.42M" delta="+12.1%" accent="cyan" />
+          <KpiCard
+            icon={TrendingUp}
+            label="Pipeline Value"
+            value="$1.42M"
+            delta="+12.1%"
+            accent="cyan"
+          />
         </section>
 
         {/* Revenue + Social */}
@@ -254,12 +395,19 @@ function StudioDashboard() {
             <div className="p-6">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-[10px] uppercase tracking-[0.3em] text-violet-300/80">Revenue Analytics</p>
+                  <p className="text-[10px] uppercase tracking-[0.3em] text-violet-300/80">
+                    Revenue Analytics
+                  </p>
                   <h3 className="mt-1 text-xl font-semibold">12-month performance</h3>
                 </div>
                 <div className="flex items-center gap-1 text-xs rounded-lg border border-white/10 bg-white/5 p-1">
                   {["1M", "3M", "6M", "1Y"].map((p, i) => (
-                    <button key={p} className={`px-2.5 py-1 rounded-md transition ${i === 3 ? "bg-white/10 text-white" : "text-white/50 hover:text-white"}`}>{p}</button>
+                    <button
+                      key={p}
+                      className={`px-2.5 py-1 rounded-md transition ${i === 3 ? "bg-white/10 text-white" : "text-white/50 hover:text-white"}`}
+                    >
+                      {p}
+                    </button>
                   ))}
                 </div>
               </div>
@@ -287,12 +435,19 @@ function StudioDashboard() {
                   />
                   <path
                     d="M0,170 C50,150 80,120 120,130 C170,142 200,80 250,90 C300,100 330,60 380,70 C430,80 470,40 520,55 C560,67 580,45 600,50"
-                    fill="none" stroke="url(#revLine)" strokeWidth="2.5" strokeLinecap="round"
+                    fill="none"
+                    stroke="url(#revLine)"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
                   />
                 </svg>
                 <div className="absolute top-2 left-0 flex gap-5 text-xs text-white/60">
-                  <span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-violet-400" /> Revenue</span>
-                  <span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-blue-400" /> Forecast</span>
+                  <span className="flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-violet-400" /> Revenue
+                  </span>
+                  <span className="flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-blue-400" /> Forecast
+                  </span>
                 </div>
               </div>
             </div>
@@ -303,8 +458,13 @@ function StudioDashboard() {
               <SectionHeader eyebrow="Social" title="Audience Pulse" />
               <div className="space-y-3">
                 {socials.map((s) => (
-                  <div key={s.name} className="flex items-center gap-3 rounded-xl border border-white/5 bg-white/[0.03] hover:bg-white/[0.06] transition p-3">
-                    <div className={`h-10 w-10 rounded-xl bg-gradient-to-br ${s.color} grid place-items-center shadow-lg`}>
+                  <div
+                    key={s.name}
+                    className="flex items-center gap-3 rounded-xl border border-white/5 bg-white/[0.03] hover:bg-white/[0.06] transition p-3"
+                  >
+                    <div
+                      className={`h-10 w-10 rounded-xl bg-gradient-to-br ${s.color} grid place-items-center shadow-lg`}
+                    >
                       <s.icon className="h-4 w-4 text-white" />
                     </div>
                     <div className="flex-1">
@@ -326,21 +486,33 @@ function StudioDashboard() {
               <SectionHeader
                 eyebrow="Pipeline"
                 title="Project Tracking"
-                action={<button className="text-xs text-white/60 hover:text-white inline-flex items-center gap-1">View all <ChevronRight className="h-3 w-3" /></button>}
+                action={
+                  <button className="text-xs text-white/60 hover:text-white inline-flex items-center gap-1">
+                    View all <ChevronRight className="h-3 w-3" />
+                  </button>
+                }
               />
               <div className="space-y-2">
                 {projects.map((p) => (
-                  <div key={p.name} className="group/row grid grid-cols-12 items-center gap-4 rounded-xl border border-white/5 bg-white/[0.03] hover:bg-white/[0.07] hover:border-white/10 transition p-4">
+                  <div
+                    key={p.name}
+                    className="group/row grid grid-cols-12 items-center gap-4 rounded-xl border border-white/5 bg-white/[0.03] hover:bg-white/[0.07] hover:border-white/10 transition p-4"
+                  >
                     <div className="col-span-5">
                       <p className="text-sm font-medium">{p.name}</p>
                       <p className="text-xs text-white/50 mt-0.5">Due {p.due}</p>
                     </div>
                     <div className="col-span-2">
-                      <span className="text-[10px] uppercase tracking-widest text-violet-300/80 border border-violet-300/20 rounded-full px-2 py-1">{p.stage}</span>
+                      <span className="text-[10px] uppercase tracking-widest text-violet-300/80 border border-violet-300/20 rounded-full px-2 py-1">
+                        {p.stage}
+                      </span>
                     </div>
                     <div className="col-span-4">
                       <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
-                        <div className="h-full bg-gradient-to-r from-violet-400 via-blue-400 to-fuchsia-400" style={{ width: `${p.progress}%` }} />
+                        <div
+                          className="h-full bg-gradient-to-r from-violet-400 via-blue-400 to-fuchsia-400"
+                          style={{ width: `${p.progress}%` }}
+                        />
                       </div>
                     </div>
                     <div className="col-span-1 text-right text-xs text-white/70">{p.progress}%</div>
@@ -356,8 +528,14 @@ function StudioDashboard() {
               <div className="space-y-4">
                 {team.map((m) => (
                   <div key={m.name} className="flex items-center gap-3">
-                    <div className={`relative h-10 w-10 rounded-full bg-gradient-to-br ${m.color} grid place-items-center text-xs font-semibold`}>
-                      {m.name.split(" ").map(n => n[0]).slice(0, 2).join("")}
+                    <div
+                      className={`relative h-10 w-10 rounded-full bg-gradient-to-br ${m.color} grid place-items-center text-xs font-semibold`}
+                    >
+                      {m.name
+                        .split(" ")
+                        .map((n) => n[0])
+                        .slice(0, 2)
+                        .join("")}
                       <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-400 ring-2 ring-[#070314]" />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -367,7 +545,10 @@ function StudioDashboard() {
                       </div>
                       <p className="text-[11px] text-white/50">{m.role}</p>
                       <div className="mt-1.5 h-1 rounded-full bg-white/5 overflow-hidden">
-                        <div className={`h-full bg-gradient-to-r ${m.color}`} style={{ width: `${m.load}%` }} />
+                        <div
+                          className={`h-full bg-gradient-to-r ${m.color}`}
+                          style={{ width: `${m.load}%` }}
+                        />
                       </div>
                     </div>
                   </div>
@@ -384,7 +565,11 @@ function StudioDashboard() {
               <SectionHeader
                 eyebrow="Accounts"
                 title="Client Management"
-                action={<button className="text-xs inline-flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 hover:bg-white/10"><Plus className="h-3 w-3" /> Add client</button>}
+                action={
+                  <button className="text-xs inline-flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 hover:bg-white/10">
+                    <Plus className="h-3 w-3" /> Add client
+                  </button>
+                }
               />
               <div className="overflow-hidden rounded-xl border border-white/5">
                 <table className="w-full text-sm">
@@ -399,7 +584,10 @@ function StudioDashboard() {
                   </thead>
                   <tbody>
                     {clients.map((c) => (
-                      <tr key={c.name} className="border-t border-white/5 hover:bg-white/[0.04] transition">
+                      <tr
+                        key={c.name}
+                        className="border-t border-white/5 hover:bg-white/[0.04] transition"
+                      >
                         <td className="px-4 py-3.5">
                           <div className="flex items-center gap-3">
                             <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-violet-500/40 to-blue-500/40 border border-white/10 grid place-items-center text-xs">
@@ -411,14 +599,20 @@ function StudioDashboard() {
                         <td className="px-4 py-3.5 text-white/70">{c.tier}</td>
                         <td className="px-4 py-3.5">{c.value}</td>
                         <td className="px-4 py-3.5">
-                          <span className={`text-[11px] rounded-full px-2 py-1 ${
-                            c.status === "Active"
-                              ? "bg-emerald-400/10 text-emerald-300"
-                              : "bg-indigo-300/10 text-indigo-300"
-                          }`}>{c.status}</span>
+                          <span
+                            className={`text-[11px] rounded-full px-2 py-1 ${
+                              c.status === "Active"
+                                ? "bg-emerald-400/10 text-emerald-300"
+                                : "bg-indigo-300/10 text-indigo-300"
+                            }`}
+                          >
+                            {c.status}
+                          </span>
                         </td>
                         <td className="px-4 py-3.5 text-right">
-                          <button className="text-white/40 hover:text-white"><MoreHorizontal className="h-4 w-4" /></button>
+                          <button className="text-white/40 hover:text-white">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -466,7 +660,10 @@ function StudioDashboard() {
                   { l: "Mastered", v: "57" },
                   { l: "Queue", v: "12" },
                 ].map((s) => (
-                  <div key={s.l} className="rounded-lg border border-white/5 bg-white/[0.03] py-2.5">
+                  <div
+                    key={s.l}
+                    className="rounded-lg border border-white/5 bg-white/[0.03] py-2.5"
+                  >
                     <p className="text-lg font-semibold">{s.v}</p>
                     <p className="text-[10px] uppercase tracking-widest text-white/40">{s.l}</p>
                   </div>
@@ -493,7 +690,10 @@ function StudioDashboard() {
                   <p className="text-xs text-white/50">{p.stage}</p>
                   <div className="mt-3 flex gap-1">
                     {Array.from({ length: 5 }).map((_, i) => (
-                      <div key={i} className={`h-1 flex-1 rounded-full ${i <= idx ? "bg-gradient-to-r from-violet-400 to-fuchsia-400" : "bg-white/5"}`} />
+                      <div
+                        key={i}
+                        className={`h-1 flex-1 rounded-full ${i <= idx ? "bg-gradient-to-r from-violet-400 to-fuchsia-400" : "bg-white/5"}`}
+                      />
                     ))}
                   </div>
                 </div>
@@ -509,11 +709,18 @@ function StudioDashboard() {
               <SectionHeader
                 eyebrow="Intelligence"
                 title="AI Tools Management"
-                action={<span className="inline-flex items-center gap-1.5 text-xs text-violet-300"><Zap className="h-3 w-3" /> 24.6K credits</span>}
+                action={
+                  <span className="inline-flex items-center gap-1.5 text-xs text-violet-300">
+                    <Zap className="h-3 w-3" /> 24.6K credits
+                  </span>
+                }
               />
               <div className="grid sm:grid-cols-2 gap-3">
                 {aiTools.map((t) => (
-                  <div key={t.name} className="group/ai rounded-xl border border-white/5 bg-gradient-to-br from-white/[0.04] to-transparent p-4 hover:border-violet-300/30 transition">
+                  <div
+                    key={t.name}
+                    className="group/ai rounded-xl border border-white/5 bg-gradient-to-br from-white/[0.04] to-transparent p-4 hover:border-violet-300/30 transition"
+                  >
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3">
                         <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-violet-500 to-blue-500 grid place-items-center shadow-[0_8px_30px_-6px_rgba(99,102,241,0.6)]">
@@ -521,10 +728,14 @@ function StudioDashboard() {
                         </div>
                         <div>
                           <p className="text-sm font-medium">{t.name}</p>
-                          <p className="text-[10px] uppercase tracking-widest text-white/40">{t.tag}</p>
+                          <p className="text-[10px] uppercase tracking-widest text-white/40">
+                            {t.tag}
+                          </p>
                         </div>
                       </div>
-                      <button className="opacity-0 group-hover/ai:opacity-100 transition text-xs rounded-lg border border-white/10 bg-white/5 px-2 py-1">Open</button>
+                      <button className="opacity-0 group-hover/ai:opacity-100 transition text-xs rounded-lg border border-white/10 bg-white/5 px-2 py-1">
+                        Open
+                      </button>
                     </div>
                     <div className="mt-4">
                       <div className="flex items-center justify-between text-xs text-white/50 mb-1.5">
@@ -532,7 +743,10 @@ function StudioDashboard() {
                         <span className="text-white/80">{t.usage}%</span>
                       </div>
                       <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
-                        <div className="h-full bg-gradient-to-r from-violet-400 via-fuchsia-400 to-blue-400" style={{ width: `${t.usage}%` }} />
+                        <div
+                          className="h-full bg-gradient-to-r from-violet-400 via-fuchsia-400 to-blue-400"
+                          style={{ width: `${t.usage}%` }}
+                        />
                       </div>
                     </div>
                   </div>
@@ -546,14 +760,31 @@ function StudioDashboard() {
               <SectionHeader eyebrow="Live" title="Activity Stream" />
               <ul className="space-y-4">
                 {[
-                  { icon: CheckCircle2, c: "emerald", t: "Brand Film — Hosanna delivered", s: "2m ago" },
+                  {
+                    icon: CheckCircle2,
+                    c: "emerald",
+                    t: "Brand Film — Hosanna delivered",
+                    s: "2m ago",
+                  },
                   { icon: Star, c: "amber", t: "New 5★ review from Grace Cathedral", s: "18m ago" },
-                  { icon: MessageSquare, c: "violet", t: "Stanley commented on Easter 2026 Live", s: "1h ago" },
+                  {
+                    icon: MessageSquare,
+                    c: "violet",
+                    t: "Stanley commented on Easter 2026 Live",
+                    s: "1h ago",
+                  },
                   { icon: Target, c: "blue", t: "Q2 revenue goal reached 82%", s: "3h ago" },
-                  { icon: Clock, c: "fuchsia", t: "Voice session scheduled for Friday", s: "5h ago" },
+                  {
+                    icon: Clock,
+                    c: "fuchsia",
+                    t: "Voice session scheduled for Friday",
+                    s: "5h ago",
+                  },
                 ].map((a, i) => (
                   <li key={i} className="flex gap-3">
-                    <div className={`h-8 w-8 rounded-lg grid place-items-center bg-${a.c}-400/10 text-${a.c}-300 border border-${a.c}-400/20 shrink-0`}>
+                    <div
+                      className={`h-8 w-8 rounded-lg grid place-items-center bg-${a.c}-400/10 text-${a.c}-300 border border-${a.c}-400/20 shrink-0`}
+                    >
                       <a.icon className="h-4 w-4" />
                     </div>
                     <div className="flex-1">
@@ -570,7 +801,8 @@ function StudioDashboard() {
         <footer className="pt-6 pb-2 flex items-center justify-between text-xs text-white/40">
           <span>Warriors Studio · Command Center v2.0</span>
           <span className="inline-flex items-center gap-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" /> All edges connected
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" /> All edges
+            connected
           </span>
         </footer>
       </div>

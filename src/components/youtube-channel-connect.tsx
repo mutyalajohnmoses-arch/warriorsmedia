@@ -72,7 +72,6 @@ function decodeOAuthState(
   }
 }
 
-
 function publishYouTubeConnected(channelInfo: YouTubeChannelInfo, dbChannelId: string) {
   const payload = {
     channelId: channelInfo.channelId,
@@ -162,18 +161,22 @@ export function YouTubeChannelConnect({
 
     // Listen for OAuth code from callback.
     const handleMessage = async (event: MessageEvent) => {
-      console.log("[YouTubeOAuth] Message received from origin:", event.origin, "Type:", event.data?.type);
+      console.log(
+        "[YouTubeOAuth] Message received from origin:",
+        event.origin,
+        "Type:",
+        event.data?.type,
+      );
       const expectedCallbackOrigin = new URL(redirectUri).origin;
       // Relaxed origin check: allow both exact match and current window origin
-      const isAllowedOrigin = 
-        event.origin === expectedCallbackOrigin || 
-        event.origin === window.location.origin;
+      const isAllowedOrigin =
+        event.origin === expectedCallbackOrigin || event.origin === window.location.origin;
 
       if (!isAllowedOrigin) {
         console.warn("[YouTubeOAuth] Ignoring OAuth message from unexpected origin", {
           receivedOrigin: event.origin,
           expectedCallbackOrigin,
-          windowOrigin: window.location.origin
+          windowOrigin: window.location.origin,
         });
         return;
       }
@@ -224,9 +227,12 @@ export function YouTubeChannelConnect({
               redirectUri: redirectUri,
             },
           });
-          
+
           if (!tokens || !tokens.access_token) {
-            console.error("[YouTubeOAuth] exchangeCodeFn returned no tokens or access_token", tokens);
+            console.error(
+              "[YouTubeOAuth] exchangeCodeFn returned no tokens or access_token",
+              tokens,
+            );
             throw new Error("Failed to receive access token from Google");
           }
 
@@ -253,9 +259,9 @@ export function YouTubeChannelConnect({
             console.error("[YouTubeOAuth] getChannelInfoFn returned invalid info", info);
             throw new Error("Failed to fetch YouTube channel details");
           }
-          console.log("[YouTubeOAuth] YouTube channel details fetched", { 
-            channelId: info.channelId, 
-            title: info.title 
+          console.log("[YouTubeOAuth] YouTube channel details fetched", {
+            channelId: info.channelId,
+            title: info.title,
           });
           setChannelInfo(info);
 
@@ -264,7 +270,9 @@ export function YouTubeChannelConnect({
           const videos = await getVideosFn({
             data: { access_token: tokens.access_token, maxResults: 5 },
           });
-          console.log("[YouTubeOAuth] Latest YouTube videos fetched", { count: videos?.length ?? 0 });
+          console.log("[YouTubeOAuth] Latest YouTube videos fetched", {
+            count: videos?.length ?? 0,
+          });
           setLatestVideos(videos || []);
 
           // Fetch live status
@@ -309,8 +317,8 @@ export function YouTubeChannelConnect({
             throw new Error("Failed to save YouTube channel connection to database");
           }
 
-          console.log("[YouTubeOAuth] 7. YouTube channel saved successfully", { 
-            dbChannelId: saveResult.channelId 
+          console.log("[YouTubeOAuth] 7. YouTube channel saved successfully", {
+            dbChannelId: saveResult.channelId,
           });
           setDbChannelId(saveResult.channelId);
 

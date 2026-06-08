@@ -28,9 +28,33 @@ function InstagramComments() {
   const [replyText, setReplyText] = useState("");
 
   const comments = [
-    { id: 1, user: "Worship_Daily", text: "This touched my heart today. Thank you!", post: "Morning Worship Reel", time: "2m", likes: 12, approved: true },
-    { id: 2, user: "Creative_Soul", text: "What camera did you use for this?", post: "BTS Video", time: "15m", likes: 3, approved: true },
-    { id: 3, user: "Faith_Builder", text: "Amazing content!", post: "Prayer Session", time: "1h", likes: 8, approved: false },
+    {
+      id: 1,
+      user: "Worship_Daily",
+      text: "This touched my heart today. Thank you!",
+      post: "Morning Worship Reel",
+      time: "2m",
+      likes: 12,
+      approved: true,
+    },
+    {
+      id: 2,
+      user: "Creative_Soul",
+      text: "What camera did you use for this?",
+      post: "BTS Video",
+      time: "15m",
+      likes: 3,
+      approved: true,
+    },
+    {
+      id: 3,
+      user: "Faith_Builder",
+      text: "Amazing content!",
+      post: "Prayer Session",
+      time: "1h",
+      likes: 8,
+      approved: false,
+    },
   ];
 
   return (
@@ -69,15 +93,16 @@ function InstagramComments() {
 
         <div className="space-y-4">
           {comments.map((comment) => (
-            <div key={comment.id} className="p-4 rounded-xl border border-border bg-card/40 space-y-4">
+            <div
+              key={comment.id}
+              className="p-4 rounded-xl border border-border bg-card/40 space-y-4"
+            >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
                     <p className="font-bold text-sm">{comment.user}</p>
                     <span className="text-xs text-muted-foreground">{comment.time}</span>
-                    {comment.approved && (
-                      <CheckCircle2 className="w-4 h-4 text-green-500" />
-                    )}
+                    {comment.approved && <CheckCircle2 className="w-4 h-4 text-green-500" />}
                   </div>
                   <p className="text-sm text-muted-foreground mb-2">{comment.text}</p>
                   <p className="text-xs text-muted-foreground">On: {comment.post}</p>

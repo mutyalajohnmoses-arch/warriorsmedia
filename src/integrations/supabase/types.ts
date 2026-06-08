@@ -1,330 +1,322 @@
-export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[]
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
-  }
+    PostgrestVersion: "14.5";
+  };
   public: {
     Tables: {
       live_streams: {
         Row: {
-          broadcast_id: string | null
-          channel_id: string | null
-          created_at: string
-          description: string | null
-          hashtags: string[] | null
-          id: string
-          privacy_status: string | null
-          status: string | null
-          stream_id: string | null
-          thumbnail_url: string | null
-          title: string
-          updated_at: string
-          user_id: string
-        }
+          broadcast_id: string | null;
+          channel_id: string | null;
+          created_at: string;
+          description: string | null;
+          hashtags: string[] | null;
+          id: string;
+          privacy_status: string | null;
+          status: string | null;
+          stream_id: string | null;
+          thumbnail_url: string | null;
+          title: string;
+          updated_at: string;
+          user_id: string;
+        };
         Insert: {
-          broadcast_id?: string | null
-          channel_id?: string | null
-          created_at?: string
-          description?: string | null
-          hashtags?: string[] | null
-          id?: string
-          privacy_status?: string | null
-          status?: string | null
-          stream_id?: string | null
-          thumbnail_url?: string | null
-          title: string
-          updated_at?: string
-          user_id: string
-        }
+          broadcast_id?: string | null;
+          channel_id?: string | null;
+          created_at?: string;
+          description?: string | null;
+          hashtags?: string[] | null;
+          id?: string;
+          privacy_status?: string | null;
+          status?: string | null;
+          stream_id?: string | null;
+          thumbnail_url?: string | null;
+          title: string;
+          updated_at?: string;
+          user_id: string;
+        };
         Update: {
-          broadcast_id?: string | null
-          channel_id?: string | null
-          created_at?: string
-          description?: string | null
-          hashtags?: string[] | null
-          id?: string
-          privacy_status?: string | null
-          status?: string | null
-          stream_id?: string | null
-          thumbnail_url?: string | null
-          title?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
+          broadcast_id?: string | null;
+          channel_id?: string | null;
+          created_at?: string;
+          description?: string | null;
+          hashtags?: string[] | null;
+          id?: string;
+          privacy_status?: string | null;
+          status?: string | null;
+          stream_id?: string | null;
+          thumbnail_url?: string | null;
+          title?: string;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       profiles: {
         Row: {
-          avatar_url: string | null
-          created_at: string
-          email: string | null
-          full_name: string | null
-          id: string
-          updated_at: string
-        }
+          avatar_url: string | null;
+          created_at: string;
+          email: string | null;
+          full_name: string | null;
+          id: string;
+          updated_at: string;
+        };
         Insert: {
-          avatar_url?: string | null
-          created_at?: string
-          email?: string | null
-          full_name?: string | null
-          id: string
-          updated_at?: string
-        }
+          avatar_url?: string | null;
+          created_at?: string;
+          email?: string | null;
+          full_name?: string | null;
+          id: string;
+          updated_at?: string;
+        };
         Update: {
-          avatar_url?: string | null
-          created_at?: string
-          email?: string | null
-          full_name?: string | null
-          id?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
+          avatar_url?: string | null;
+          created_at?: string;
+          email?: string | null;
+          full_name?: string | null;
+          id?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       youtube_channels: {
         Row: {
-          access_token: string | null
-          banner_image_url: string | null
-          channel_id: string
-          created_at: string | null
-          custom_url: string | null
-          description: string | null
-          id: string
-          is_connected: boolean | null
-          last_synced_at: string | null
-          profile_image_url: string | null
-          published_at: string | null
-          refresh_token: string | null
-          subscriber_count: number | null
-          title: string | null
-          token_expires_at: string | null
-          updated_at: string | null
-          user_id: string | null
-          video_count: number | null
-          view_count: number | null
-        }
+          access_token: string | null;
+          banner_image_url: string | null;
+          channel_id: string;
+          created_at: string | null;
+          custom_url: string | null;
+          description: string | null;
+          id: string;
+          is_connected: boolean | null;
+          last_synced_at: string | null;
+          profile_image_url: string | null;
+          published_at: string | null;
+          refresh_token: string | null;
+          subscriber_count: number | null;
+          title: string | null;
+          token_expires_at: string | null;
+          updated_at: string | null;
+          user_id: string | null;
+          video_count: number | null;
+          view_count: number | null;
+        };
         Insert: {
-          access_token?: string | null
-          banner_image_url?: string | null
-          channel_id: string
-          created_at?: string | null
-          custom_url?: string | null
-          description?: string | null
-          id?: string
-          is_connected?: boolean | null
-          last_synced_at?: string | null
-          profile_image_url?: string | null
-          published_at?: string | null
-          refresh_token?: string | null
-          subscriber_count?: number | null
-          title?: string | null
-          token_expires_at?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-          video_count?: number | null
-          view_count?: number | null
-        }
+          access_token?: string | null;
+          banner_image_url?: string | null;
+          channel_id: string;
+          created_at?: string | null;
+          custom_url?: string | null;
+          description?: string | null;
+          id?: string;
+          is_connected?: boolean | null;
+          last_synced_at?: string | null;
+          profile_image_url?: string | null;
+          published_at?: string | null;
+          refresh_token?: string | null;
+          subscriber_count?: number | null;
+          title?: string | null;
+          token_expires_at?: string | null;
+          updated_at?: string | null;
+          user_id?: string | null;
+          video_count?: number | null;
+          view_count?: number | null;
+        };
         Update: {
-          access_token?: string | null
-          banner_image_url?: string | null
-          channel_id?: string
-          created_at?: string | null
-          custom_url?: string | null
-          description?: string | null
-          id?: string
-          is_connected?: boolean | null
-          last_synced_at?: string | null
-          profile_image_url?: string | null
-          published_at?: string | null
-          refresh_token?: string | null
-          subscriber_count?: number | null
-          title?: string | null
-          token_expires_at?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-          video_count?: number | null
-          view_count?: number | null
-        }
-        Relationships: []
-      }
+          access_token?: string | null;
+          banner_image_url?: string | null;
+          channel_id?: string;
+          created_at?: string | null;
+          custom_url?: string | null;
+          description?: string | null;
+          id?: string;
+          is_connected?: boolean | null;
+          last_synced_at?: string | null;
+          profile_image_url?: string | null;
+          published_at?: string | null;
+          refresh_token?: string | null;
+          subscriber_count?: number | null;
+          title?: string | null;
+          token_expires_at?: string | null;
+          updated_at?: string | null;
+          user_id?: string | null;
+          video_count?: number | null;
+          view_count?: number | null;
+        };
+        Relationships: [];
+      };
       youtube_videos: {
         Row: {
-          channel_id: string | null
-          created_at: string | null
-          id: string
-          published_at: string | null
-          title: string | null
-          video_id: string | null
-        }
+          channel_id: string | null;
+          created_at: string | null;
+          id: string;
+          published_at: string | null;
+          title: string | null;
+          video_id: string | null;
+        };
         Insert: {
-          channel_id?: string | null
-          created_at?: string | null
-          id?: string
-          published_at?: string | null
-          title?: string | null
-          video_id?: string | null
-        }
+          channel_id?: string | null;
+          created_at?: string | null;
+          id?: string;
+          published_at?: string | null;
+          title?: string | null;
+          video_id?: string | null;
+        };
         Update: {
-          channel_id?: string | null
-          created_at?: string | null
-          id?: string
-          published_at?: string | null
-          title?: string | null
-          video_id?: string | null
-        }
+          channel_id?: string | null;
+          created_at?: string | null;
+          id?: string;
+          published_at?: string | null;
+          title?: string | null;
+          video_id?: string | null;
+        };
         Relationships: [
           {
-            foreignKeyName: "youtube_videos_channel_id_fkey"
-            columns: ["channel_id"]
-            isOneToOne: false
-            referencedRelation: "youtube_channels"
-            referencedColumns: ["id"]
+            foreignKeyName: "youtube_videos_channel_id_fkey";
+            columns: ["channel_id"];
+            isOneToOne: false;
+            referencedRelation: "youtube_channels";
+            referencedColumns: ["id"];
           },
-        ]
-      }
-    }
+        ];
+      };
+    };
     Views: {
-      [_ in never]: never
-    }
+      [_ in never]: never;
+    };
     Functions: {
-      [_ in never]: never
-    }
+      [_ in never]: never;
+    };
     Enums: {
-      [_ in never]: never
-    }
+      [_ in never]: never;
+    };
     CompositeTypes: {
-      [_ in never]: never
-    }
-  }
-}
+      [_ in never]: never;
+    };
+  };
+};
 
-type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">;
 
-type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">];
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+    schema: keyof DatabaseWithoutInternals;
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
     : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
+  schema: keyof DatabaseWithoutInternals;
 }
   ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
       DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
-      Row: infer R
+      Row: infer R;
     }
     ? R
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])
-    ? (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
-        Row: infer R
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] & DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R;
       }
       ? R
       : never
-    : never
+    : never;
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+    schema: keyof DatabaseWithoutInternals;
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
+  schema: keyof DatabaseWithoutInternals;
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Insert: infer I
+      Insert: infer I;
     }
     ? I
     : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
     ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Insert: infer I
+        Insert: infer I;
       }
       ? I
       : never
-    : never
+    : never;
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+    schema: keyof DatabaseWithoutInternals;
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
+  schema: keyof DatabaseWithoutInternals;
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Update: infer U
+      Update: infer U;
     }
     ? U
     : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
     ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Update: infer U
+        Update: infer U;
       }
       ? U
       : never
-    : never
+    : never;
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+    schema: keyof DatabaseWithoutInternals;
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
 > = DefaultSchemaEnumNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
+  schema: keyof DatabaseWithoutInternals;
 }
   ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
     ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-    : never
+    : never;
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+    schema: keyof DatabaseWithoutInternals;
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
     : never = never,
 > = PublicCompositeTypeNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
+  schema: keyof DatabaseWithoutInternals;
 }
   ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-    : never
+    : never;
 
 export const Constants = {
   public: {
     Enums: {},
   },
-} as const
+} as const;
