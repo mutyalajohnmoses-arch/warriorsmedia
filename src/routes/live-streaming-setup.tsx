@@ -36,10 +36,6 @@ import {
   Grid
 } from "lucide-react";
 
-
-
-
-
 import {
   generateLiveKitToken,
   createYouTubeLivePipeline,
@@ -216,6 +212,145 @@ function LiveStreamingSetupPage() {
       setCurrentEgressId(null);
       setGeneratedRtmpUrl(null);
     },
-    onError: (err) => {
+    onError: (err: any) => {
       setIsConnecting(false);
-      toast.error(
+      toast.error(err?.message || "LiveKit connection error");
+    }
+  });
+
+  return (
+    <div className="p-6 max-w-7xl mx-auto space-y-6">
+      {/* Header Studio Controls */}
+      <div className="flex justify-between items-center bg-card p-4 border rounded-xl shadow-sm">
+        <div className="flex items-center space-x-3">
+          <div className={`p-2 rounded-full ${isConnected ? 'bg-red-500/20 text-red-600 animate-pulse' : 'bg-muted text-muted-foreground'}`}>
+            <Radio className="w-5 h-5" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold tracking-tight">Advanced Broadcaster Studio</h1>
+            <p className="text-xs text-muted-foreground">Multi-cam production control deck</p>
+          </div>
+        </div>
+        
+        <div className="flex items-center space-x-2">
+          <button 
+            onClick={previewActive ? stopLocalPreview : startLocalPreview}
+            className="flex items-center space-x-2 px-3 py-1.5 border rounded-lg text-sm font-medium transition hover:bg-muted"
+          >
+            <Tv className="w-4 h-4" />
+            <span>{previewActive ? "Turn Off Monitors" : "Initialize Monitors"}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Main Grid: Production Monitors & Studio Deck */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        {/* Left/Center: Video Monitors & Scene Controls */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Preview Monitor */}
+            <div className="border rounded-xl bg-black overflow-hidden relative shadow-md">
+              <div className="absolute top-2 left-2 z-10 bg-green-600 text-white text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-sm shadow">
+                Preview (Green Room)
+              </div>
+              <video ref={previewVideoRef} className="w-full aspect-video object-cover" />
+              {!previewActive && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground bg-muted/20 backdrop-blur-xs">
+                  <VideoOff className="w-8 h-8 mb-2 opacity-40" />
+                  <span className="text-xs">Monitor offline</span>
+                </div>
+              )}
+            </div>
+
+            {/* Program Monitor */}
+            <div className="border rounded-xl bg-black overflow-hidden relative shadow-md">
+              <div className="absolute top-2 left-2 z-10 bg-red-600 text-white text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-sm shadow animate-pulse">
+                Program (Live Feed)
+              </div>
+              <video ref={programVideoRef} className="w-full aspect-video object-cover" />
+              {!previewActive && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground bg-muted/20 backdrop-blur-xs">
+                  <VideoOff className="w-8 h-8 mb-2 opacity-40" />
+                  <span className="text-xs">Monitor offline</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Quick Audio/Video Hardware Check */}
+          <div className="bg-card border rounded-xl p-4 flex flex-wrap gap-4 items-center justify-between">
+            <div className="flex space-x-4">
+              <div className="flex items-center space-x-1.5 text-xs">
+                <span className={`w-2 h-2 rounded-full ${cameraReady ? 'bg-green-500' : 'bg-rose-400'}`} />
+                <span className="text-muted-foreground">Camera Hardware: {cameraReady ? 'Ready' : 'Not Detected'}</span>
+              </div>
+              <div className="flex items-center space-x-1.5 text-xs">
+                <span className={`w-2 h-2 rounded-full ${micReady ? 'bg-green-500' : 'bg-rose-400'}`} />
+                <span className="text-muted-foreground">Audio Hardware: {micReady ? 'Ready' : 'Not Detected'}</span>
+              </div>
+            </div>
+            
+            {previewError && (
+              <div className="flex items-center space-x-1 text-xs text-destructive bg-destructive/10 px-2 py-1 rounded">
+                <AlertCircle className="w-3.5 h-3.5" />
+                <span>{previewError}</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right Sidebar: Broadcast Settings Panel */}
+        <div className="space-y-6">
+          <div className="bg-card border rounded-xl p-5 shadow-xs space-y-4">
+            <h3 className="text-sm font-semibold tracking-wide uppercase text-muted-foreground border-b pb-2">Stream Configuration</h3>
+            
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-medium block mb-1">Broadcast Title</label>
+                <input 
+                  type="text" 
+                  value={streamTitle}
+                  onChange={(e) => setStreamTitle(e.target.value)}
+                  placeholder="e.g., Sunday Worship Live Stream" 
+                  className="w-full text-sm border rounded-lg px-3 py-2 bg-background focus:outline-hidden focus:ring-1 focus:ring-primary"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-medium block mb-1">Description</label>
+                <textarea 
+                  value={streamDescription}
+                  onChange={(e) => setStreamDescription(e.target.value)}
+                  placeholder="Provide details about your live broadcast..." 
+                  rows={3}
+                  className="w-full text-sm border rounded-lg px-3 py-2 bg-background focus:outline-hidden focus:ring-1 focus:ring-primary resize-none"
+                />
+              </div>
+            </div>
+
+            <div className="pt-2">
+              <button 
+                disabled={!streamTitle || isConnecting}
+                className="w-full flex items-center justify-center space-x-2 py-2.5 bg-primary text-primary-foreground font-medium rounded-lg text-sm transition hover:bg-primary/90 disabled:opacity-50"
+              >
+                {isConnecting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Deploying Stream Matrix...</span>
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-4 h-4" />
+                    <span>Go Live Now</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+}
