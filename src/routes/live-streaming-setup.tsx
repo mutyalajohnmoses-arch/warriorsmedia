@@ -601,24 +601,68 @@ function LiveStreamingSetupPage() {
         </div>
 
         <div className="relative aspect-video bg-black rounded-xl border border-[#2f2f2f] overflow-hidden flex items-center justify-center">
+          {/* Video element is always mounted so the srcObject persists */}
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+            className={`w-full h-full object-cover ${
+              (isConnected && isCameraEnabled) || (!isConnected && previewActive)
+                ? "block"
+                : "hidden"
+            }`}
+          />
+
           {isConnecting && (
             <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-10 gap-2 text-xs">
               <Loader2 className="animate-spin text-red-500 w-6 h-6" />
               <p className="text-gray-400 font-medium">Executing Pipeline: Creating YouTube Broadcast & LiveKit Egress...</p>
             </div>
           )}
+
           {isConnected && !isCameraEnabled && (
             <div className="absolute inset-0 bg-[#121212] flex flex-col items-center justify-center text-gray-500 text-xs gap-1">
               <VideoOff className="w-8 h-8" /> Camera Feed Suspended
             </div>
           )}
-          {isConnected && isCameraEnabled && (
-            <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover"></video>
+
+          {!isConnected && !isConnecting && !previewActive && (
+            <div className="absolute inset-0 text-center text-gray-400 flex flex-col items-center justify-center gap-3 text-xs p-4">
+              {previewError ? (
+                <>
+                  <AlertCircle className="w-8 h-8 text-red-500" />
+                  <p className="text-red-400 max-w-xs">{previewError}</p>
+                </>
+              ) : (
+                <>
+                  <Radio className="w-10 h-10 text-[#2e2e2e]" />
+                  <p>Camera preview not active</p>
+                </>
+              )}
+              <button
+                onClick={startLocalPreview}
+                className="mt-1 px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold"
+              >
+                Start Preview
+              </button>
+            </div>
           )}
-          {!isConnected && !isConnecting && (
-            <div className="text-center text-gray-600 flex flex-col items-center gap-1.5 text-xs">
-              <Radio className="w-10 h-10 text-[#2e2e2e]" />
-              <p>Complete configurations to activate pipeline</p>
+
+          {/* Status indicators overlay */}
+          {(previewActive || isConnected) && (
+            <div className="absolute top-2 left-2 z-20 flex flex-col gap-1">
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium backdrop-blur-md ${cameraReady || isConnected ? "bg-green-500/20 text-green-300 border border-green-500/40" : "bg-red-500/20 text-red-300 border border-red-500/40"}`}>
+                ● Camera {cameraReady || isConnected ? "Connected" : "Off"}
+              </span>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium backdrop-blur-md ${micReady || isConnected ? "bg-green-500/20 text-green-300 border border-green-500/40" : "bg-red-500/20 text-red-300 border border-red-500/40"}`}>
+                ● Mic {micReady || isConnected ? "Connected" : "Off"}
+              </span>
+              {permissionsGranted && (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-medium backdrop-blur-md bg-violet-500/20 text-violet-200 border border-violet-500/40">
+                  ● Permissions Granted
+                </span>
+              )}
             </div>
           )}
         </div>
