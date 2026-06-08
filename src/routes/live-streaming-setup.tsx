@@ -138,8 +138,13 @@ function LiveStreamingSetupPage() {
 
   const isConnectedRef = useRef(false);
 
+  // Client-only flag for execution safety
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   const stopLocalPreview = () => {
-    // SSR Safe Check
     if (typeof window === "undefined") return;
 
     if (localStreamRef.current) {
@@ -157,7 +162,6 @@ function LiveStreamingSetupPage() {
   const startLocalPreview = async () => {
     setPreviewError(null);
     
-    // SSR Safe Check: సర్వర్ బిల్డ్ అయ్యేటప్పుడు ఈ బ్రౌజర్ కోడ్‌ని రన్ చేయవద్దు
     if (typeof window === "undefined" || !navigator?.mediaDevices) {
       return;
     }
@@ -176,7 +180,6 @@ function LiveStreamingSetupPage() {
       setMicReady(stream.getAudioTracks().length > 0);
       setPermissionsGranted(true);
       
-      // Load Stream into Preview, Program and Main monitors
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         videoRef.current.muted = true;
@@ -210,9 +213,10 @@ function LiveStreamingSetupPage() {
 
   const safeRoomName = streamTitle ? `room-${streamTitle.toLowerCase().replace(/[^a-z0-9]/g, "-")}` : "live-studio-room";
 
+  // Prevent useLiveKitRoom hook execution context from failing on server side
   const { room, isConnected, connect, disconnect, toggleCameraTrack, toggleMicTrack } = useLiveKitRoom({
-    url: liveKitUrl || "",
-    token: liveKitToken || "",
+    url: isClient ? (liveKitUrl || "") : "",
+    token: isClient ? (liveKitToken || "") : "",
     roomName: safeRoomName,
     onConnected: () => { toast.info("LiveKit Studio Connected. Launching Egress pipeline..."); },
     onDisconnected: () => {
@@ -226,6 +230,11 @@ function LiveStreamingSetupPage() {
       toast.error(err?.message || "LiveKit connection error");
     }
   });
+
+  // If building on server, render clean placeholder to avoid hydration discrepancies
+  if (!isClient) {
+    return <div className="p-6 text-center text-muted-foreground">Loading Broadcasting Studio Matrix...</div>;
+  }
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
