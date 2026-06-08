@@ -136,7 +136,12 @@ function LiveStreamingSetupPage() {
   const [newSourceName, setNewSourceName] = useState("");
   const [newSourceType, setNewSourceType] = useState<CameraSource["type"]>("Webcam");
 
+  const isConnectedRef = useRef(false);
+
   const stopLocalPreview = () => {
+    // SSR Safe Check
+    if (typeof window === "undefined") return;
+
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach((t) => t.stop());
       localStreamRef.current = null;
@@ -149,10 +154,14 @@ function LiveStreamingSetupPage() {
     setMicReady(false);
   };
 
-  const isConnectedRef = useRef(false);
-
   const startLocalPreview = async () => {
     setPreviewError(null);
+    
+    // SSR Safe Check: సర్వర్ బిల్డ్ అయ్యేటప్పుడు ఈ బ్రౌజర్ కోడ్‌ని రన్ చేయవద్దు
+    if (typeof window === "undefined" || !navigator?.mediaDevices) {
+      return;
+    }
+
     try {
       if (localStreamRef.current) {
         localStreamRef.current.getTracks().forEach((t) => t.stop());
