@@ -360,8 +360,8 @@ function LiveStreamingSetupPage() {
             <span>YouTube Channel Connected — ready to stream</span>
           </div>
         ) : isYouTubeLinked && !googleToken ? (
-          <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg text-xs text-yellow-400 flex items-start gap-2">
-            <AlertCircle className="w-4 h-4 text-yellow-500 flex-shrink-0 mt-0.5" />
+          <div className="p-3 bg-violet-500/10 border border-violet-500/20 rounded-lg text-xs text-violet-300 flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 text-violet-500 flex-shrink-0 mt-0.5" />
             <span>Token expired. Please reconnect from the dashboard to refresh.</span>
           </div>
         ) : (
@@ -420,7 +420,7 @@ function LiveStreamingSetupPage() {
                 onClick={() => setThumbnailMode("ai")}
                 className={`px-2.5 py-1 text-[11px] font-medium rounded transition flex items-center gap-1 ${thumbnailMode === "ai" ? "bg-zinc-800 text-white shadow" : "text-gray-500 hover:text-gray-300"}`}
               >
-                <Sparkles className="w-3 h-3 text-amber-400" /> AI Create
+                <Sparkles className="w-3 h-3 text-indigo-300" /> AI Create
               </button>
             </div>
           </div>
@@ -449,7 +449,7 @@ function LiveStreamingSetupPage() {
                   <input
                     type="text"
                     placeholder="AI Prompt (Optional: defaults to title)"
-                    className="w-full bg-[#121212] border border-zinc-800 rounded-md px-2.5 py-1.5 text-xs text-white placeholder-zinc-600 outline-none focus:border-amber-500"
+                    className="w-full bg-[#121212] border border-zinc-800 rounded-md px-2.5 py-1.5 text-xs text-white placeholder-zinc-600 outline-none focus:border-indigo-500"
                     value={aiPrompt}
                     onChange={(e) => setAiPrompt(e.target.value)}
                     disabled={isConnected || isGeneratingAI}
@@ -461,7 +461,7 @@ function LiveStreamingSetupPage() {
                       <Layers className="w-3.5 h-3.5 text-zinc-500" />
                       {referenceFile ? referenceFile.name : "Attach Reference Photo (Optional)"}
                     </span>
-                    <span className="text-[10px] text-amber-500 font-mono bg-amber-500/10 px-1 rounded">Photo AI</span>
+                    <span className="text-[10px] text-indigo-500 font-mono bg-indigo-500/10 px-1 rounded">Photo AI</span>
                     <input type="file" accept="image/*" onChange={handleReferenceFileChange} className="hidden" disabled={isConnected || isGeneratingAI} />
                   </label>
 
@@ -469,7 +469,7 @@ function LiveStreamingSetupPage() {
                     type="button"
                     onClick={handleGenerateAIThumbnail}
                     disabled={isConnected || isGeneratingAI}
-                    className="w-full py-2 px-3 bg-amber-600/10 border border-amber-600/30 hover:bg-amber-600/20 text-amber-400 font-medium text-xs rounded-lg flex items-center justify-center gap-1.5 transition disabled:opacity-50"
+                    className="w-full py-2 px-3 bg-indigo-600/10 border border-indigo-600/30 hover:bg-indigo-600/20 text-indigo-300 font-medium text-xs rounded-lg flex items-center justify-center gap-1.5 transition disabled:opacity-50"
                   >
                     {isGeneratingAI ? (
                       <>
