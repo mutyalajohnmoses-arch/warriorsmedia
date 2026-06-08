@@ -70,6 +70,63 @@ function LiveStreamingSetupPage() {
   const [participantName, setParticipantName] = useState("Host");
   const videoRef = useRef<HTMLVideoElement>(null);
 
+  // Local preview (independent of LiveKit/YouTube)
+  const localStreamRef = useRef<MediaStream | null>(null);
+  const [previewActive, setPreviewActive] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [cameraReady, setCameraReady] = useState(false);
+  const [micReady, setMicReady] = useState(false);
+  const [permissionsGranted, setPermissionsGranted] = useState(false);
+
+  const stopLocalPreview = () => {
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach((t) => t.stop());
+      localStreamRef.current = null;
+    }
+    if (videoRef.current && !isConnectedRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    setPreviewActive(false);
+    setCameraReady(false);
+    setMicReady(false);
+  };
+
+  const isConnectedRef = useRef(false);
+
+  const startLocalPreview = async () => {
+    setPreviewError(null);
+    try {
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach((t) => t.stop());
+        localStreamRef.current = null;
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: true,
+      });
+      localStreamRef.current = stream;
+      setCameraReady(stream.getVideoTracks().length > 0);
+      setMicReady(stream.getAudioTracks().length > 0);
+      setPermissionsGranted(true);
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.muted = true;
+        try { await videoRef.current.play(); } catch {}
+      }
+      setPreviewActive(true);
+    } catch (err: any) {
+      console.error("[LocalPreview] getUserMedia failed", err);
+      let msg = "Failed to start preview.";
+      if (err?.name === "NotAllowedError") msg = "Permission denied. Please grant camera and microphone access in your browser.";
+      else if (err?.name === "NotFoundError") msg = "No camera or microphone found.";
+      else if (err?.name === "NotReadableError") msg = "Camera or microphone is already in use by another application.";
+      else if (err?.message) msg = err.message;
+      setPreviewError(msg);
+      setPreviewActive(false);
+      setPermissionsGranted(false);
+    }
+  };
+
   const generateTokenFn = useServerFn(generateLiveKitToken);
   const createYouTubePipelineFn = useServerFn(createYouTubeLivePipeline);
   const startEgressFn = useServerFn(startLiveKitEgress);
