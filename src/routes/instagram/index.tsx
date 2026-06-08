@@ -102,8 +102,8 @@ const navigationCards = [
     title: "AI Assistant",
     description: "AI-powered content suggestions and optimization",
     path: "/instagram/ai",
-    color: "from-yellow-500/20 to-yellow-600/20",
-    iconColor: "text-yellow-500",
+    color: "from-violet-500/20 to-violet-600/20",
+    iconColor: "text-violet-500",
   },
   {
     id: "settings",

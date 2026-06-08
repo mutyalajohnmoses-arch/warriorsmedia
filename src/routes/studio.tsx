@@ -414,7 +414,7 @@ function StudioDashboard() {
                           <span className={`text-[11px] rounded-full px-2 py-1 ${
                             c.status === "Active"
                               ? "bg-emerald-400/10 text-emerald-300"
-                              : "bg-amber-400/10 text-amber-300"
+                              : "bg-indigo-300/10 text-indigo-300"
                           }`}>{c.status}</span>
                         </td>
                         <td className="px-4 py-3.5 text-right">

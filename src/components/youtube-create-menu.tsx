@@ -168,7 +168,7 @@ export function YouTubeCreateMenu({
               </>
             ) : (
               <>
-                <div className="w-2 h-2 rounded-full bg-yellow-500" />
+                <div className="w-2 h-2 rounded-full bg-violet-500" />
                 <span>Connect YouTube</span>
               </>
             )}

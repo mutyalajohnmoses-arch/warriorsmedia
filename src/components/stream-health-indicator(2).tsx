@@ -26,7 +26,7 @@ export function StreamHealthIndicator({
 }: StreamHealthIndicatorProps) {
   const getConnectionColor = () => {
     if (error) return "text-red-500";
-    if (!isConnected) return "text-yellow-500";
+    if (!isConnected) return "text-violet-500";
     if (isPublishing) return "text-green-500";
     return "text-blue-500";
   };
@@ -53,7 +53,7 @@ export function StreamHealthIndicator({
       case "good":
         return "bg-blue-500";
       case "fair":
-        return "bg-yellow-500";
+        return "bg-violet-500";
       case "poor":
         return "bg-red-500";
       default:
@@ -130,7 +130,7 @@ export function StreamHealthIndicator({
         <div className="flex items-center gap-1">
           <div
             className={`w-2 h-2 rounded-full ${
-              isConnected ? "bg-green-500" : "bg-yellow-500"
+              isConnected ? "bg-green-500" : "bg-violet-500"
             }`}
           />
           <span className="text-[10px] text-muted-foreground">Connected</span>

@@ -127,7 +127,7 @@ export function YouTubeDownloader() {
                     <span className="text-sm">{v.quality}</span>
                     <span className="text-[10px] uppercase text-muted-foreground">{v.ext}</span>
                     {v.videoOnly && (
-                      <span className="text-[9px] uppercase tracking-wider text-amber-400/80">video-only</span>
+                      <span className="text-[9px] uppercase tracking-wider text-indigo-300/80">video-only</span>
                     )}
                   </div>
                   {v.fps && <span className="text-[10px] text-muted-foreground">{v.fps}fps</span>}
