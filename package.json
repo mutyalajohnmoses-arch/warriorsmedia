@@ -6,8 +6,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite dev",
-    "build": "tsr generate && vite build",
-    "build:dev": "tsr generate && vite build --mode development",
+    "build": "npx tsr generate && vite build",
+    "build:dev": "npx tsr generate && vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write ."
