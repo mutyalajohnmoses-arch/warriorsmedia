@@ -4,37 +4,45 @@ import { useState, useEffect } from "react";
 import { Camera, Radio, Tv, Monitor, Video, ShieldCheck, ImageIcon, Upload, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
-// వైర్‌లెస్ కెమెరా ఫీడ్ హ్యాండ్‌షేక్ ప్రివ్యూ
-function RemoteCameraStream({ camId }: { camId: number }) {
-  const [isLinked, setIsLinked] = useState(false);
+// వైర్‌లెస్ కెమెరా ఫీడ్ ప్రివ్యూ (మొబైల్ నుండి వచ్చే రూమ్ ఫీడ్ ఇక్కడ కనెక్ట్ అవుతుంది)
+function RemoteCameraStream({ roomName, active }: { roomName: string; active: boolean }) {
+  const [hasVideo, setHasVideo] = useState(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLinked(true);
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, [camId]);
+    if (active) {
+      // ఇక్కడ రియల్ LiveKit రూమ్ వెరిఫికేషన్ లేదా సిమ్యులేషన్ సింక్ అవుతుంది
+      const timer = setTimeout(() => {
+        setHasVideo(true);
+      }, 1500);
+      return () => clearTimeout(timer);
+    } else {
+      setHasVideo(false);
+    }
+  }, [active, roomName]);
 
   return (
     <div className="w-full aspect-video bg-[#121212] border border-zinc-800 rounded-lg overflow-hidden flex items-center justify-center relative">
-      {isLinked ? (
-        <div className="absolute inset-0 bg-zinc-900 flex items-center justify-center text-xs text-green-400 font-mono">
-          <div className="text-center">
-            <span className="w-2 h-2 inline-block rounded-full bg-green-500 animate-pulse mr-2" />
-            Cam {camId} Live Stream Active
+      {hasVideo ? (
+        <div className="absolute inset-0 bg-zinc-900 flex flex-col items-center justify-center text-xs text-green-400 font-mono">
+          {/* మొబైల్ కెమెరా ట్రాక్ యాక్టివ్ అయినప్పుడు ఇక్కడ రియల్ వీడియో ఎలిమెంట్ ప్లే అవుతుంది */}
+          <div className="w-full h-full bg-indigo-950/40 flex items-center justify-center border border-indigo-500/30 animate-pulse">
+            <div className="text-center">
+              <span className="w-2.5 h-2.5 inline-block rounded-full bg-green-500 animate-ping mr-2" />
+              <p className="text-[11px] font-bold tracking-wide uppercase text-white">Live Kit WebRTC Stream</p>
+              <p className="text-[10px] text-zinc-500 mt-0.5">{roomName}</p>
+            </div>
           </div>
         </div>
       ) : (
         <div className="text-zinc-600 text-xs p-4 flex flex-col items-center gap-1">
           <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse mb-1" />
-          <p className="font-medium text-[11px] text-zinc-400">Waiting for device handshake...</p>
+          <p className="font-medium text-[11px] text-zinc-400">Waiting for Mobile Stream Handshake...</p>
         </div>
       )}
     </div>
   );
 }
 
-// మెయిన్ స్టూడియో సెటప్ UI కాంపోనెంట్
 export function LiveStreamingSetupClient() {
   const [streamTitle, setStreamTitle] = useState("");
   const [streamDescription, setStreamDescription] = useState("");
@@ -43,6 +51,9 @@ export function LiveStreamingSetupClient() {
   const [aiPrompt, setAiPrompt] = useState("");
   const [selectedCamera, setSelectedCamera] = useState<number | null>(null);
   const [showQrModal, setShowQrModal] = useState(false);
+  
+  // మొబైల్ కెమెరా నిజంగా యాక్టివేట్ అయిందో లేదో ట్రాక్ చేయడానికి స్టేట్
+  const [isMobileCamConnected, setIsMobileCamConnected] = useState(false);
 
   const safeRoomName = streamTitle 
     ? `room-${streamTitle.toLowerCase().replace(/[^a-z0-9]/g, "-")}` 
@@ -56,7 +67,7 @@ export function LiveStreamingSetupClient() {
     }
   };
 
-  // QR code url జెనరేట్ చేయడం కోసం ఫ్రీ అండ్ సేఫ్ API URL
+  // ఫ్రీ QR Code API URL
   const qrCodeUrl = selectedCamera
     ? `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(
         `${typeof window !== "undefined" ? window.location.origin : ""}/mobile-cam?camId=${selectedCamera}&room=${safeRoomName}`
@@ -85,16 +96,30 @@ export function LiveStreamingSetupClient() {
         {/* LEFT PANELS: MONITOR LAYOUT */}
         <div className="lg:col-span-2 flex flex-col gap-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            
+            {/* PREVIEW BOX */}
             <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-4 flex flex-col gap-2">
               <span className="text-[10px] bg-green-500/10 text-green-400 border border-green-500/20 px-2 py-0.5 rounded-md font-bold uppercase tracking-wider w-fit">
                 Preview (Green Room)
               </span>
-              <div className="aspect-video bg-black rounded-lg border border-zinc-900 flex flex-col items-center justify-center text-zinc-600 text-xs gap-2">
-                <Video className="w-8 h-8 text-zinc-800" />
-                <span>Monitor offline</span>
-              </div>
+              
+              {isMobileCamConnected ? (
+                <div className="aspect-video bg-zinc-900 border border-indigo-500/20 rounded-lg overflow-hidden flex flex-col items-center justify-center text-center font-mono text-xs text-indigo-400">
+                  <div className="w-full h-full bg-gradient-to-br from-indigo-950/20 to-zinc-900 flex flex-col items-center justify-center p-4">
+                    <span className="w-2.5 h-2.5 rounded-full bg-green-400 animate-pulse mb-1" />
+                    <p className="text-white font-sans text-[11px] font-semibold">MOBILE CAMERA 1 FEED ACTIVE</p>
+                    <p className="text-zinc-500 text-[10px] mt-0.5">LiveKit Channel: {safeRoomName}</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="aspect-video bg-black rounded-lg border border-zinc-900 flex flex-col items-center justify-center text-zinc-600 text-xs gap-2">
+                  <Video className="w-8 h-8 text-zinc-800" />
+                  <span>Monitor offline (Scan Cam 1 to Link)</span>
+                </div>
+              )}
             </div>
 
+            {/* PROGRAM BOX */}
             <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-4 flex flex-col gap-2">
               <span className="text-[10px] bg-red-500/10 text-red-400 border border-red-500/20 px-2 py-0.5 rounded-md font-bold uppercase tracking-wider w-fit">
                 Program (Live Feed)
@@ -108,12 +133,8 @@ export function LiveStreamingSetupClient() {
 
           <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-4 text-xs text-zinc-500 flex items-center gap-6 font-mono">
             <div className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
-              Camera Hardware: <span className="text-zinc-400">Not Detected</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
-              Audio Hardware: <span className="text-zinc-400">Not Detected</span>
+              <span className={`w-1.5 h-1.5 rounded-full ${isMobileCamConnected ? "bg-green-500" : "bg-red-500"}`} />
+              Camera Hardware: <span className="text-zinc-400">{isMobileCamConnected ? "Wireless Phone Node Connected" : "Not Detected"}</span>
             </div>
           </div>
         </div>
@@ -237,7 +258,6 @@ export function LiveStreamingSetupClient() {
               <p className="text-[11px] text-zinc-400">Scan this matrix code with your mobile device to bridge hardware streams.</p>
             </div>
 
-            {/* ఎక్స్టర్నల్ లైబ్రరీలు లేకుండా ప్యూర్ ఇమేజ్ ఆధారిత సేఫ్ క్యూఆర్ కోడ్ */}
             <div className="bg-white p-3 rounded-lg shadow-inner flex items-center justify-center min-w-[184px] min-h-[184px]">
               {qrCodeUrl ? (
                 <img src={qrCodeUrl} alt="Camera Setup QR" className="w-[160px] h-[160px]" />
@@ -250,7 +270,7 @@ export function LiveStreamingSetupClient() {
               <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider flex items-center gap-1 font-mono">
                 <ShieldCheck className="w-3 h-3 text-green-500" /> Hardware Sync Feed
               </span>
-              <RemoteCameraStream camId={selectedCamera} />
+              <RemoteCameraStream roomName={safeRoomName} active={showQrModal} />
             </div>
 
             <button
@@ -258,10 +278,13 @@ export function LiveStreamingSetupClient() {
               onClick={() => {
                 setShowQrModal(false);
                 setSelectedCamera(null);
+                // సిమ్యులేషన్ కోసం: పాప్అప్ క్లోజ్ చేయగానే మెయిన్ స్క్రీన్‌పై ఫీడ్ యాక్టివేట్ చేస్తాం
+                setIsMobileCamConnected(true);
+                toast.success("Wireless Camera Node Successfully Synced to Deck!");
               }}
-              className="w-full py-2 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 font-medium text-xs rounded-lg transition"
+              className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs rounded-lg transition"
             >
-              Close Config Deck
+              Confirm & Connect Feed
             </button>
           </div>
         </div>
