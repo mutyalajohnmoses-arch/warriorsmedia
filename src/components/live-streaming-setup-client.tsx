@@ -1,10 +1,9 @@
 
 // src/components/live-streaming-setup-client.tsx
 import { useState, useEffect } from "react";
-import { Camera, Radio, Tv, Monitor, Video, ImageIcon, Upload, Sparkles, Copy, Check, Power, X, Loader2 } from "lucide-react";
+import { Camera, Radio, Tv, Monitor, Video, ImageIcon, Upload, Sparkles, Copy, Check, Power, X, Loader2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
-// మొబైల్ కెమెరా స్ట్రీమ్ ప్లేయర్ компоненంట్
 function MobileCameraPreviewPlayer({ roomName, isActive }: { roomName: string; isActive: boolean }) {
   if (!isActive) {
     return (
@@ -17,7 +16,6 @@ function MobileCameraPreviewPlayer({ roomName, isActive }: { roomName: string; i
 
   return (
     <div className="relative w-full h-full bg-zinc-900 rounded-lg overflow-hidden">
-      {/* మొబైల్ నుండి వస్తున్న కెమెరా లైవ్ ఫీడ్ డెమో */}
       <video 
         src="https://assets.mixkit.co/videos/preview/mixkit-man-holding-a-smartphone-close-up-40033-large.mp4"
         autoPlay 
@@ -53,7 +51,7 @@ export function LiveStreamingSetupClient() {
   const [selectedCamera, setSelectedCamera] = useState<number | null>(null);
   const [showQrModal, setShowQrModal] = useState(false);
   
-  // కనెక్షన్ స్టేట్స్ 
+  // కనెక్షన్ స్టేట్ - డిఫాల్ట్ గా ఆఫ్‌లైన్ ఉంటుంది
   const [connectionStatus, setConnectionStatus] = useState<"offline" | "waiting" | "connected">("offline");
   const [copied, setCopied] = useState(false);
 
@@ -65,46 +63,12 @@ export function LiveStreamingSetupClient() {
     ? `${window.location.origin}/mobile-cam?camId=${selectedCamera || 1}&room=${safeRoomName}`
     : "";
 
-  // కామ్ ఆప్షన్ క్లిక్ చేయగానే 'Waiting' స్టేట్ కి వెళ్తుంది. లాప్‌టాప్ కెమెరా అసలు ట్రిగ్గర్ అవ్వదు.
+  // మోడల్ ఓపెన్ చేసినప్పుడు వెయిటింగ్ స్టేట్ లోనే ఉంటుంది, ఆటో-కనెక్ట్ అవ్వదు!
   useEffect(() => {
     if (showQrModal && selectedCamera) {
       setConnectionStatus("waiting");
     }
   }, [showQrModal, selectedCamera]);
-
-  // 🔥 ఆటోమేటిక్ నెట్‌వర్క్ పోలింగ్ బ్రిడ్జ్: మొబైల్ లో కెమెరా యాక్టివ్ అవ్వగానే ఇక్కడ ఆటోమేటిక్ గా కనెక్ట్ అయిపోతుంది
-  useEffect(() => {
-    let intervalId: NodeJS.Timeout;
-
-    if (connectionStatus === "waiting" && selectedCamera) {
-      // మొబైల్ కనెక్ట్ అయిందో లేదో ప్రతి సెకనుకి బ్యాక్‌ఎండ్/స్టేట్ నెట్‌వర్క్ ని అడుగుతుంది
-      intervalId = setInterval(async () => {
-        try {
-          // Lovable Mock API లేదా డైనమిక్ చెకర్: ఒకవేళ రియల్ బ్యాక్‌ఎండ్ లేకపోతే సిమ్యులేట్ చేయడానికి
-          // నువ్వు మొబైల్ లో ఆ లింక్ ఓపెన్ చేసిన వెంటనే ఇక్కడ ఆటోమేటిక్ గా స్టేట్ మారిపోతుంది
-          const isMobileActive = true; // ఇది మొబైల్ సిగ్నల్ ని రిప్రెసెంట్ చేస్తుంది
-
-          if (isMobileActive) {
-            setConnectionStatus("connected");
-            toast.success(`Camera Node ${selectedCamera} Connected Successfully!`);
-            
-            // 1.5 సెకన్ల తర్వాత ఆటోమేటిక్ గా QR మోడల్ క్లోజ్ అయిపోయి మెయిన్ స్క్రీన్ లో కెమెరా కనిపిస్తుంది
-            setTimeout(() => {
-              setShowQrModal(false);
-            }, 1500);
-
-            clearInterval(intervalId);
-          }
-        } catch (error) {
-          console.error("Error checking node connection:", error);
-        }
-      }, 1000); // ప్రతి 1 సెకనుకి రన్ అవుతుంది
-    }
-
-    return () => {
-      if (intervalId) clearInterval(intervalId);
-    };
-  }, [connectionStatus, selectedCamera]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -123,6 +87,15 @@ export function LiveStreamingSetupClient() {
     } catch (err) {
       toast.error("Failed to copy link");
     }
+  };
+
+  // టెస్టింగ్ కోసం మొబైల్ కనెక్షన్‌ని సిమ్యులేట్ చేసే ఫంక్షన్
+  const simulateMobileConnection = () => {
+    setConnectionStatus("connected");
+    toast.success(`Camera Node ${selectedCamera} Connected!`);
+    setTimeout(() => {
+      setShowQrModal(false);
+    }, 1200);
   };
 
   const qrCodeUrl = selectedCamera
@@ -148,7 +121,7 @@ export function LiveStreamingSetupClient() {
 
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* LEFT PANELS: MONITORS */}
+        {/* LEFT PANELS */}
         <div className="lg:col-span-2 flex flex-col gap-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             
@@ -348,18 +321,29 @@ export function LiveStreamingSetupClient() {
               </button>
             </div>
 
-            {/* CONNECTION STATUS */}
+            {/* CONNECTION STATUS PANEL */}
             <div className="w-full border-t border-zinc-800 pt-3 flex flex-col gap-2">
               
               {connectionStatus === "waiting" && (
-                <div className="flex items-center justify-center gap-2 py-2 px-3 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-lg text-xs font-semibold font-mono w-full">
-                  <Loader2 className="w-3 h-3 animate-spin text-amber-500" />
-                  Waiting for response...
+                <div className="flex flex-col gap-2 w-full">
+                  <div className="flex items-center justify-center gap-2 py-2 px-3 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-lg text-xs font-semibold font-mono w-full">
+                    <Loader2 className="w-3 h-3 animate-spin text-amber-500" />
+                    Waiting for response...
+                  </div>
+                  
+                  {/* UI టెస్టింగ్ కోసం మాన్యువల్ ట్రిగ్గర్ బటన్ */}
+                  <button
+                    type="button"
+                    onClick={simulateMobileConnection}
+                    className="w-full py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 border border-indigo-500/30 font-medium text-[11px] rounded-lg transition flex items-center justify-center gap-1.5"
+                  >
+                    <RefreshCw className="w-3 h-3" /> Simulate Mobile Connection
+                  </button>
                 </div>
               )}
 
               {connectionStatus === "connected" && (
-                <div className="flex items-center justify-center gap-2 py-2 px-3 bg-green-500/10 border border-green-500/20 text-green-400 rounded-lg text-xs font-semibold font-mono w-full animate-fade-in">
+                <div className="flex items-center justify-center gap-2 py-2 px-3 bg-green-500/10 border border-green-500/20 text-green-400 rounded-lg text-xs font-semibold font-mono w-full">
                   <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
                   Connected Successfully
                 </div>
