@@ -16,6 +16,7 @@ function MobileCameraPreviewPlayer({ roomName, isActive }: { roomName: string; i
 
   return (
     <div className="relative w-full h-full bg-zinc-900 rounded-lg overflow-hidden">
+      {/* మొబైల్ ఫీడ్‌ని సిమ్యులేట్ చేయడానికి డెమో వీడియో ప్లేయర్ */}
       <video 
         src="https://assets.mixkit.co/videos/preview/mixkit-man-holding-a-smartphone-close-up-40033-large.mp4"
         autoPlay 
@@ -51,7 +52,6 @@ export function LiveStreamingSetupClient() {
   const [selectedCamera, setSelectedCamera] = useState<number | null>(null);
   const [showQrModal, setShowQrModal] = useState(false);
   
-  // కనెక్షన్ స్టేట్ - డిఫాల్ట్ గా ఆఫ్‌లైన్ ఉంటుంది
   const [connectionStatus, setConnectionStatus] = useState<"offline" | "waiting" | "connected">("offline");
   const [copied, setCopied] = useState(false);
 
@@ -63,9 +63,8 @@ export function LiveStreamingSetupClient() {
     ? `${window.location.origin}/mobile-cam?camId=${selectedCamera || 1}&room=${safeRoomName}`
     : "";
 
-  // మోడల్ ఓపెన్ చేసినప్పుడు వెయిటింగ్ స్టేట్ లోనే ఉంటుంది, ఆటో-కనెక్ట్ అవ్వదు!
   useEffect(() => {
-    if (showQrModal && selectedCamera) {
+    if (showQrModal && selectedCamera && connectionStatus !== "connected") {
       setConnectionStatus("waiting");
     }
   }, [showQrModal, selectedCamera]);
@@ -89,13 +88,11 @@ export function LiveStreamingSetupClient() {
     }
   };
 
-  // టెస్టింగ్ కోసం మొబైల్ కనెక్షన్‌ని సిమ్యులేట్ చేసే ఫంక్షన్
+  // బటన్ క్లిక్ చేయగానే మోడల్ బాక్స్ క్లోజ్ అయ్యి స్క్రీన్ వెనకాల ఫీడ్ యాక్టివేట్ అవుతుంది
   const simulateMobileConnection = () => {
     setConnectionStatus("connected");
     toast.success(`Camera Node ${selectedCamera} Connected!`);
-    setTimeout(() => {
-      setShowQrModal(false);
-    }, 1200);
+    setShowQrModal(false); // మోడల్‌ని వెంటనే క్లోజ్ చేస్తున్నాం
   };
 
   const qrCodeUrl = selectedCamera
@@ -308,7 +305,7 @@ export function LiveStreamingSetupClient() {
               {qrCodeUrl && <img src={qrCodeUrl} alt="QR" className="w-[160px] h-[160px]" />}
             </div>
 
-            {/* STREAM LINK WITH COPY BUTTON */}
+            {/* STREAM LINK */}
             <div className="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-2 flex items-center justify-between gap-2">
               <p className="text-[10px] text-zinc-400 font-mono truncate max-w-[240px] text-left">
                 {targetMobileUrl}
@@ -321,7 +318,7 @@ export function LiveStreamingSetupClient() {
               </button>
             </div>
 
-            {/* CONNECTION STATUS PANEL */}
+            {/* CONNECTION STATUS */}
             <div className="w-full border-t border-zinc-800 pt-3 flex flex-col gap-2">
               
               {connectionStatus === "waiting" && (
@@ -331,13 +328,13 @@ export function LiveStreamingSetupClient() {
                     Waiting for response...
                   </div>
                   
-                  {/* UI టెస్టింగ్ కోసం మాన్యువల్ ట్రిగ్గర్ బటన్ */}
+                  {/* ఈ బటన్ క్లిక్ చేయగానే కనెక్షన్ యాక్టివేట్ అయ్యి మోడల్ క్లోజ్ అవుతుంది */}
                   <button
                     type="button"
                     onClick={simulateMobileConnection}
-                    className="w-full py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 border border-indigo-500/30 font-medium text-[11px] rounded-lg transition flex items-center justify-center gap-1.5"
+                    className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-lg transition flex items-center justify-center gap-1.5 shadow-lg shadow-indigo-600/20"
                   >
-                    <RefreshCw className="w-3 h-3" /> Simulate Mobile Connection
+                    <RefreshCw className="w-3.5 h-3.5" /> Simulate Mobile Connection
                   </button>
                 </div>
               )}
@@ -357,7 +354,7 @@ export function LiveStreamingSetupClient() {
                   setConnectionStatus("offline");
                   toast.error(`Camera ${selectedCamera} Node Disconnected.`);
                 }}
-                className="w-full py-2 bg-zinc-900 hover:bg-zinc-800 text-red-400 border border-zinc-800 font-medium text-xs rounded-lg transition flex items-center justify-center gap-1.5 mt-2"
+                className="w-full py-2 bg-zinc-900 hover:bg-zinc-800 text-red-400 border border-zinc-800 font-medium text-xs rounded-lg transition flex items-center justify-center gap-1.5 mt-1"
               >
                 <Power className="w-3 h-3" /> Disconnect Node
               </button>
