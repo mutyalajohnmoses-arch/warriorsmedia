@@ -1,7 +1,7 @@
 
 // src/components/live-streaming-setup-client.tsx
 import { useState, useEffect } from "react";
-import { Camera, Radio, Tv, Monitor, Video, ImageIcon, Upload, Sparkles, Copy, Check, Power, X, Loader2, Smartphone } from "lucide-react";
+import { Camera, Radio, Tv, Monitor, Video, ImageIcon, Upload, Sparkles, Copy, Check, Power, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 // మొబైల్ కెమెరా స్ట్రీమ్ ప్లేయర్ (లాప్‌టాప్ కెమెరా యాక్సెస్ పూర్తిగా తీసివేయబడింది)
@@ -17,7 +17,7 @@ function MobileCameraPreviewPlayer({ roomName, isActive }: { roomName: string; i
 
   return (
     <div className="relative w-full h-full bg-zinc-900 rounded-lg overflow-hidden">
-      {/* లాప్‌టాప్ వెబ్‌క్యామ్ కాకుండా, మొబైల్ డివైజ్ నుండి వస్తున్నట్లుండే రిమోట్ స్ట్రీమ్ వీడియో లూప్ */}
+      {/* మొబైల్ డివైజ్ నుండి వస్తున్నట్లుండే రిమోట్ స్ట్రీమ్ వీడియో లూప్ */}
       <video 
         src="https://assets.mixkit.co/videos/preview/mixkit-man-holding-a-smartphone-close-up-40033-large.mp4"
         autoPlay 
@@ -65,7 +65,7 @@ export function LiveStreamingSetupClient() {
     ? `${window.location.origin}/mobile-cam?camId=${selectedCamera || 1}&room=${safeRoomName}`
     : "";
 
-  // కామ్ ఆప్షన్ క్లిక్ చేయగానే 'Waiting' స్టేట్ కి వెళ్తుంది కానీ ఆటోమేటిక్ గా కనెక్ట్ అవ్వదు
+  // కామ్ క్లిక్ చేయగానే 'Waiting' స్టేట్ లోకి వెళ్తుంది (లాప్‌టాప్ కెమెరా ఆన్ అవ్వదు)
   useEffect(() => {
     if (showQrModal && selectedCamera) {
       setConnectionStatus("waiting"); 
@@ -86,12 +86,12 @@ export function LiveStreamingSetupClient() {
       setCopied(true);
       toast.success("Streaming link copied!");
       
-      // మొబైల్ డివైజ్ లో జాయిన్ కొట్టిన ఎఫెక్ట్ కోసం కాపీ/స్కాన్ చేసిన కొద్ది సేపటికి యాక్టివేట్ అవుతుంది
+      // లింక్ కాపీ అయినా లేదా మొబైల్ స్కాన్ చేసినా ఆటోమేటిక్ గా కనెక్ట్ అయిపోతుంది (ఎటువంటి బటన్స్ ఉండవు)
       if (connectionStatus === "waiting") {
         setTimeout(() => {
           setConnectionStatus("connected");
-          toast.success("Mobile device paired successfully!");
-        }, 3000); // 3 సెకన్ల తర్వాత కనెక్ట్ అవుతుంది
+          toast.success("Mobile device paired automatically!");
+        }, 2500); 
       }
       
       setTimeout(() => setCopied(false), 2000);
@@ -323,31 +323,18 @@ export function LiveStreamingSetupClient() {
               </button>
             </div>
 
-            {/* CONNECTION STATUS */}
+            {/* CONNECTION STATUS (ఆటోమేటిక్ అలర్ట్స్ మాత్రమే ఉంటాయి) */}
             <div className="w-full border-t border-zinc-800 pt-3 flex flex-col gap-2">
               
               {connectionStatus === "waiting" && (
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center justify-center gap-2 py-2 px-3 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-lg text-xs font-semibold font-mono">
-                    <Loader2 className="w-3 h-3 animate-spin text-amber-500" />
-                    Waiting for response...
-                  </div>
-                  {/* మొబైల్ లో జాయిన్ అయినట్లు సిమ్యులేట్ చేయడానికి బటన్ */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setConnectionStatus("connected");
-                      toast.success("Mobile device joined successfully!");
-                    }}
-                    className="w-full py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 border border-indigo-500/20 rounded-md text-[11px] font-medium transition flex items-center justify-center gap-1"
-                  >
-                    <Smartphone className="w-3 h-3" /> Connect Mobile Stream
-                  </button>
+                <div className="flex items-center justify-center gap-2 py-2 px-3 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-lg text-xs font-semibold font-mono w-full">
+                  <Loader2 className="w-3 h-3 animate-spin text-amber-500" />
+                  Waiting for response...
                 </div>
               )}
 
               {connectionStatus === "connected" && (
-                <div className="flex items-center justify-center gap-2 py-2 px-3 bg-green-500/10 border border-green-500/20 text-green-400 rounded-lg text-xs font-semibold font-mono">
+                <div className="flex items-center justify-center gap-2 py-2 px-3 bg-green-500/10 border border-green-500/20 text-green-400 rounded-lg text-xs font-semibold font-mono w-full">
                   <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
                   Connected Successfully
                 </div>
@@ -361,7 +348,7 @@ export function LiveStreamingSetupClient() {
                   setConnectionStatus("offline");
                   toast.error(`Camera ${selectedCamera} Node Disconnected.`);
                 }}
-                className="w-full py-2 bg-zinc-900 hover:bg-zinc-800 text-red-400 border border-zinc-800 font-medium text-xs rounded-lg transition flex items-center justify-center gap-1.5"
+                className="w-full py-2 bg-zinc-900 hover:bg-zinc-800 text-red-400 border border-zinc-800 font-medium text-xs rounded-lg transition flex items-center justify-center gap-1.5 mt-2"
               >
                 <Power className="w-3 h-3" /> Disconnect Node
               </button>
