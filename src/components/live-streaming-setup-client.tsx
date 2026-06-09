@@ -1,30 +1,8 @@
 
 // src/components/live-streaming-setup-client.tsx
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Camera, Radio, Tv, Monitor, Video, ShieldCheck, ImageIcon, Upload, Sparkles } from "lucide-react";
 import { toast } from "sonner";
-
-// సర్వర్-సైడ్ బిల్డ్ క్రాష్ అవ్వకుండా ఉండటానికి క్లయింట్-సైడ్ సేఫ్ QR కాంపోనెంట్
-function SafeClientQRCode({ value, size }: { value: string; size: number }) {
-  const [QRComponent, setQRComponent] = useState<any>(null);
-
-  useEffect(() => {
-    import("qrcode.react").then((mod) => {
-      setQRComponent(() => mod.QRCodeSVG);
-    });
-  }, []);
-
-  if (!QRComponent) {
-    return (
-      <div className="w-[160px] h-[160px] bg-zinc-900 animate-pulse rounded flex items-center justify-center text-[10px] text-zinc-500">
-        Generating Matrix...
-      </div>
-    );
-  }
-
-  const Component = QRComponent;
-  return <Component value={value} size={size} level="M" />;
-}
 
 // వైర్‌లెస్ కెమెరా ఫీడ్ హ్యాండ్‌షేక్ ప్రివ్యూ
 function RemoteCameraStream({ camId }: { camId: number }) {
@@ -77,6 +55,13 @@ export function LiveStreamingSetupClient() {
       toast.success("Image selected successfully!");
     }
   };
+
+  // QR code url జెనరేట్ చేయడం కోసం ఫ్రీ అండ్ సేఫ్ API URL
+  const qrCodeUrl = selectedCamera
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(
+        `${typeof window !== "undefined" ? window.location.origin : ""}/mobile-cam?camId=${selectedCamera}&room=${safeRoomName}`
+      )}`
+    : "";
 
   return (
     <div className="min-h-screen bg-[#09090b] text-[#f4f4f5] p-6 font-sans">
@@ -252,11 +237,13 @@ export function LiveStreamingSetupClient() {
               <p className="text-[11px] text-zinc-400">Scan this matrix code with your mobile device to bridge hardware streams.</p>
             </div>
 
-            <div className="bg-white p-3 rounded-lg shadow-inner flex items-center justify-center">
-              <SafeClientQRCode
-                value={`${typeof window !== "undefined" ? window.location.origin : ""}/mobile-cam?camId=${selectedCamera}&room=${safeRoomName}`}
-                size={160}
-              />
+            {/* ఎక్స్టర్నల్ లైబ్రరీలు లేకుండా ప్యూర్ ఇమేజ్ ఆధారిత సేఫ్ క్యూఆర్ కోడ్ */}
+            <div className="bg-white p-3 rounded-lg shadow-inner flex items-center justify-center min-w-[184px] min-h-[184px]">
+              {qrCodeUrl ? (
+                <img src={qrCodeUrl} alt="Camera Setup QR" className="w-[160px] h-[160px]" />
+              ) : (
+                <div className="text-[10px] text-zinc-500">Generating Matrix...</div>
+              )}
             </div>
 
             <div className="w-full flex flex-col gap-1.5 text-left">
