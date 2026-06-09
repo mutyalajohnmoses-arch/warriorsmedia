@@ -51,9 +51,7 @@ export function useLiveKitRoom(options: UseLiveKitRoomOptions): UseLiveKitRoomSt
     }
 
     if (!options.url) {
-      const err = new Error(
-        "LiveKit URL is missing. Verify LIVEKIT_URL is configured on the server.",
-      );
+      const err = new Error("LiveKit URL is missing. Verify LIVEKIT_URL is configured on the server.");
       console.error("[useLiveKitRoom]", err.message);
       setError(err);
       options.onError?.(err);
@@ -130,7 +128,10 @@ export function useLiveKitRoom(options: UseLiveKitRoomOptions): UseLiveKitRoomSt
       });
 
       console.log("[useLiveKitRoom] Calling room.connect()…");
-      await Promise.race([liveKitRoom.connect(options.url, options.token), timeoutPromise]);
+      await Promise.race([
+        liveKitRoom.connect(options.url, options.token),
+        timeoutPromise,
+      ]);
       if (timeoutId) clearTimeout(timeoutId);
       console.log("[useLiveKitRoom] room.connect() resolved. WebSocket state:", liveKitRoom.state);
 

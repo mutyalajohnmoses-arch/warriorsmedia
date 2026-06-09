@@ -10,7 +10,6 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as StudioRouteImport } from './routes/studio'
-import { Route as MobileCamRouteImport } from './routes/mobile-cam'
 import { Route as LiveStreamingSetupRouteImport } from './routes/live-streaming-setup'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
@@ -30,11 +29,6 @@ import { Route as AuthGoogleCallbackRouteImport } from './routes/auth.google.cal
 const StudioRoute = StudioRouteImport.update({
   id: '/studio',
   path: '/studio',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MobileCamRoute = MobileCamRouteImport.update({
-  id: '/mobile-cam',
-  path: '/mobile-cam',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LiveStreamingSetupRoute = LiveStreamingSetupRouteImport.update({
@@ -117,7 +111,6 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/live-streaming-setup': typeof LiveStreamingSetupRoute
-  '/mobile-cam': typeof MobileCamRoute
   '/studio': typeof StudioRoute
   '/instagram/ai': typeof InstagramAiRoute
   '/instagram/analytics': typeof InstagramAnalyticsRoute
@@ -136,7 +129,6 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/live-streaming-setup': typeof LiveStreamingSetupRoute
-  '/mobile-cam': typeof MobileCamRoute
   '/studio': typeof StudioRoute
   '/instagram/ai': typeof InstagramAiRoute
   '/instagram/analytics': typeof InstagramAnalyticsRoute
@@ -156,7 +148,6 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/live-streaming-setup': typeof LiveStreamingSetupRoute
-  '/mobile-cam': typeof MobileCamRoute
   '/studio': typeof StudioRoute
   '/instagram/ai': typeof InstagramAiRoute
   '/instagram/analytics': typeof InstagramAnalyticsRoute
@@ -177,7 +168,6 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/live-streaming-setup'
-    | '/mobile-cam'
     | '/studio'
     | '/instagram/ai'
     | '/instagram/analytics'
@@ -196,7 +186,6 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/live-streaming-setup'
-    | '/mobile-cam'
     | '/studio'
     | '/instagram/ai'
     | '/instagram/analytics'
@@ -215,7 +204,6 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/live-streaming-setup'
-    | '/mobile-cam'
     | '/studio'
     | '/instagram/ai'
     | '/instagram/analytics'
@@ -235,7 +223,6 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRoute: typeof DashboardRoute
   LiveStreamingSetupRoute: typeof LiveStreamingSetupRoute
-  MobileCamRoute: typeof MobileCamRoute
   StudioRoute: typeof StudioRoute
   InstagramAiRoute: typeof InstagramAiRoute
   InstagramAnalyticsRoute: typeof InstagramAnalyticsRoute
@@ -258,13 +245,6 @@ declare module '@tanstack/react-router' {
       path: '/studio'
       fullPath: '/studio'
       preLoaderRoute: typeof StudioRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/mobile-cam': {
-      id: '/mobile-cam'
-      path: '/mobile-cam'
-      fullPath: '/mobile-cam'
-      preLoaderRoute: typeof MobileCamRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/live-streaming-setup': {
@@ -379,7 +359,6 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRoute: DashboardRoute,
   LiveStreamingSetupRoute: LiveStreamingSetupRoute,
-  MobileCamRoute: MobileCamRoute,
   StudioRoute: StudioRoute,
   InstagramAiRoute: InstagramAiRoute,
   InstagramAnalyticsRoute: InstagramAnalyticsRoute,

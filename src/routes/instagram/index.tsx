@@ -179,9 +179,7 @@ function InstagramDashboard() {
                   className={`group p-6 rounded-xl border border-border bg-gradient-to-br ${card.color} hover:border-[color:var(--gold)]/50 transition-all duration-300 text-left`}
                 >
                   <div className="flex items-start justify-between mb-4">
-                    <div
-                      className={`p-3 rounded-lg bg-background/50 group-hover:bg-background/80 transition`}
-                    >
+                    <div className={`p-3 rounded-lg bg-background/50 group-hover:bg-background/80 transition`}>
                       <Icon className={`w-6 h-6 ${card.iconColor}`} />
                     </div>
                     <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition opacity-0 group-hover:opacity-100 transform group-hover:translate-x-1" />
@@ -202,8 +200,7 @@ function InstagramDashboard() {
         <section className="mt-12 p-6 rounded-xl border border-border bg-card/40">
           <h3 className="font-bold mb-2">Getting Started</h3>
           <p className="text-sm text-muted-foreground mb-4">
-            To unlock all features, connect your Instagram account using the settings panel. Once
-            connected, you'll be able to:
+            To unlock all features, connect your Instagram account using the settings panel. Once connected, you'll be able to:
           </p>
           <ul className="space-y-2 text-sm text-muted-foreground">
             <li className="flex items-center gap-2">

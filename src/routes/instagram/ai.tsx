@@ -34,22 +34,19 @@ function InstagramAIAssistant() {
         id: 1,
         type: "caption",
         title: "Engaging Caption",
-        content:
-          "Join us for an inspiring journey of faith and worship. Share your story with our community. 🙏✨ #Worship #Faith #Community",
+        content: "Join us for an inspiring journey of faith and worship. Share your story with our community. 🙏✨ #Worship #Faith #Community",
       },
       {
         id: 2,
         type: "hashtags",
         title: "Trending Hashtags",
-        content:
-          "#Worship #ChristianCommunity #FaithJourney #SpiritualGrowth #Praise #BibleVerses #ChristianMusic #Inspiration",
+        content: "#Worship #ChristianCommunity #FaithJourney #SpiritualGrowth #Praise #BibleVerses #ChristianMusic #Inspiration",
       },
       {
         id: 3,
         type: "timing",
         title: "Best Time to Post",
-        content:
-          "Post on Tuesday at 7:30 PM for maximum engagement based on your audience activity.",
+        content: "Post on Tuesday at 7:30 PM for maximum engagement based on your audience activity.",
       },
     ]);
   };
@@ -99,10 +96,7 @@ function InstagramAIAssistant() {
             {suggestions.length > 0 && (
               <div className="space-y-4">
                 {suggestions.map((suggestion) => (
-                  <div
-                    key={suggestion.id}
-                    className="p-6 rounded-xl border border-border bg-card/40 space-y-4"
-                  >
+                  <div key={suggestion.id} className="p-6 rounded-xl border border-border bg-card/40 space-y-4">
                     <div className="flex items-start justify-between">
                       <div>
                         <h4 className="font-bold mb-2">{suggestion.title}</h4>

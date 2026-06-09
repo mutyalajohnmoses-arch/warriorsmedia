@@ -146,11 +146,16 @@ export const createYouTubeBroadcast = createServerFn({ method: "POST" })
  * Get the status of a YouTube broadcast
  */
 export const getYouTubeBroadcastStatus = createServerFn({ method: "GET" })
-  .inputValidator((data: { access_token: string; broadcastId: string }) => {
-    if (!data?.access_token) throw new Error("Invalid access token");
-    if (!data?.broadcastId) throw new Error("Broadcast ID is required");
-    return data;
-  })
+  .inputValidator(
+    (data: {
+      access_token: string;
+      broadcastId: string;
+    }) => {
+      if (!data?.access_token) throw new Error("Invalid access token");
+      if (!data?.broadcastId) throw new Error("Broadcast ID is required");
+      return data;
+    },
+  )
   .handler(async ({ data }) => {
     try {
       console.log("[YouTube] Fetching broadcast status:", data.broadcastId);
@@ -168,9 +173,7 @@ export const getYouTubeBroadcastStatus = createServerFn({ method: "GET" })
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(
-          `Failed to get broadcast status: ${error.error?.message || "Unknown error"}`,
-        );
+        throw new Error(`Failed to get broadcast status: ${error.error?.message || "Unknown error"}`);
       }
 
       const result = await response.json();
@@ -202,11 +205,16 @@ export const getYouTubeBroadcastStatus = createServerFn({ method: "GET" })
  * End a YouTube broadcast
  */
 export const endYouTubeBroadcast = createServerFn({ method: "POST" })
-  .inputValidator((data: { access_token: string; broadcastId: string }) => {
-    if (!data?.access_token) throw new Error("Invalid access token");
-    if (!data?.broadcastId) throw new Error("Broadcast ID is required");
-    return data;
-  })
+  .inputValidator(
+    (data: {
+      access_token: string;
+      broadcastId: string;
+    }) => {
+      if (!data?.access_token) throw new Error("Invalid access token");
+      if (!data?.broadcastId) throw new Error("Broadcast ID is required");
+      return data;
+    },
+  )
   .handler(async ({ data }) => {
     try {
       console.log("[YouTube] Ending broadcast:", data.broadcastId);
@@ -235,6 +243,8 @@ export const endYouTubeBroadcast = createServerFn({ method: "POST" })
       };
     } catch (error) {
       console.error("[YouTube] Failed to end broadcast:", error);
-      throw new Error(error instanceof Error ? error.message : "Failed to end YouTube broadcast");
+      throw new Error(
+        error instanceof Error ? error.message : "Failed to end YouTube broadcast",
+      );
     }
   });
