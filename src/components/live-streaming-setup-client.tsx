@@ -14,8 +14,6 @@ function LiveKitVideoPlayer({ roomName, isActive }: { roomName: string; isActive
     async function startLocalPreview() {
       if (isActive && videoRef.current) {
         try {
-          // LiveKit రూమ్ నుండి వచ్చే స్ట్రీమ్‌ను ఇక్కడ బైండ్ చేయాలి. 
-          // ప్రస్తుతానికి డ్యాష్‌బోర్డ్ ప్రివ్యూ కోసం లోకల్ వెబ్‌క్యామ్/స్ట్రీమ్ ఫీడ్‌ను అటాచ్ చేస్తున్నాం.
           stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
           if (videoRef.current) {
             videoRef.current.srcObject = stream;
@@ -46,7 +44,6 @@ function LiveKitVideoPlayer({ roomName, isActive }: { roomName: string; isActive
 
   return (
     <div className="relative w-full h-full bg-zinc-900 rounded-lg overflow-hidden">
-      {/* అసలైన వీడియో ఎలిమెంట్ - మొబైల్ కెమెరా ఫీడ్ ఇక్కడ డిస్‌ప్లే అవుతుంది */}
       <video 
         ref={videoRef} 
         autoPlay 
@@ -54,8 +51,6 @@ function LiveKitVideoPlayer({ roomName, isActive }: { roomName: string; isActive
         muted 
         className="w-full h-full object-cover transform scale-x-[-1]" 
       />
-      
-      {/* వీడియో పైనే ఓవర్లే అయ్యే లైవ్ ఇండికేటర్స్ */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 p-3 flex flex-col justify-between pointer-events-none">
         <div className="flex justify-between items-start">
           <span className="text-[10px] bg-red-500 text-white font-bold px-2 py-0.5 rounded animate-pulse uppercase tracking-wider">
@@ -82,8 +77,6 @@ export function LiveStreamingSetupClient() {
   const [aiPrompt, setAiPrompt] = useState("");
   const [selectedCamera, setSelectedCamera] = useState<number | null>(null);
   const [showQrModal, setShowQrModal] = useState(false);
-  
-  // మొబైల్ కెమెరా కనెక్ట్ అయిందా లేదా అని ట్రాక్ చేసే స్టేట్
   const [isMobileCamConnected, setIsMobileCamConnected] = useState(false);
 
   const safeRoomName = streamTitle 
@@ -127,18 +120,17 @@ export function LiveStreamingSetupClient() {
         <div className="lg:col-span-2 flex flex-col gap-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             
-            {/* PREVIEW BOX (GREEN ROOM) */}
+            {/* PREVIEW BOX */}
             <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-4 flex flex-col gap-2">
               <span className="text-[10px] bg-green-500/10 text-green-400 border border-green-500/20 px-2 py-0.5 rounded-md font-bold uppercase tracking-wider w-fit">
                 Preview (Green Room)
               </span>
               <div className="aspect-video w-full">
-                {/* ఇక్కడ డార్క్ బాక్స్ తీసేసి ప్లేయర్‌ని యాడ్ చేశాం */}
                 <LiveKitVideoPlayer roomName={safeRoomName} isActive={isMobileCamConnected} />
               </div>
             </div>
 
-            {/* PROGRAM BOX (LIVE FEED) */}
+            {/* PROGRAM BOX */}
             <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-4 flex flex-col gap-2">
               <span className="text-[10px] bg-red-500/10 text-red-400 border border-red-500/20 px-2 py-0.5 rounded-md font-bold uppercase tracking-wider w-fit">
                 Program (Live Feed)
@@ -150,7 +142,7 @@ export function LiveStreamingSetupClient() {
             </div>
           </div>
 
-          {/* STATUS LOG BAR */}
+          {/* STATUS BAR */}
           <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-4 text-xs text-zinc-500 flex items-center gap-6 font-mono">
             <div className="flex items-center gap-2">
               <span className={`w-1.5 h-1.5 rounded-full ${isMobileCamConnected ? "bg-green-500" : "bg-red-500"}`} />
@@ -159,7 +151,7 @@ export function LiveStreamingSetupClient() {
           </div>
         </div>
 
-        {/* RIGHT PANEL: CONFIGURATIONS */}
+        {/* RIGHT PANEL */}
         <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-6 shadow-xl flex flex-col gap-5">
           <div>
             <h2 className="text-xs font-bold uppercase tracking-wider text-zinc-400 mb-4 font-mono">Stream Configuration</h2>
@@ -187,7 +179,7 @@ export function LiveStreamingSetupClient() {
             </div>
           </div>
 
-          {/* THUMBNAIL MODULE */}
+          {/* THUMBNAIL */}
           <div className="border border-[#2f2f2f] rounded-lg p-3 bg-[#111113] flex flex-col gap-2.5">
             <div className="flex items-center justify-between border-b border-zinc-800 pb-1.5">
               <span className="text-[11px] font-semibold text-zinc-400 flex items-center gap-1.5">
@@ -227,7 +219,7 @@ export function LiveStreamingSetupClient() {
             </div>
           </div>
 
-          {/* CAM SOURCES */}
+          {/* 20 CAMERA SOURCES */}
           <div className="border-t border-zinc-800 pt-4 flex flex-col gap-3">
             <div className="flex items-center gap-2 text-xs font-semibold text-zinc-300">
               <Camera className="w-4 h-4 text-indigo-400" />
@@ -240,7 +232,7 @@ export function LiveStreamingSetupClient() {
                 const isSelected = selectedCamera === camId;
                 return (
                   <button
-                    key={camId;
+                    key={camId} // ఇక్కడ సెమీకోలన్ తీసేసి కరెక్ట్ చేశాను!
                     type="button"
                     onClick={() => {
                       setSelectedCamera(camId);
@@ -284,7 +276,7 @@ export function LiveStreamingSetupClient() {
               onClick={() => {
                 setShowQrModal(false);
                 setSelectedCamera(null);
-                setIsMobileCamConnected(true); // బటన్ క్లిక్ చేయగానే మెయిన్ ప్రివ్యూలో లైవ్ వీడియో ఆన్ అవుతుంది
+                setIsMobileCamConnected(true);
                 toast.success("Wireless Cam Connected to Studio!");
               }}
               className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs rounded-lg transition"
