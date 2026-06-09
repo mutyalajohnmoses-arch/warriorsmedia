@@ -96,14 +96,7 @@ export function StreamHealthIndicator({
                     className={`w-1 h-3 rounded-sm ${
                       connectionQuality === "unknown"
                         ? "bg-gray-500/30"
-                        : bar <=
-                            (connectionQuality === "excellent"
-                              ? 5
-                              : connectionQuality === "good"
-                                ? 4
-                                : connectionQuality === "fair"
-                                  ? 3
-                                  : 2)
+                        : bar <= (connectionQuality === "excellent" ? 5 : connectionQuality === "good" ? 4 : connectionQuality === "fair" ? 3 : 2)
                           ? getQualityColor()
                           : "bg-gray-500/30"
                     }`}
@@ -136,13 +129,17 @@ export function StreamHealthIndicator({
       <div className="flex items-center gap-2 pt-2 border-t border-border">
         <div className="flex items-center gap-1">
           <div
-            className={`w-2 h-2 rounded-full ${isConnected ? "bg-green-500" : "bg-violet-500"}`}
+            className={`w-2 h-2 rounded-full ${
+              isConnected ? "bg-green-500" : "bg-violet-500"
+            }`}
           />
           <span className="text-[10px] text-muted-foreground">Connected</span>
         </div>
         <div className="flex items-center gap-1">
           <div
-            className={`w-2 h-2 rounded-full ${isPublishing ? "bg-green-500" : "bg-gray-500/50"}`}
+            className={`w-2 h-2 rounded-full ${
+              isPublishing ? "bg-green-500" : "bg-gray-500/50"
+            }`}
           />
           <span className="text-[10px] text-muted-foreground">Publishing</span>
         </div>

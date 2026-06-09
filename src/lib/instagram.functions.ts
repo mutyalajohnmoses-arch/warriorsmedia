@@ -63,7 +63,7 @@ export const getInstagramProfiles = createServerFn({ method: "POST" })
   })
   .handler(async ({ data: usernames }) => {
     const results: Record<string, { profilePic: string | null; fullName: string | null }> = {};
-
+    
     await Promise.all(
       usernames.map(async (username) => {
         try {
@@ -86,13 +86,13 @@ export const getInstagramProfiles = createServerFn({ method: "POST" })
                 const imgRes = await fetch(user.profile_pic_url, {
                   headers: {
                     "User-Agent": "Instagram 219.0.0.12.117 Android",
-                  },
+                  }
                 });
                 if (imgRes.ok) {
                   const arrayBuffer = await imgRes.arrayBuffer();
                   const buffer = Buffer.from(arrayBuffer);
-                  const base64 = buffer.toString("base64");
-                  const contentType = imgRes.headers.get("content-type") || "image/jpeg";
+                  const base64 = buffer.toString('base64');
+                  const contentType = imgRes.headers.get('content-type') || 'image/jpeg';
                   results[username] = {
                     profilePic: `data:${contentType};base64,${base64}`,
                     fullName: user.full_name ?? null,
@@ -114,8 +114,8 @@ export const getInstagramProfiles = createServerFn({ method: "POST" })
           console.error(`Failed to fetch profile for ${username}:`, e);
           results[username] = { profilePic: null, fullName: null };
         }
-      }),
+      })
     );
-
+    
     return results;
   });

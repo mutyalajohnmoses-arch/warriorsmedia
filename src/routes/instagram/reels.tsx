@@ -58,7 +58,7 @@ function InstagramReelsStudio() {
 
             <div className="p-6 rounded-xl border border-border bg-card/40 space-y-6">
               <h3 className="font-bold text-lg">Reel Details</h3>
-
+              
               <div>
                 <label className="text-sm font-medium block mb-2">Title</label>
                 <input
@@ -103,9 +103,7 @@ function InstagramReelsStudio() {
                   <Sparkles className="w-5 h-5 text-[color:var(--gold)] flex-shrink-0 mt-0.5" />
                   <div>
                     <p className="font-medium text-sm mb-2">Creative Tools</p>
-                    <p className="text-xs text-muted-foreground mb-2">
-                      Use AI to enhance your reel
-                    </p>
+                    <p className="text-xs text-muted-foreground mb-2">Use AI to enhance your reel</p>
                     <button className="px-3 py-1 text-xs font-medium bg-[color:var(--gold)]/20 hover:bg-[color:var(--gold)]/30 rounded transition">
                       Generate Ideas
                     </button>

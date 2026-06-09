@@ -56,14 +56,11 @@ export const getOrRefreshYouTubeToken = createServerFn({ method: "POST" })
       const expirationBuffer = 5 * 60 * 1000; // 5 minutes
 
       if (expiresAt - now < expirationBuffer) {
-        console.log(
-          "[getOrRefreshYouTubeToken] Token expired or expiring soon, attempting refresh",
-          {
-            expiresAt,
-            now,
-            timeUntilExpiry: expiresAt - now,
-          },
-        );
+        console.log("[getOrRefreshYouTubeToken] Token expired or expiring soon, attempting refresh", {
+          expiresAt,
+          now,
+          timeUntilExpiry: expiresAt - now,
+        });
 
         if (!channel.refresh_token) {
           throw new Error("Token expired and no refresh token available");
@@ -90,10 +87,7 @@ export const getOrRefreshYouTubeToken = createServerFn({ method: "POST" })
             .eq("id", channel.id);
 
           if (updateError) {
-            console.error(
-              "[getOrRefreshYouTubeToken] Error updating channel with new tokens:",
-              updateError,
-            );
+            console.error("[getOrRefreshYouTubeToken] Error updating channel with new tokens:", updateError);
             throw updateError;
           }
 

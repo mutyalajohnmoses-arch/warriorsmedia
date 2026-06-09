@@ -6,8 +6,10 @@ import {
   Cross,
   LogOut,
   Radio,
+
   Instagram,
   Facebook,
+
   Target,
   Clapperboard,
   Music4,
@@ -20,6 +22,7 @@ import {
   MessageCircle,
   Sparkles,
   ArrowRight,
+ 
   RefreshCw,
   Music,
   Headphones,
@@ -33,7 +36,6 @@ import { getConnectedYouTubeChannel } from "@/lib/youtube-persistence.functions"
 import { YouTubeDownloader, YouTubeMetaExtractor } from "@/components/youtube-tools";
 import { YouTubeCreateMenu } from "@/components/youtube-create-menu";
 import { YouTubeChannelStats } from "@/components/youtube-channel-stats";
-import { toast } from "sonner";
 import type { YouTubeChannelInfo } from "@/lib/youtube-oauth.functions";
 
 type ConnectedYouTubeChannel = {
@@ -75,40 +77,19 @@ const modules = [
     tag: "LIVE NOW",
   },
 
-  {
-    icon: Instagram,
-    title: "Instagram",
-    desc: "Manage Instagram content & analytics",
-    tag: "SOCIAL",
-  },
 
-  {
-    icon: Facebook,
-    title: "Facebook",
-    desc: "Manage Facebook pages & audience engagement",
-    tag: "SOCIAL",
-  },
 
-  {
-    icon: Target,
-    title: "Warriors Lead Engine",
-    desc: "Generate and manage business leads",
-    tag: "NEW",
-  },
+   { icon: Instagram, title: "Instagram", desc: "Manage Instagram content & analytics", tag: "SOCIAL" },
 
-  {
-    icon: Clapperboard,
-    title: "Warriors AI Video Editor",
-    desc: "AI-powered video editing & content creation",
-    tag: "AI",
-  },
+   { icon: Facebook, title: "Facebook", desc: "Manage Facebook pages & audience engagement", tag: "SOCIAL" },
 
-  {
-    icon: Music4,
-    title: "Warriors AI Music",
-    desc: "Create Christian songs and music with AI",
-    tag: "AI",
-  },
+
+
+   { icon: Target, title: "Warriors Lead Engine", desc: "Generate and manage business leads", tag: "NEW" },
+
+   { icon: Clapperboard, title: "Warriors AI Video Editor", desc: "AI-powered video editing & content creation", tag: "AI" },
+
+   { icon: Music4, title: "Warriors AI Music", desc: "Create Christian songs and music with AI", tag: "AI" },
   {
     icon: MessageCircle,
     title: "WhatsApp",
@@ -174,17 +155,18 @@ function Home() {
   const [hasYouTubeChannel, setHasYouTubeChannel] = useState(false);
   const [connectedChannel, setConnectedChannel] = useState<ConnectedYouTubeChannel | null>(null);
 
-  const handleModuleClick = (title: string) => {
-    if (title === "Youtube") {
-      if (!youtubeConnected) {
-        toast.error("Please connect your YouTube channel first");
-        return;
-      }
-      navigate({ to: "/live-streaming-setup" });
-    } else if (title === "Instagram") {
-      navigate({ to: "/instagram" });
+ 
+const handleModuleClick = (title: string) => {
+  if (title === "Live Streaming") {
+    if (!youtubeConnected) {
+      console.log("[Dashboard] Please connect YouTube channel first");
+      return;
     }
-  };
+    navigate({ to: "/live-streaming-setup" });
+  } else if (title === "Instagram") {
+    navigate({ to: "/instagram" });
+  }
+};
 
   const fetchIg = useServerFn(getInstagramStats);
   const fetchTeamProfilesServerFn = useServerFn(getInstagramProfiles);

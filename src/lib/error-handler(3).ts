@@ -55,7 +55,8 @@ export function handleMediaError(error: unknown): AppError {
       type: "MEDIA_DEVICE_NOT_FOUND",
       message: err.message,
       originalError: err,
-      userMessage: "No camera or microphone found. Please check that your devices are connected.",
+      userMessage:
+        "No camera or microphone found. Please check that your devices are connected.",
       recoverable: true,
     };
   }

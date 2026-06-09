@@ -21,7 +21,9 @@ export interface LiveKitConnectionState {
 /**
  * Connect to a LiveKit room and publish camera/microphone tracks
  */
-export async function connectToLiveKitRoom(options: LiveKitConnectionOptions): Promise<Room> {
+export async function connectToLiveKitRoom(
+  options: LiveKitConnectionOptions,
+): Promise<Room> {
   try {
     console.log("[LiveKit] Connecting to room:", options.roomName);
 

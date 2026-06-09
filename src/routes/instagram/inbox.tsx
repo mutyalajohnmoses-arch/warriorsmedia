@@ -28,31 +28,13 @@ function InstagramInbox() {
   const [messageText, setMessageText] = useState("");
 
   const conversations = [
-    {
-      id: 1,
-      name: "Worship Leader",
-      message: "Great reel! Let's collab soon.",
-      time: "2m",
-      unread: true,
-    },
-    {
-      id: 2,
-      name: "Sarah Grace",
-      message: "When is the next live session?",
-      time: "1h",
-      unread: false,
-    },
+    { id: 1, name: "Worship Leader", message: "Great reel! Let's collab soon.", time: "2m", unread: true },
+    { id: 2, name: "Sarah Grace", message: "When is the next live session?", time: "1h", unread: false },
     { id: 3, name: "John Doe", message: "Love your content!", time: "3h", unread: false },
   ];
 
   const messages = [
-    {
-      id: 1,
-      sender: "Worship Leader",
-      text: "Great reel! Let's collab soon.",
-      time: "2m",
-      isOwn: false,
-    },
+    { id: 1, sender: "Worship Leader", text: "Great reel! Let's collab soon.", time: "2m", isOwn: false },
     { id: 2, sender: "You", text: "Thanks! I'd love to collaborate", time: "1m", isOwn: true },
   ];
 
@@ -102,9 +84,7 @@ function InstagramInbox() {
                     <span className="text-xs text-muted-foreground">{conv.time}</span>
                   </div>
                   <p className="text-xs text-muted-foreground truncate">{conv.message}</p>
-                  {conv.unread && (
-                    <div className="w-2 h-2 rounded-full bg-[color:var(--gold)] mt-2" />
-                  )}
+                  {conv.unread && <div className="w-2 h-2 rounded-full bg-[color:var(--gold)] mt-2" />}
                 </button>
               ))}
             </div>
@@ -132,17 +112,13 @@ function InstagramInbox() {
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {messages.map((msg) => (
                 <div key={msg.id} className={`flex ${msg.isOwn ? "justify-end" : "justify-start"}`}>
-                  <div
-                    className={`max-w-xs px-4 py-2 rounded-lg ${
-                      msg.isOwn
-                        ? "bg-[color:var(--gold)] text-background"
-                        : "bg-background/50 border border-border"
-                    }`}
-                  >
+                  <div className={`max-w-xs px-4 py-2 rounded-lg ${
+                    msg.isOwn
+                      ? "bg-[color:var(--gold)] text-background"
+                      : "bg-background/50 border border-border"
+                  }`}>
                     <p className="text-sm">{msg.text}</p>
-                    <p
-                      className={`text-xs mt-1 ${msg.isOwn ? "text-background/70" : "text-muted-foreground"}`}
-                    >
+                    <p className={`text-xs mt-1 ${msg.isOwn ? "text-background/70" : "text-muted-foreground"}`}>
                       {msg.time}
                     </p>
                   </div>

@@ -123,147 +123,128 @@ async function scrapeYouTubeWatch(videoId: string): Promise<MetaResult | null> {
         );
         if (!res.ok) continue;
         const html = await res.text();
-
-        // Try multiple markers and extraction methods
-        const markers = ["ytInitialPlayerResponse", "ytInitialData"];
-        let pr: any = null;
-        let vd: any = null;
-
-        for (const marker of markers) {
-          const idx = html.indexOf(marker);
-          if (idx < 0) continue;
-          const eq = html.indexOf("{", idx);
-          if (eq < 0) continue;
-
-          let depth = 0;
-          let end = -1;
-          let inStr = false;
-          let esc = false;
-          for (let i = eq; i < html.length; i++) {
-            const c = html[i];
-            if (inStr) {
-              if (esc) esc = false;
-              else if (c === "\\") esc = true;
-              else if (c === '"') inStr = false;
-            } else {
-              if (c === '"') inStr = true;
-              else if (c === "{") depth++;
-              else if (c === "}") {
-                depth--;
-                if (depth === 0) {
-                  end = i + 1;
-                  break;
-                }
+      
+      // Try multiple markers and extraction methods
+      const markers = ["ytInitialPlayerResponse", "ytInitialData"];
+      let pr: any = null;
+      let vd: any = null;
+      
+      for (const marker of markers) {
+        const idx = html.indexOf(marker);
+        if (idx < 0) continue;
+        const eq = html.indexOf("{", idx);
+        if (eq < 0) continue;
+        
+        let depth = 0;
+        let end = -1;
+        let inStr = false;
+        let esc = false;
+        for (let i = eq; i < html.length; i++) {
+          const c = html[i];
+          if (inStr) {
+            if (esc) esc = false;
+            else if (c === "\\") esc = true;
+            else if (c === '"') inStr = false;
+          } else {
+            if (c === '"') inStr = true;
+            else if (c === "{") depth++;
+            else if (c === "}") {
+              depth--;
+              if (depth === 0) {
+                end = i + 1;
+                break;
               }
             }
           }
-
-          if (end > 0) {
-            try {
-              const parsed = JSON.parse(html.slice(eq, end));
-              if (marker === "ytInitialPlayerResponse") {
-                pr = parsed;
-                vd = parsed.videoDetails;
-              } else if (marker === "ytInitialData") {
-                // Extract from ytInitialData if player response fails
-                const contents =
-                  parsed.contents?.twoColumnWatchNextResults?.results?.results?.contents;
-                const primary = contents?.find(
-                  (c: any) => c.videoPrimaryInfoRenderer,
-                )?.videoPrimaryInfoRenderer;
-                const secondary = contents?.find(
-                  (c: any) => c.videoSecondaryInfoRenderer,
-                )?.videoSecondaryInfoRenderer;
-
-                if (primary || secondary) {
-                  return {
-                    videoId,
-                    title: primary?.title?.runs?.[0]?.text || null,
-                    description:
-                      secondary?.description?.runs?.map((r: any) => r.text).join("") || null,
-                    tags:
-                      primary?.tags
-                        ?.map((t: any) => t.metadataBadgeRenderer?.label)
-                        .filter(Boolean) || [],
-                    thumbnail: fallbackThumb,
-                    channel: secondary?.owner?.videoOwnerRenderer?.title?.runs?.[0]?.text || null,
-                    duration: null,
-                    viewCount:
-                      primary?.viewCount?.videoViewCountRenderer?.viewCount?.simpleText || null,
-                    source: "youtube-data",
-                    error: null,
-                  };
-                }
+        }
+        
+        if (end > 0) {
+          try {
+            const parsed = JSON.parse(html.slice(eq, end));
+            if (marker === "ytInitialPlayerResponse") {
+              pr = parsed;
+              vd = parsed.videoDetails;
+            } else if (marker === "ytInitialData") {
+              // Extract from ytInitialData if player response fails
+              const contents = parsed.contents?.twoColumnWatchNextResults?.results?.results?.contents;
+              const primary = contents?.find((c: any) => c.videoPrimaryInfoRenderer)?.videoPrimaryInfoRenderer;
+              const secondary = contents?.find((c: any) => c.videoSecondaryInfoRenderer)?.videoSecondaryInfoRenderer;
+              
+              if (primary || secondary) {
+                return {
+                  videoId,
+                  title: primary?.title?.runs?.[0]?.text || null,
+                  description: secondary?.description?.runs?.map((r: any) => r.text).join("") || null,
+                  tags: primary?.tags?.map((t: any) => t.metadataBadgeRenderer?.label).filter(Boolean) || [],
+                  thumbnail: fallbackThumb,
+                  channel: secondary?.owner?.videoOwnerRenderer?.title?.runs?.[0]?.text || null,
+                  duration: null,
+                  viewCount: primary?.viewCount?.videoViewCountRenderer?.viewCount?.simpleText || null,
+                  source: "youtube-data",
+                  error: null,
+                };
               }
-            } catch {
-              continue;
             }
+          } catch {
+            continue;
           }
         }
+      }
 
-        if (vd?.title) {
-          const thumbs = vd.thumbnail?.thumbnails ?? [];
-          const thumb =
-            thumbs.sort((a: any, b: any) => (b.width || 0) - (a.width || 0))[0]?.url ||
-            fallbackThumb;
-          return {
-            videoId,
-            title: vd.title ?? null,
-            description: vd.shortDescription ?? null,
-            tags: Array.isArray(vd.keywords) ? vd.keywords : [],
-            thumbnail: thumb,
-            channel: vd.author ?? null,
-            duration: vd.lengthSeconds ?? null,
-            viewCount: vd.viewCount ?? null,
-            source: "youtube",
-            error: null,
-          };
+      if (vd?.title) {
+        const thumbs = vd.thumbnail?.thumbnails ?? [];
+        const thumb =
+          thumbs.sort((a: any, b: any) => (b.width || 0) - (a.width || 0))[0]?.url || fallbackThumb;
+        return {
+          videoId,
+          title: vd.title ?? null,
+          description: vd.shortDescription ?? null,
+          tags: Array.isArray(vd.keywords) ? vd.keywords : [],
+          thumbnail: thumb,
+          channel: vd.author ?? null,
+          duration: vd.lengthSeconds ?? null,
+          viewCount: vd.viewCount ?? null,
+          source: "youtube",
+          error: null,
+        };
+      }
+      
+      // Fallback to meta tags and regex if JSON extraction fails or is incomplete
+      const titleMatch = html.match(/<meta name="title" content="(.*?)">/) || html.match(/<title>(.*?)<\/title>/);
+      const descMatch = html.match(/<meta name="description" content="(.*?)">/);
+      const keywordsMatch = html.match(/<meta name="keywords" content="(.*?)">/);
+      
+      // Filter out generic YouTube descriptions
+      let description = descMatch ? descMatch[1] : null;
+      if (description?.includes("Enjoy the videos and music that you love")) {
+        description = null;
+      }
+      
+      // Try to find description in ld+json if meta is generic
+      if (!description) {
+        const ldJsonMatch = html.match(/<script type="application\/ld\+json">(.*?)<\/script>/);
+        if (ldJsonMatch) {
+          try {
+            const ld = JSON.parse(ldJsonMatch[1]);
+            description = ld.description || null;
+          } catch { /* ignore */ }
         }
+      }
 
-        // Fallback to meta tags and regex if JSON extraction fails or is incomplete
-        const titleMatch =
-          html.match(/<meta name="title" content="(.*?)">/) || html.match(/<title>(.*?)<\/title>/);
-        const descMatch = html.match(/<meta name="description" content="(.*?)">/);
-        const keywordsMatch = html.match(/<meta name="keywords" content="(.*?)">/);
-
-        // Filter out generic YouTube descriptions
-        let description = descMatch ? descMatch[1] : null;
-        if (description?.includes("Enjoy the videos and music that you love")) {
-          description = null;
-        }
-
-        // Try to find description in ld+json if meta is generic
-        if (!description) {
-          const ldJsonMatch = html.match(/<script type="application\/ld\+json">(.*?)<\/script>/);
-          if (ldJsonMatch) {
-            try {
-              const ld = JSON.parse(ldJsonMatch[1]);
-              description = ld.description || null;
-            } catch {
-              /* ignore */
-            }
-          }
-        }
-
-        if (titleMatch || description || keywordsMatch) {
-          return {
-            videoId,
-            title: titleMatch ? titleMatch[1].replace(" - YouTube", "") : null,
-            description: description,
-            tags: keywordsMatch
-              ? keywordsMatch[1]
-                  .split(",")
-                  .map((s: string) => s.trim())
-                  .filter(Boolean)
-              : [],
-            thumbnail: fallbackThumb,
-            channel: null,
-            duration: null,
-            viewCount: null,
-            source: "youtube-scrape",
-            error: null,
-          };
-        }
+      if (titleMatch || description || keywordsMatch) {
+        return {
+          videoId,
+          title: titleMatch ? titleMatch[1].replace(" - YouTube", "") : null,
+          description: description,
+          tags: keywordsMatch ? keywordsMatch[1].split(",").map((s: string) => s.trim()).filter(Boolean) : [],
+          thumbnail: fallbackThumb,
+          channel: null,
+          duration: null,
+          viewCount: null,
+          source: "youtube-scrape",
+          error: null,
+        };
+      }
       } catch {
         // try next agent
       }
@@ -301,8 +282,7 @@ export const getYouTubeMeta = createServerFn({ method: "GET" })
         };
         if (!j?.title) continue;
         const thumb =
-          (j.videoThumbnails || []).sort((a, b) => (b.width || 0) - (a.width || 0))[0]?.url ||
-          fallbackThumb;
+          (j.videoThumbnails || []).sort((a, b) => (b.width || 0) - (a.width || 0))[0]?.url || fallbackThumb;
         return {
           videoId: data.videoId,
           title: j.title ?? null,
@@ -356,9 +336,7 @@ export const getYouTubeMeta = createServerFn({ method: "GET" })
 
     // 3) Try NoEmbed (reliable title/author)
     try {
-      const res = await fetchWithTimeout(
-        `https://noembed.com/embed?url=https://www.youtube.com/watch?v=${data.videoId}`,
-      );
+      const res = await fetchWithTimeout(`https://noembed.com/embed?url=https://www.youtube.com/watch?v=${data.videoId}`);
       if (res.ok) {
         const j = await res.json();
         if (j.title) {
@@ -376,15 +354,11 @@ export const getYouTubeMeta = createServerFn({ method: "GET" })
           };
         }
       }
-    } catch {
-      /* ignore */
-    }
+    } catch { /* ignore */ }
 
     // 4) Try Return YouTube Dislike API (often has metadata too)
     try {
-      const res = await fetchWithTimeout(
-        `https://returnyoutubedislikeapi.com/votes?videoId=${data.videoId}`,
-      );
+      const res = await fetchWithTimeout(`https://returnyoutubedislikeapi.com/votes?videoId=${data.videoId}`);
       if (res.ok) {
         const j = await res.json();
         if (j.title) {
@@ -402,9 +376,7 @@ export const getYouTubeMeta = createServerFn({ method: "GET" })
           };
         }
       }
-    } catch {
-      /* ignore */
-    }
+    } catch { /* ignore */ }
 
     // 5) Last-ditch oEmbed
     try {
@@ -412,11 +384,7 @@ export const getYouTubeMeta = createServerFn({ method: "GET" })
         `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${data.videoId}&format=json`,
       );
       if (res.ok) {
-        const j = (await res.json()) as {
-          title?: string;
-          author_name?: string;
-          thumbnail_url?: string;
-        };
+        const j = (await res.json()) as { title?: string; author_name?: string; thumbnail_url?: string };
         return {
           videoId: data.videoId,
           title: j.title ?? null,
@@ -563,13 +531,7 @@ export const getYouTubeStreams = createServerFn({ method: "GET" })
           author?: string;
           lengthSeconds?: number;
           videoThumbnails?: Array<{ url: string; width: number }>;
-          formatStreams?: Array<{
-            url: string;
-            qualityLabel?: string;
-            container?: string;
-            fps?: number;
-            bitrate?: string;
-          }>;
+          formatStreams?: Array<{ url: string; qualityLabel?: string; container?: string; fps?: number; bitrate?: string }>;
           adaptiveFormats?: Array<{
             url: string;
             qualityLabel?: string;
@@ -632,8 +594,7 @@ export const getYouTubeStreams = createServerFn({ method: "GET" })
         });
 
         const thumb =
-          (j.videoThumbnails || []).sort((a, b) => (b.width || 0) - (a.width || 0))[0]?.url ||
-          fallbackThumb;
+          (j.videoThumbnails || []).sort((a, b) => (b.width || 0) - (a.width || 0))[0]?.url || fallbackThumb;
 
         return {
           videoId: data.videoId,

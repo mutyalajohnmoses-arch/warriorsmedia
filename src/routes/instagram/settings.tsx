@@ -79,16 +79,12 @@ function InstagramSettings() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="font-medium">New Comments</p>
-                  <p className="text-sm text-muted-foreground">
-                    Get notified when someone comments
-                  </p>
+                  <p className="text-sm text-muted-foreground">Get notified when someone comments</p>
                 </div>
                 <button
                   onClick={() => setNotifications(!notifications)}
                   className={`p-2 rounded-lg transition ${
-                    notifications
-                      ? "bg-[color:var(--gold)]/20 text-[color:var(--gold)]"
-                      : "bg-background/50"
+                    notifications ? "bg-[color:var(--gold)]/20 text-[color:var(--gold)]" : "bg-background/50"
                   }`}
                 >
                   <Power className="w-5 h-5" />
@@ -116,16 +112,12 @@ function InstagramSettings() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="font-medium">AI Suggestions</p>
-                  <p className="text-sm text-muted-foreground">
-                    Get AI-powered content recommendations
-                  </p>
+                  <p className="text-sm text-muted-foreground">Get AI-powered content recommendations</p>
                 </div>
                 <button
                   onClick={() => setAiSuggestions(!aiSuggestions)}
                   className={`p-2 rounded-lg transition ${
-                    aiSuggestions
-                      ? "bg-[color:var(--gold)]/20 text-[color:var(--gold)]"
-                      : "bg-background/50"
+                    aiSuggestions ? "bg-[color:var(--gold)]/20 text-[color:var(--gold)]" : "bg-background/50"
                   }`}
                 >
                   <Power className="w-5 h-5" />
@@ -134,16 +126,12 @@ function InstagramSettings() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="font-medium">Auto-Posting</p>
-                  <p className="text-sm text-muted-foreground">
-                    Automatically post scheduled content
-                  </p>
+                  <p className="text-sm text-muted-foreground">Automatically post scheduled content</p>
                 </div>
                 <button
                   onClick={() => setAutoPost(!autoPost)}
                   className={`p-2 rounded-lg transition ${
-                    autoPost
-                      ? "bg-[color:var(--gold)]/20 text-[color:var(--gold)]"
-                      : "bg-background/50"
+                    autoPost ? "bg-[color:var(--gold)]/20 text-[color:var(--gold)]" : "bg-background/50"
                   }`}
                 >
                   <Power className="w-5 h-5" />
