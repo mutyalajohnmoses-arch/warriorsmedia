@@ -1,3 +1,4 @@
+
 import { useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState, useRef } from "react";
 import { useServerFn } from "@tanstack/react-start";
@@ -33,6 +34,8 @@ import {
   Volume2,
   VolumeX,
   Grid,
+  X,          // Added for Modal Close
+  Smartphone, // Added for QR UI Device Context
 } from "lucide-react";
 
 import {
@@ -91,6 +94,10 @@ export default function LiveStreamingSetupPage() {
   const [currentEgressId, setCurrentEgressId] = useState<string | null>(null);
   const [generatedRtmpUrl, setGeneratedRtmpUrl] = useState<string | null>(null);
   const [participantName, setParticipantName] = useState("Host");
+
+  // Custom Wireless Camera Selector States
+  const [selectedCamera, setSelectedCamera] = useState<number | null>(null);
+  const [showQrCode, setShowQrCode] = useState<boolean>(false);
 
   // Dedicated Video Elements Refs for Multi-Cam Layout
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -378,6 +385,39 @@ export default function LiveStreamingSetupPage() {
               </div>
             </div>
 
+            {/* --- Camera Sources Configuration Grid Section --- */}
+            <div className="pt-2 border-t border-muted mt-2">
+              <div className="flex items-center space-x-2 mb-3 text-muted-foreground">
+                <Video className="w-4 h-4 text-primary" />
+                <h4 className="text-xs font-semibold uppercase tracking-wider">Camera Sources Configuration</h4>
+              </div>
+              <div className="grid grid-cols-4 gap-2">
+                {Array.from({ length: 20 }, (_, i) => {
+                  const camNumber = i + 1;
+                  const isActive = selectedCamera === camNumber;
+                  return (
+                    <button
+                      key={camNumber}
+                      type="button"
+                      onClick={() => {
+                        setSelectedCamera(camNumber);
+                        setShowQrCode(true);
+                      }}
+                      className={`flex flex-col items-center justify-center p-2 rounded-lg border text-center transition cursor-pointer ${
+                        isActive
+                          ? "bg-primary/10 border-primary text-primary"
+                          : "bg-background border-input text-muted-foreground hover:text-foreground hover:border-accent"
+                      }`}
+                    >
+                      <span className="text-[9px] uppercase font-bold tracking-tight opacity-70">Cam</span>
+                      <span className="text-sm font-bold">{camNumber}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            {/* --- Camera Sources Configuration End --- */}
+
             <div className="pt-2">
               <button
                 disabled={!streamTitle || isConnecting}
@@ -399,6 +439,51 @@ export default function LiveStreamingSetupPage() {
           </div>
         </div>
       </div>
+
+      {/* --- QR Code Popup Modal Overlay --- */}
+      {showQrCode && selectedCamera !== null && (
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-card border rounded-xl p-6 max-w-sm w-full relative shadow-xl">
+            <button
+              onClick={() => setShowQrCode(false)}
+              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground p-1 rounded-lg transition"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex flex-col items-center text-center">
+              <div className="p-2.5 bg-primary/10 rounded-full text-primary mb-3">
+                <Smartphone className="w-6 h-6" />
+              </div>
+              <h3 className="text-base font-bold text-foreground">
+                Connect Wireless Camera {selectedCamera}
+              </h3>
+              <p className="text-xs text-muted-foreground mt-1 mb-4">
+                Scan this QR code with your mobile phone to assign it to this channel.
+              </p>
+
+              {/* Dynamic External QR Generator Endpoint (No NPM install required) */}
+              <div className="bg-white p-3 rounded-xl border">
+                <img
+                  src={`https://chart.googleapis.com/chart?chs=200&cht=qr&chl=${encodeURIComponent(
+                    `${typeof window !== 'undefined' ? window.location.origin : ''}/mobile-cam?camId=${selectedCamera}&room=studio-cam-${selectedCamera}`
+                  )}&choe=UTF-8`}
+                  alt={`Camera ${selectedCamera} Connection Link`}
+                  className="w-44 h-44 select-none"
+                />
+              </div>
+
+              <div className="mt-4 p-2 bg-muted rounded border w-full text-left">
+                <span className="text-[9px] font-bold text-muted-foreground block uppercase">Generated Endpoint:</span>
+                <span className="text-xs text-foreground font-mono break-all block mt-0.5">
+                  {typeof window !== 'undefined' ? window.location.origin : ''}/mobile-cam?camId={selectedCamera}&room=studio-cam-{selectedCamera}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* --- QR Code Popup Modal End --- */}
     </div>
   );
 }
