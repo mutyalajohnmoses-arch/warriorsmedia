@@ -72,29 +72,20 @@ export const generateLiveKitToken = createServerFn({ method: "POST" })
       };
     } catch (error) {
       console.error("[LiveKit] Token generation failed:", error);
-      throw new Error(
-        error instanceof Error ? error.message : "Failed to generate LiveKit token",
-      );
+      throw new Error(error instanceof Error ? error.message : "Failed to generate LiveKit token");
     }
   });
-
 
 /**
  * Start LiveKit Egress to YouTube Live
  */
 export const startLiveKitEgress = createServerFn({ method: "POST" })
-  .inputValidator(
-    (data: {
-      roomName: string;
-      youtubeStreamKey: string;
-      title: string;
-    }) => {
-      if (!data?.roomName) throw new Error("Room name is required");
-      if (!data?.youtubeStreamKey) throw new Error("YouTube stream key is required");
-      if (!data?.title) throw new Error("Stream title is required");
-      return data;
-    },
-  )
+  .inputValidator((data: { roomName: string; youtubeStreamKey: string; title: string }) => {
+    if (!data?.roomName) throw new Error("Room name is required");
+    if (!data?.youtubeStreamKey) throw new Error("YouTube stream key is required");
+    if (!data?.title) throw new Error("Stream title is required");
+    return data;
+  })
   .handler(async ({ data }) => {
     try {
       const { apiKey, apiSecret, url } = validateLiveKitEnv();
@@ -138,9 +129,7 @@ export const startLiveKitEgress = createServerFn({ method: "POST" })
       };
     } catch (error) {
       console.error("[LiveKit Egress] Failed to start egress:", error);
-      throw new Error(
-        error instanceof Error ? error.message : "Failed to start LiveKit egress",
-      );
+      throw new Error(error instanceof Error ? error.message : "Failed to start LiveKit egress");
     }
   });
 
@@ -148,14 +137,10 @@ export const startLiveKitEgress = createServerFn({ method: "POST" })
  * Stop LiveKit Egress
  */
 export const stopLiveKitEgress = createServerFn({ method: "POST" })
-  .inputValidator(
-    (data: {
-      egressId: string;
-    }) => {
-      if (!data?.egressId) throw new Error("Egress ID is required");
-      return data;
-    },
-  )
+  .inputValidator((data: { egressId: string }) => {
+    if (!data?.egressId) throw new Error("Egress ID is required");
+    return data;
+  })
   .handler(async ({ data }) => {
     try {
       const { apiKey, apiSecret, url } = validateLiveKitEnv();
@@ -175,9 +160,7 @@ export const stopLiveKitEgress = createServerFn({ method: "POST" })
       };
     } catch (error) {
       console.error("[LiveKit Egress] Failed to stop egress:", error);
-      throw new Error(
-        error instanceof Error ? error.message : "Failed to stop LiveKit egress",
-      );
+      throw new Error(error instanceof Error ? error.message : "Failed to stop LiveKit egress");
     }
   });
 
@@ -185,14 +168,10 @@ export const stopLiveKitEgress = createServerFn({ method: "POST" })
  * Get egress status
  */
 export const getLiveKitEgressStatus = createServerFn({ method: "GET" })
-  .inputValidator(
-    (data: {
-      egressId: string;
-    }) => {
-      if (!data?.egressId) throw new Error("Egress ID is required");
-      return data;
-    },
-  )
+  .inputValidator((data: { egressId: string }) => {
+    if (!data?.egressId) throw new Error("Egress ID is required");
+    return data;
+  })
   .handler(async ({ data }) => {
     try {
       const { apiKey, apiSecret, url } = validateLiveKitEnv();

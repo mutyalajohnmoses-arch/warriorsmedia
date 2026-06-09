@@ -1,4 +1,3 @@
-
 import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
@@ -37,6 +36,7 @@ import { getConnectedYouTubeChannel } from "@/lib/youtube-persistence.functions"
 import { YouTubeDownloader, YouTubeMetaExtractor } from "@/components/youtube-tools";
 import { YouTubeCreateMenu } from "@/components/youtube-create-menu";
 import { YouTubeChannelStats } from "@/components/youtube-channel-stats";
+import { toast } from "sonner";
 import type { YouTubeChannelInfo } from "@/lib/youtube-oauth.functions";
 
 type ConnectedYouTubeChannel = {
@@ -61,7 +61,11 @@ export const Route = createFileRoute("/dashboard")({
   head: () => ({
     meta: [
       { title: "Dashboard — Warriors Media" },
-      { name: "description", content: "The digital ecosystem for modern Christian technology, media, and worship automation." },
+      {
+        name: "description",
+        content:
+          "The digital ecosystem for modern Christian technology, media, and worship automation.",
+      },
       { name: "referrer", content: "no-referrer" },
     ],
   }),
@@ -77,11 +81,36 @@ const modules = [
     desc: "Broadcast live streams and scale events in ultra-high fidelity.",
     tag: "Live",
   },
-  { icon: Instagram, title: "Instagram Core", desc: "Automate social content workflows and audience pipelines.", tag: "Social" },
-  { icon: Facebook, title: "Facebook Graph", desc: "Sync platform engagements and scale reach across metadata channels.", tag: "Social" },
-  { icon: Target, title: "Warriors Lead Engine", desc: "AI optimization engine engineered to optimize ministry outreach.", tag: "Next-Gen" },
-  { icon: Clapperboard, title: "AI Video Editor", desc: "Intelligent auto-cuts, smart captions, and semantic timeline rendering.", tag: "AI Engine" },
-  { icon: Music4, title: "AI Worship Music", desc: "Synthesize instrumental orchestrations and sacred arrangements.", tag: "AI Engine" },
+  {
+    icon: Instagram,
+    title: "Instagram Core",
+    desc: "Automate social content workflows and audience pipelines.",
+    tag: "Social",
+  },
+  {
+    icon: Facebook,
+    title: "Facebook Graph",
+    desc: "Sync platform engagements and scale reach across metadata channels.",
+    tag: "Social",
+  },
+  {
+    icon: Target,
+    title: "Warriors Lead Engine",
+    desc: "AI optimization engine engineered to optimize ministry outreach.",
+    tag: "Next-Gen",
+  },
+  {
+    icon: Clapperboard,
+    title: "AI Video Editor",
+    desc: "Intelligent auto-cuts, smart captions, and semantic timeline rendering.",
+    tag: "AI Engine",
+  },
+  {
+    icon: Music4,
+    title: "AI Worship Music",
+    desc: "Synthesize instrumental orchestrations and sacred arrangements.",
+    tag: "AI Engine",
+  },
   {
     icon: MessageCircle,
     title: "WhatsApp Core",
@@ -149,7 +178,10 @@ function Home() {
 
   const handleModuleClick = (title: string) => {
     if (title === "YouTube Studio") {
-      if (!youtubeConnected) return;
+      if (!youtubeConnected) {
+        toast.error("Please connect your YouTube channel first");
+        return;
+      }
       navigate({ to: "/live-streaming-setup" });
     } else if (title === "Instagram Core") {
       navigate({ to: "/instagram" });
@@ -280,14 +312,16 @@ function Home() {
                 <h1 className="font-semibold text-sm tracking-tight text-white uppercase font-mono">
                   Warriors Media
                 </h1>
-                <span className="text-[10px] bg-white/[0.06] border border-white/[0.08] text-violet-300 px-1.5 py-0.5 rounded-md font-mono">v3.0</span>
+                <span className="text-[10px] bg-white/[0.06] border border-white/[0.08] text-violet-300 px-1.5 py-0.5 rounded-md font-mono">
+                  v3.0
+                </span>
               </div>
               <p className="text-[11px] text-slate-400 font-medium mt-0.5">
                 {profile?.full_name || "Cloud Environment Workspace"}
               </p>
             </div>
           </div>
-          
+
           <button
             onClick={handleLogout}
             className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.07] border border-white/[0.08] text-slate-300 hover:text-white transition-all duration-200 text-xs font-medium shadow-sm"
@@ -300,11 +334,10 @@ function Home() {
 
       {/* Dashboard Canvas Container */}
       <div className="max-w-7xl mx-auto px-6 py-12 space-y-12 relative z-10">
-        
         {/* Premium Hub Hero Segment */}
         <section className="relative overflow-hidden rounded-[20px] bg-gradient-to-b from-white/[0.03] to-transparent border border-white/[0.06] p-8 md:p-10 flex flex-col md:flex-row md:items-center justify-between min-h-[180px] shadow-2xl backdrop-blur-md">
           <div className="absolute inset-0 bg-gradient-to-tr from-violet-500/[0.03] via-transparent to-indigo-500/[0.02] pointer-events-none" />
-          
+
           <div className="space-y-3 max-w-2xl">
             <div className="inline-flex items-center gap-2 bg-violet-500/10 border border-violet-500/20 px-2.5 py-0.5 rounded-full text-[11px] font-medium text-violet-300 font-mono">
               <Zap className="w-3 h-3" />
@@ -314,15 +347,20 @@ function Home() {
               Intelligent Sanctum Workspace
             </h2>
             <p className="text-sm text-slate-400 leading-relaxed font-normal max-w-lg">
-              Synchronize media pipelines, coordinate digital infrastructure, and manage ministry growth vectors powered by autonomous software agents.
+              Synchronize media pipelines, coordinate digital infrastructure, and manage ministry
+              growth vectors powered by autonomous software agents.
             </p>
           </div>
 
           <div className="mt-6 md:mt-0 flex items-center gap-3.5 bg-neutral-950/40 border border-white/[0.05] p-3.5 rounded-2xl backdrop-blur-md min-w-[240px]">
             <div className="w-2 h-2 rounded-full bg-violet-300 shadow-md shadow-violet-300/50 animate-pulse" />
             <div className="text-left">
-              <span className="text-[10px] block text-slate-500 font-mono tracking-wider uppercase">Active Operator</span>
-              <span className="text-xs font-medium text-slate-300">{profile?.email || "System Authenticated"}</span>
+              <span className="text-[10px] block text-slate-500 font-mono tracking-wider uppercase">
+                Active Operator
+              </span>
+              <span className="text-xs font-medium text-slate-300">
+                {profile?.email || "System Authenticated"}
+              </span>
             </div>
           </div>
         </section>
@@ -333,8 +371,12 @@ function Home() {
             <div className="flex items-center gap-2.5">
               <div className="w-1.5 h-4 bg-violet-500 rounded-full shadow-[0_0_8px_rgba(234,179,8,0.5)]" />
               <div>
-                <h2 className="font-semibold text-sm tracking-wide text-white uppercase font-mono">Streaming Gateways</h2>
-                <p className="text-xs text-slate-500 mt-0.5">Stream infrastructure links and ingest routes.</p>
+                <h2 className="font-semibold text-sm tracking-wide text-white uppercase font-mono">
+                  Streaming Gateways
+                </h2>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Stream infrastructure links and ingest routes.
+                </p>
               </div>
             </div>
             <div className="scale-95 origin-right">
@@ -360,9 +402,11 @@ function Home() {
         <section className="space-y-4">
           <div className="flex items-center gap-2.5 border-b border-white/[0.06] pb-3">
             <div className="w-1.5 h-4 bg-violet-500 rounded-full shadow-[0_0_8px_rgba(234,179,8,0.5)]" />
-            <h2 className="font-semibold text-sm tracking-wide text-white uppercase font-mono">System App Engines</h2>
+            <h2 className="font-semibold text-sm tracking-wide text-white uppercase font-mono">
+              System App Engines
+            </h2>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {modules.map((module) => {
               const Icon = module.icon;
@@ -383,32 +427,40 @@ function Home() {
                   {!isDisabled && (
                     <div className="absolute inset-0 bg-gradient-to-br from-violet-500/[0.02] via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
                   )}
-                  
+
                   <div className="flex items-start justify-between mb-6 relative z-10">
-                    <div className={`p-2.5 rounded-xl transition-all duration-300 ${
-                      isDisabled 
-                        ? "bg-white/[0.02] text-slate-600" 
-                        : "bg-[#090e1a] border border-white/[0.06] text-violet-300 group-hover:text-indigo-300 group-hover:border-violet-500/20"
-                    }`}>
+                    <div
+                      className={`p-2.5 rounded-xl transition-all duration-300 ${
+                        isDisabled
+                          ? "bg-white/[0.02] text-slate-600"
+                          : "bg-[#090e1a] border border-white/[0.06] text-violet-300 group-hover:text-indigo-300 group-hover:border-violet-500/20"
+                      }`}
+                    >
                       <Icon className="w-4.5 h-4.5 transition-transform duration-300 group-hover:scale-105" />
                     </div>
                     {module.tag && (
-                      <span className={`text-[9px] font-mono tracking-wider px-2 py-0.5 rounded-md border ${
-                        module.tag.includes("AI") || module.tag === "Live"
-                          ? "bg-violet-500/10 text-violet-300 border-violet-500/20" 
-                          : "bg-white/[0.04] text-slate-400 border-white/[0.06]"
-                      }`}>
+                      <span
+                        className={`text-[9px] font-mono tracking-wider px-2 py-0.5 rounded-md border ${
+                          module.tag.includes("AI") || module.tag === "Live"
+                            ? "bg-violet-500/10 text-violet-300 border-violet-500/20"
+                            : "bg-white/[0.04] text-slate-400 border-white/[0.06]"
+                        }`}
+                      >
                         {module.tag}
                       </span>
                     )}
                   </div>
-                  
+
                   <div className="relative z-10 space-y-1.5">
                     <h3 className="font-medium text-sm text-white tracking-tight flex items-center justify-between">
                       <span>{module.title}</span>
-                      {!isDisabled && <ArrowUpRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all duration-200 text-violet-300/80" />}
+                      {!isDisabled && (
+                        <ArrowUpRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all duration-200 text-violet-300/80" />
+                      )}
                     </h3>
-                    <p className="text-xs text-slate-400 leading-relaxed font-light">{module.desc}</p>
+                    <p className="text-xs text-slate-400 leading-relaxed font-light">
+                      {module.desc}
+                    </p>
                   </div>
                 </button>
               );
@@ -420,7 +472,9 @@ function Home() {
         <section className="space-y-4">
           <div className="flex items-center gap-2.5 border-b border-white/[0.06] pb-3">
             <div className="w-1.5 h-4 bg-violet-500 rounded-full shadow-[0_0_8px_rgba(234,179,8,0.5)]" />
-            <h2 className="font-semibold text-sm tracking-wide text-white uppercase font-mono">Automation Infrastructure</h2>
+            <h2 className="font-semibold text-sm tracking-wide text-white uppercase font-mono">
+              Automation Infrastructure
+            </h2>
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-white/[0.02] border border-white/[0.06] p-1 rounded-[20px] shadow-lg backdrop-blur-md">
@@ -440,9 +494,11 @@ function Home() {
         <section className="space-y-4">
           <div className="flex items-center gap-2.5 border-b border-white/[0.06] pb-3">
             <div className="w-1.5 h-4 bg-violet-500 rounded-full shadow-[0_0_8px_rgba(234,179,8,0.5)]" />
-            <h2 className="font-semibold text-sm tracking-wide text-white uppercase font-mono">Ecosystem Creators</h2>
+            <h2 className="font-semibold text-sm tracking-wide text-white uppercase font-mono">
+              Ecosystem Creators
+            </h2>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {teamMembers.map((member) => {
               const Icon = member.icon;
@@ -457,7 +513,7 @@ function Home() {
                   className="rounded-[20px] bg-white/[0.01] hover:bg-white/[0.03] border border-white/[0.05] hover:border-violet-500/20 p-6 transition-all duration-300 group hover:-translate-y-0.5 flex flex-col justify-between relative overflow-hidden shadow-xl"
                 >
                   <div className="absolute inset-0 bg-gradient-to-b from-violet-500/[0.01] to-transparent pointer-events-none" />
-                  
+
                   <div>
                     <div className="flex items-center justify-between mb-5">
                       <div className="p-2.5 rounded-xl bg-[#090e1a] border border-white/[0.06] text-slate-400 group-hover:text-violet-300 group-hover:border-violet-500/20 transition-all">
@@ -468,15 +524,15 @@ function Home() {
                         <span>@{member.instagram}</span>
                       </div>
                     </div>
-                    
+
                     <h3 className="font-medium text-base text-white tracking-tight group-hover:text-violet-300 transition-colors">
                       {member.name}
                     </h3>
-                    
+
                     <div className="flex flex-wrap gap-1.5 mt-3 mb-6">
                       {member.roles.map((role) => (
-                        <span 
-                          key={role} 
+                        <span
+                          key={role}
                           className="text-[10px] bg-white/[0.03] text-slate-400 px-2 py-0.5 rounded-md border border-white/[0.04]"
                         >
                           {role}
@@ -488,12 +544,20 @@ function Home() {
                   {profileInstance && (
                     <div className="pt-4 border-t border-white/[0.05] grid grid-cols-2 gap-2 text-center font-mono">
                       <div className="bg-white/[0.01] border border-white/[0.04] p-2 rounded-xl">
-                        <span className="block text-xs font-semibold text-slate-200 tracking-tight">{profileInstance.followers}</span>
-                        <span className="text-[9px] text-slate-500 uppercase tracking-wider">Followers</span>
+                        <span className="block text-xs font-semibold text-slate-200 tracking-tight">
+                          {profileInstance.followers}
+                        </span>
+                        <span className="text-[9px] text-slate-500 uppercase tracking-wider">
+                          Followers
+                        </span>
                       </div>
                       <div className="bg-white/[0.01] border border-white/[0.04] p-2 rounded-xl">
-                        <span className="block text-xs font-semibold text-slate-200 tracking-tight">{profileInstance.posts}</span>
-                        <span className="text-[9px] text-slate-500 uppercase tracking-wider">Posts</span>
+                        <span className="block text-xs font-semibold text-slate-200 tracking-tight">
+                          {profileInstance.posts}
+                        </span>
+                        <span className="text-[9px] text-slate-500 uppercase tracking-wider">
+                          Posts
+                        </span>
                       </div>
                     </div>
                   )}

@@ -74,15 +74,27 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Warriors Media" },
-      { name: "description", content: "Faith Stream Global is a Christian media ecosystem for community, worship, and content creation." },
+      {
+        name: "description",
+        content:
+          "Faith Stream Global is a Christian media ecosystem for community, worship, and content creation.",
+      },
       { name: "author", content: "Lovable" },
       { property: "og:title", content: "Warriors Media" },
-      { property: "og:description", content: "Faith Stream Global is a Christian media ecosystem for community, worship, and content creation." },
+      {
+        property: "og:description",
+        content:
+          "Faith Stream Global is a Christian media ecosystem for community, worship, and content creation.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
       { name: "twitter:title", content: "Warriors Media" },
-      { name: "twitter:description", content: "Faith Stream Global is a Christian media ecosystem for community, worship, and content creation." },
+      {
+        name: "twitter:description",
+        content:
+          "Faith Stream Global is a Christian media ecosystem for community, worship, and content creation.",
+      },
       {
         property: "og:image",
         content:
@@ -93,8 +105,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content:
           "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/d7076270-fc05-477f-83ec-2cd8efd2c109/id-preview-3cd09935--5136ccc5-9bb3-407b-aa86-d5e6c8bfdb27.lovable.app-1778834671226.png",
       },
-      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/4xkpwweITpYQ6ceeC0fWDmYnig42/social-images/social-1780647704427-file_00000000e2147208afb4ca541de0bca3.webp" },
-      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/4xkpwweITpYQ6ceeC0fWDmYnig42/social-images/social-1780647704427-file_00000000e2147208afb4ca541de0bca3.webp" },
+      {
+        property: "og:image",
+        content:
+          "https://storage.googleapis.com/gpt-engineer-file-uploads/4xkpwweITpYQ6ceeC0fWDmYnig42/social-images/social-1780647704427-file_00000000e2147208afb4ca541de0bca3.webp",
+      },
+      {
+        name: "twitter:image",
+        content:
+          "https://storage.googleapis.com/gpt-engineer-file-uploads/4xkpwweITpYQ6ceeC0fWDmYnig42/social-images/social-1780647704427-file_00000000e2147208afb4ca541de0bca3.webp",
+      },
     ],
     links: [
       {

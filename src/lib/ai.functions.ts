@@ -23,7 +23,9 @@ async function callGateway(body: Record<string, unknown>) {
 
 export const generateThumbnail = createServerFn({ method: "POST" })
   .inputValidator((input) =>
-    z.object({ prompt: z.string().min(3).max(500), title: z.string().max(200).optional() }).parse(input),
+    z
+      .object({ prompt: z.string().min(3).max(500), title: z.string().max(200).optional() })
+      .parse(input),
   )
   .handler(async ({ data }) => {
     const fullPrompt = `Cinematic 16:9 YouTube thumbnail, 1280x720, premium black & gold, dramatic lighting, bold focal point, no watermark. ${data.title ? `Title: "${data.title}". ` : ""}Concept: ${data.prompt}`;
@@ -39,9 +41,7 @@ export const generateThumbnail = createServerFn({ method: "POST" })
   });
 
 export const generateHashtags = createServerFn({ method: "POST" })
-  .inputValidator((input) =>
-    z.object({ title: z.string().min(2).max(200) }).parse(input),
-  )
+  .inputValidator((input) => z.object({ title: z.string().min(2).max(200) }).parse(input))
   .handler(async ({ data }) => {
     const json = await callGateway({
       model: "google/gemini-2.5-flash",
@@ -49,7 +49,7 @@ export const generateHashtags = createServerFn({ method: "POST" })
         {
           role: "system",
           content:
-            "You generate high-performing YouTube hashtags. Return ONLY a JSON object: {\"hashtags\": string[]}. 10-15 tags, lowercase, no spaces, no # prefix. Mix popular Christian worship tags (worship, jesus, gospel, bible, christianmusic, etc.), Telugu Christian tags (teluguchristiansongs, teluguworship, teluguchristian), and tags specific to the title. Think like a YouTube SEO expert mirroring trending search results.",
+            'You generate high-performing YouTube hashtags. Return ONLY a JSON object: {"hashtags": string[]}. 10-15 tags, lowercase, no spaces, no # prefix. Mix popular Christian worship tags (worship, jesus, gospel, bible, christianmusic, etc.), Telugu Christian tags (teluguchristiansongs, teluguworship, teluguchristian), and tags specific to the title. Think like a YouTube SEO expert mirroring trending search results.',
         },
         { role: "user", content: `Title: ${data.title}` },
       ],

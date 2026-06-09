@@ -1,3 +1,4 @@
+
 /* eslint-disable */
 
 // @ts-nocheck
@@ -12,6 +13,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as StudioRouteImport } from './routes/studio'
 import { Route as LiveStreamingSetupRouteImport } from './routes/live-streaming-setup'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as MobileCamRouteImport } from './routes/mobile-cam' // <-- Added
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as InstagramIndexRouteImport } from './routes/instagram/index'
 import { Route as InstagramUploadRouteImport } from './routes/instagram/upload'
@@ -39,6 +41,11 @@ const LiveStreamingSetupRoute = LiveStreamingSetupRouteImport.update({
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MobileCamRoute = MobileCamRouteImport.update({ // <-- Added
+  id: '/mobile-cam',
+  path: '/mobile-cam',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -111,6 +118,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/live-streaming-setup': typeof LiveStreamingSetupRoute
+  '/mobile-cam': typeof MobileCamRoute // <-- Added
   '/studio': typeof StudioRoute
   '/instagram/ai': typeof InstagramAiRoute
   '/instagram/analytics': typeof InstagramAnalyticsRoute
@@ -129,6 +137,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/live-streaming-setup': typeof LiveStreamingSetupRoute
+  '/mobile-cam': typeof MobileCamRoute // <-- Added
   '/studio': typeof StudioRoute
   '/instagram/ai': typeof InstagramAiRoute
   '/instagram/analytics': typeof InstagramAnalyticsRoute
@@ -148,6 +157,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/live-streaming-setup': typeof LiveStreamingSetupRoute
+  '/mobile-cam': typeof MobileCamRoute // <-- Added
   '/studio': typeof StudioRoute
   '/instagram/ai': typeof InstagramAiRoute
   '/instagram/analytics': typeof InstagramAnalyticsRoute
@@ -168,6 +178,7 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/live-streaming-setup'
+    | '/mobile-cam' // <-- Added
     | '/studio'
     | '/instagram/ai'
     | '/instagram/analytics'
@@ -186,6 +197,7 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/live-streaming-setup'
+    | '/mobile-cam' // <-- Added
     | '/studio'
     | '/instagram/ai'
     | '/instagram/analytics'
@@ -204,6 +216,7 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/live-streaming-setup'
+    | '/mobile-cam' // <-- Added
     | '/studio'
     | '/instagram/ai'
     | '/instagram/analytics'
@@ -223,6 +236,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRoute: typeof DashboardRoute
   LiveStreamingSetupRoute: typeof LiveStreamingSetupRoute
+  MobileCamRoute: typeof MobileCamRoute // <-- Added
   StudioRoute: typeof StudioRoute
   InstagramAiRoute: typeof InstagramAiRoute
   InstagramAnalyticsRoute: typeof InstagramAnalyticsRoute
@@ -259,6 +273,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mobile-cam': { // <-- Added
+      id: '/mobile-cam'
+      path: '/mobile-cam'
+      fullPath: '/mobile-cam'
+      preLoaderRoute: typeof MobileCamRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -359,6 +380,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRoute: DashboardRoute,
   LiveStreamingSetupRoute: LiveStreamingSetupRoute,
+  MobileCamRoute: MobileCamRoute, // <-- Added
   StudioRoute: StudioRoute,
   InstagramAiRoute: InstagramAiRoute,
   InstagramAnalyticsRoute: InstagramAnalyticsRoute,
@@ -373,16 +395,7 @@ const rootRouteChildren: RootRouteChildren = {
   InstagramIndexRoute: InstagramIndexRoute,
   AuthGoogleCallbackRoute: AuthGoogleCallbackRoute,
 }
+
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

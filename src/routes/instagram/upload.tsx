@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
-export const Route = createFileRoute("/instagram/upload")({ 
+export const Route = createFileRoute("/instagram/upload")({
   head: () => ({
     meta: [
       { title: "Upload Center — Instagram Creator Studio" },
@@ -64,7 +64,14 @@ function InstagramVideoUpload() {
   };
 
   const handleSchedule = () => {
-    console.log("Scheduling post...", { title, description, hashtags, uploadedFiles, scheduleDate, scheduleTime });
+    console.log("Scheduling post...", {
+      title,
+      description,
+      hashtags,
+      uploadedFiles,
+      scheduleDate,
+      scheduleTime,
+    });
   };
 
   const handleDraft = () => {
@@ -77,10 +84,7 @@ function InstagramVideoUpload() {
       <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link
-              to="/instagram"
-              className="p-2 hover:bg-card rounded-lg transition"
-            >
+            <Link to="/instagram" className="p-2 hover:bg-card rounded-lg transition">
               <ArrowLeft className="w-5 h-5" />
             </Link>
             <div>
@@ -94,7 +98,6 @@ function InstagramVideoUpload() {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
           {/* Upload Area */}
           <div className="lg:col-span-2 space-y-6">
             {/* Drag and Drop Area */}
@@ -132,13 +135,18 @@ function InstagramVideoUpload() {
                 </h3>
                 <div className="space-y-2">
                   {uploadedFiles.map((file, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-background/50 border border-border/50">
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-3 rounded-lg bg-background/50 border border-border/50"
+                    >
                       <div className="flex items-center gap-3">
                         <Video className="w-4 h-4 text-muted-foreground" />
                         <span className="text-sm font-medium truncate">{file}</span>
                       </div>
                       <button
-                        onClick={() => setUploadedFiles(uploadedFiles.filter((_, i) => i !== index))}
+                        onClick={() =>
+                          setUploadedFiles(uploadedFiles.filter((_, i) => i !== index))
+                        }
                         className="p-1 hover:bg-card rounded transition"
                       >
                         <X className="w-4 h-4" />
@@ -175,7 +183,9 @@ function InstagramVideoUpload() {
                   rows={5}
                   className="w-full px-4 py-2 rounded-lg border border-border bg-background/50 focus:outline-none focus:border-[color:var(--gold)] resize-none"
                 />
-                <p className="text-xs text-muted-foreground mt-2">{description.length} / 2200 characters</p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  {description.length} / 2200 characters
+                </p>
               </div>
 
               {/* Hashtags */}

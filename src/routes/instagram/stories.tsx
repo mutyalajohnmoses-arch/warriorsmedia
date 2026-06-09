@@ -55,7 +55,7 @@ function InstagramStoryPublisher() {
 
             <div className="p-6 rounded-xl border border-border bg-card/40 space-y-6">
               <h3 className="font-bold text-lg">Story Content</h3>
-              
+
               <div className="space-y-3">
                 <button className="w-full p-4 rounded-lg border border-dashed border-border hover:border-[color:var(--gold)] transition flex items-center justify-center gap-2">
                   <Upload className="w-5 h-5" />
