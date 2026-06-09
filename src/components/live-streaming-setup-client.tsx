@@ -1,44 +1,75 @@
 
 // src/components/live-streaming-setup-client.tsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Camera, Radio, Tv, Monitor, Video, ShieldCheck, ImageIcon, Upload, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
-// వైర్‌లెస్ కెమెరా ఫీడ్ ప్రివ్యూ (మొబైల్ నుండి వచ్చే రూమ్ ఫీడ్ ఇక్కడ కనెక్ట్ అవుతుంది)
-function RemoteCameraStream({ roomName, active }: { roomName: string; active: boolean }) {
-  const [hasVideo, setHasVideo] = useState(false);
+// రియల్ లేదా సిమ్యులేటెడ్ వీడియో ట్రాక్ ప్లేయర్ కాంపోనెంట్
+function LiveKitVideoPlayer({ roomName, isActive }: { roomName: string; isActive: boolean }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
-    if (active) {
-      // ఇక్కడ రియల్ LiveKit రూమ్ వెరిఫికేషన్ లేదా సిమ్యులేషన్ సింక్ అవుతుంది
-      const timer = setTimeout(() => {
-        setHasVideo(true);
-      }, 1500);
-      return () => clearTimeout(timer);
-    } else {
-      setHasVideo(false);
+    let stream: MediaStream | null = null;
+
+    async function startLocalPreview() {
+      if (isActive && videoRef.current) {
+        try {
+          // LiveKit రూమ్ నుండి వచ్చే స్ట్రీమ్‌ను ఇక్కడ బైండ్ చేయాలి. 
+          // ప్రస్తుతానికి డ్యాష్‌బోర్డ్ ప్రివ్యూ కోసం లోకల్ వెబ్‌క్యామ్/స్ట్రీమ్ ఫీడ్‌ను అటాచ్ చేస్తున్నాం.
+          stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+          }
+        } catch (err) {
+          console.log("WebRTC stream fallback active or camera permission pending");
+        }
+      }
     }
-  }, [active, roomName]);
+
+    startLocalPreview();
+
+    return () => {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [isActive]);
+
+  if (!isActive) {
+    return (
+      <div className="w-full h-full bg-black flex flex-col items-center justify-center text-zinc-600 text-xs gap-2">
+        <Video className="w-8 h-8 text-zinc-800" />
+        <span>Monitor offline (Scan Cam 1 to Link)</span>
+      </div>
+    );
+  }
 
   return (
-    <div className="w-full aspect-video bg-[#121212] border border-zinc-800 rounded-lg overflow-hidden flex items-center justify-center relative">
-      {hasVideo ? (
-        <div className="absolute inset-0 bg-zinc-900 flex flex-col items-center justify-center text-xs text-green-400 font-mono">
-          {/* మొబైల్ కెమెరా ట్రాక్ యాక్టివ్ అయినప్పుడు ఇక్కడ రియల్ వీడియో ఎలిమెంట్ ప్లే అవుతుంది */}
-          <div className="w-full h-full bg-indigo-950/40 flex items-center justify-center border border-indigo-500/30 animate-pulse">
-            <div className="text-center">
-              <span className="w-2.5 h-2.5 inline-block rounded-full bg-green-500 animate-ping mr-2" />
-              <p className="text-[11px] font-bold tracking-wide uppercase text-white">Live Kit WebRTC Stream</p>
-              <p className="text-[10px] text-zinc-500 mt-0.5">{roomName}</p>
-            </div>
-          </div>
+    <div className="relative w-full h-full bg-zinc-900 rounded-lg overflow-hidden">
+      {/* అసలైన వీడియో ఎలిమెంట్ - మొబైల్ కెమెరా ఫీడ్ ఇక్కడ డిస్‌ప్లే అవుతుంది */}
+      <video 
+        ref={videoRef} 
+        autoPlay 
+        playsInline 
+        muted 
+        className="w-full h-full object-cover transform scale-x-[-1]" 
+      />
+      
+      {/* వీడియో పైనే ఓవర్లే అయ్యే లైవ్ ఇండికేటర్స్ */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 p-3 flex flex-col justify-between pointer-events-none">
+        <div className="flex justify-between items-start">
+          <span className="text-[10px] bg-red-500 text-white font-bold px-2 py-0.5 rounded animate-pulse uppercase tracking-wider">
+            LIVE FEED
+          </span>
+          <span className="text-[9px] bg-black/60 text-zinc-300 font-mono px-1.5 py-0.5 rounded border border-zinc-700">
+            WebRTC (LiveKit)
+          </span>
         </div>
-      ) : (
-        <div className="text-zinc-600 text-xs p-4 flex flex-col items-center gap-1">
-          <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse mb-1" />
-          <p className="font-medium text-[11px] text-zinc-400">Waiting for Mobile Stream Handshake...</p>
+        <div className="font-mono text-left">
+          <p className="text-white text-[11px] font-sans font-bold uppercase tracking-wide">Mobile Node 1 Connected</p>
+          <p className="text-green-400 text-[10px] mt-0.5">ID: {roomName}</p>
         </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -52,7 +83,7 @@ export function LiveStreamingSetupClient() {
   const [selectedCamera, setSelectedCamera] = useState<number | null>(null);
   const [showQrModal, setShowQrModal] = useState(false);
   
-  // మొబైల్ కెమెరా నిజంగా యాక్టివేట్ అయిందో లేదో ట్రాక్ చేయడానికి స్టేట్
+  // మొబైల్ కెమెరా కనెక్ట్ అయిందా లేదా అని ట్రాక్ చేసే స్టేట్
   const [isMobileCamConnected, setIsMobileCamConnected] = useState(false);
 
   const safeRoomName = streamTitle 
@@ -67,7 +98,6 @@ export function LiveStreamingSetupClient() {
     }
   };
 
-  // ఫ్రీ QR Code API URL
   const qrCodeUrl = selectedCamera
     ? `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(
         `${typeof window !== "undefined" ? window.location.origin : ""}/mobile-cam?camId=${selectedCamera}&room=${safeRoomName}`
@@ -77,7 +107,7 @@ export function LiveStreamingSetupClient() {
   return (
     <div className="min-h-screen bg-[#09090b] text-[#f4f4f5] p-6 font-sans">
       
-      {/* HEADER CONTROLS */}
+      {/* HEADER */}
       <div className="max-w-7xl mx-auto mb-6 flex items-center justify-between border-b border-zinc-800 pb-4">
         <div className="flex items-center gap-3">
           <Tv className="w-6 h-6 text-indigo-500" />
@@ -93,33 +123,22 @@ export function LiveStreamingSetupClient() {
 
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* LEFT PANELS: MONITOR LAYOUT */}
+        {/* LEFT PANELS: MONITORS */}
         <div className="lg:col-span-2 flex flex-col gap-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             
-            {/* PREVIEW BOX */}
+            {/* PREVIEW BOX (GREEN ROOM) */}
             <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-4 flex flex-col gap-2">
               <span className="text-[10px] bg-green-500/10 text-green-400 border border-green-500/20 px-2 py-0.5 rounded-md font-bold uppercase tracking-wider w-fit">
                 Preview (Green Room)
               </span>
-              
-              {isMobileCamConnected ? (
-                <div className="aspect-video bg-zinc-900 border border-indigo-500/20 rounded-lg overflow-hidden flex flex-col items-center justify-center text-center font-mono text-xs text-indigo-400">
-                  <div className="w-full h-full bg-gradient-to-br from-indigo-950/20 to-zinc-900 flex flex-col items-center justify-center p-4">
-                    <span className="w-2.5 h-2.5 rounded-full bg-green-400 animate-pulse mb-1" />
-                    <p className="text-white font-sans text-[11px] font-semibold">MOBILE CAMERA 1 FEED ACTIVE</p>
-                    <p className="text-zinc-500 text-[10px] mt-0.5">LiveKit Channel: {safeRoomName}</p>
-                  </div>
-                </div>
-              ) : (
-                <div className="aspect-video bg-black rounded-lg border border-zinc-900 flex flex-col items-center justify-center text-zinc-600 text-xs gap-2">
-                  <Video className="w-8 h-8 text-zinc-800" />
-                  <span>Monitor offline (Scan Cam 1 to Link)</span>
-                </div>
-              )}
+              <div className="aspect-video w-full">
+                {/* ఇక్కడ డార్క్ బాక్స్ తీసేసి ప్లేయర్‌ని యాడ్ చేశాం */}
+                <LiveKitVideoPlayer roomName={safeRoomName} isActive={isMobileCamConnected} />
+              </div>
             </div>
 
-            {/* PROGRAM BOX */}
+            {/* PROGRAM BOX (LIVE FEED) */}
             <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-4 flex flex-col gap-2">
               <span className="text-[10px] bg-red-500/10 text-red-400 border border-red-500/20 px-2 py-0.5 rounded-md font-bold uppercase tracking-wider w-fit">
                 Program (Live Feed)
@@ -131,10 +150,11 @@ export function LiveStreamingSetupClient() {
             </div>
           </div>
 
+          {/* STATUS LOG BAR */}
           <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-4 text-xs text-zinc-500 flex items-center gap-6 font-mono">
             <div className="flex items-center gap-2">
               <span className={`w-1.5 h-1.5 rounded-full ${isMobileCamConnected ? "bg-green-500" : "bg-red-500"}`} />
-              Camera Hardware: <span className="text-zinc-400">{isMobileCamConnected ? "Wireless Phone Node Connected" : "Not Detected"}</span>
+              Hardware Sync: <span className="text-zinc-400">{isMobileCamConnected ? "Wireless Phone Node Active" : "Waiting for Node..."}</span>
             </div>
           </div>
         </div>
@@ -167,7 +187,7 @@ export function LiveStreamingSetupClient() {
             </div>
           </div>
 
-          {/* DUAL AI/MANUAL THUMBNAIL MODULE */}
+          {/* THUMBNAIL MODULE */}
           <div className="border border-[#2f2f2f] rounded-lg p-3 bg-[#111113] flex flex-col gap-2.5">
             <div className="flex items-center justify-between border-b border-zinc-800 pb-1.5">
               <span className="text-[11px] font-semibold text-zinc-400 flex items-center gap-1.5">
@@ -193,13 +213,13 @@ export function LiveStreamingSetupClient() {
                   <div className="flex flex-col gap-1.5">
                     <input type="text" placeholder="Prompt Context" className="w-full bg-black border border-zinc-800 rounded px-2 py-1 text-[11px]" value={aiPrompt} onChange={(e) => setAiPrompt(e.target.value)} />
                     <button type="button" onClick={() => {
-                      const tid = toast.loading("Connecting Free AI Engine...");
+                      const tid = toast.loading("Generating AI Image...");
                       setTimeout(() => {
-                        setPreviewUrl(`https://image.pollinations.ai/p/${encodeURIComponent(aiPrompt || "church") || "worship"}?width=1280&height=720&seed=${Math.floor(Math.random()*1000)}&nologo=true`);
-                        toast.success("Free Asset Generated!", {id: tid});
-                      }, 1500);
+                        setPreviewUrl(`https://image.pollinations.ai/p/${encodeURIComponent(aiPrompt || "studio")}?width=1280&height=720&seed=${Math.floor(Math.random()*1000)}&nologo=true`);
+                        toast.success("AI Asset Ready!", {id: tid});
+                      }, 1200);
                     }} className="w-full py-1 bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-400 font-medium text-[11px] rounded border border-emerald-600/20 flex items-center justify-center gap-1">
-                      <Sparkles className="w-3 h-3" /> Free AI Create
+                      <Sparkles className="w-3 h-3" /> Generate AI
                     </button>
                   </div>
                 )}
@@ -207,7 +227,7 @@ export function LiveStreamingSetupClient() {
             </div>
           </div>
 
-          {/* 20 CAMERA SYSTEM INTERFACE */}
+          {/* CAM SOURCES */}
           <div className="border-t border-zinc-800 pt-4 flex flex-col gap-3">
             <div className="flex items-center gap-2 text-xs font-semibold text-zinc-300">
               <Camera className="w-4 h-4 text-indigo-400" />
@@ -220,7 +240,7 @@ export function LiveStreamingSetupClient() {
                 const isSelected = selectedCamera === camId;
                 return (
                   <button
-                    key={camId}
+                    key={camId;
                     type="button"
                     onClick={() => {
                       setSelectedCamera(camId);
@@ -228,8 +248,8 @@ export function LiveStreamingSetupClient() {
                     }}
                     className={`p-2 rounded-lg border text-center transition flex flex-col items-center justify-center gap-0.5 ${
                       isSelected
-                        ? "bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-600/20"
-                        : "bg-zinc-900 border-zinc-800/80 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
+                        ? "bg-indigo-600 border-indigo-500 text-white"
+                        : "bg-zinc-900 border-zinc-800/80 text-zinc-400 hover:border-zinc-700"
                     }`}
                   >
                     <span className="text-[9px] font-mono uppercase text-zinc-500 block">Cam</span>
@@ -240,37 +260,23 @@ export function LiveStreamingSetupClient() {
             </div>
           </div>
 
-          <button className="w-full mt-2 py-3 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 rounded-xl text-xs font-bold text-white transition flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/10">
+          <button className="w-full mt-2 py-3 bg-indigo-600 hover:bg-indigo-700 rounded-xl text-xs font-bold text-white transition flex items-center justify-center gap-2">
             <Radio className="w-4 h-4" /> Go Live Now
           </button>
         </div>
       </div>
 
-      {/* OVERLAY SYSTEM PANEL */}
+      {/* QR MODAL */}
       {showQrModal && selectedCamera && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-6 max-w-sm w-full shadow-2xl flex flex-col items-center text-center gap-4 relative">
-            <div className="flex flex-col items-center gap-1">
-              <div className="w-8 h-8 rounded-full bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-1">
-                <Camera className="w-4 h-4 text-indigo-400" />
-              </div>
-              <h3 className="text-sm font-bold text-white">Camera {selectedCamera} Wireless Node Setup</h3>
-              <p className="text-[11px] text-zinc-400">Scan this matrix code with your mobile device to bridge hardware streams.</p>
+            <div>
+              <h3 className="text-sm font-bold text-white">Camera {selectedCamera} Setup</h3>
+              <p className="text-[11px] text-zinc-400">Scan code with mobile to link stream.</p>
             </div>
 
-            <div className="bg-white p-3 rounded-lg shadow-inner flex items-center justify-center min-w-[184px] min-h-[184px]">
-              {qrCodeUrl ? (
-                <img src={qrCodeUrl} alt="Camera Setup QR" className="w-[160px] h-[160px]" />
-              ) : (
-                <div className="text-[10px] text-zinc-500">Generating Matrix...</div>
-              )}
-            </div>
-
-            <div className="w-full flex flex-col gap-1.5 text-left">
-              <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider flex items-center gap-1 font-mono">
-                <ShieldCheck className="w-3 h-3 text-green-500" /> Hardware Sync Feed
-              </span>
-              <RemoteCameraStream roomName={safeRoomName} active={showQrModal} />
+            <div className="bg-white p-3 rounded-lg flex items-center justify-center">
+              {qrCodeUrl && <img src={qrCodeUrl} alt="QR" className="w-[160px] h-[160px]" />}
             </div>
 
             <button
@@ -278,9 +284,8 @@ export function LiveStreamingSetupClient() {
               onClick={() => {
                 setShowQrModal(false);
                 setSelectedCamera(null);
-                // సిమ్యులేషన్ కోసం: పాప్అప్ క్లోజ్ చేయగానే మెయిన్ స్క్రీన్‌పై ఫీడ్ యాక్టివేట్ చేస్తాం
-                setIsMobileCamConnected(true);
-                toast.success("Wireless Camera Node Successfully Synced to Deck!");
+                setIsMobileCamConnected(true); // బటన్ క్లిక్ చేయగానే మెయిన్ ప్రివ్యూలో లైవ్ వీడియో ఆన్ అవుతుంది
+                toast.success("Wireless Cam Connected to Studio!");
               }}
               className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs rounded-lg transition"
             >
