@@ -9,7 +9,6 @@ function SafeClientQRCode({ value, size }: { value: string; size: number }) {
   const [QRComponent, setQRComponent] = useState<any>(null);
 
   useEffect(() => {
-    // బ్రౌజర్‌లో మాత్రమే ఈ లైబ్రరీని డైనమిక్‌గా ఇంపోర్ట్ చేస్తుంది
     import("qrcode.react").then((mod) => {
       setQRComponent(() => mod.QRCodeSVG);
     });
@@ -163,4 +162,123 @@ export function LiveStreamingSetupClient() {
           </div>
 
           {/* DUAL AI/MANUAL THUMBNAIL MODULE */}
-          <div className="border border-[#2f2f2f] rounded-lg p-3 bg-[#111113] flex flex
+          <div className="border border-[#2f2f2f] rounded-lg p-3 bg-[#111113] flex flex-col gap-2.5">
+            <div className="flex items-center justify-between border-b border-zinc-800 pb-1.5">
+              <span className="text-[11px] font-semibold text-zinc-400 flex items-center gap-1.5">
+                <ImageIcon className="w-3.5 h-3.5 text-indigo-400" /> Thumbnail Config
+              </span>
+              <div className="flex bg-black p-0.5 rounded border border-zinc-800">
+                <button type="button" onClick={() => setThumbnailMode("manual")} className={`px-2 py-0.5 text-[10px] rounded ${thumbnailMode === "manual" ? "bg-zinc-800 text-white" : "text-zinc-500"}`}>Manual</button>
+                <button type="button" onClick={() => setThumbnailMode("ai")} className={`px-2 py-0.5 text-[10px] rounded ${thumbnailMode === "ai" ? "bg-zinc-800 text-white" : "text-zinc-500"}`}>AI Create</button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-12 gap-2.5 items-center">
+              <div className="col-span-5 aspect-video bg-black border border-zinc-800 rounded flex items-center justify-center overflow-hidden">
+                {previewUrl ? <img src={previewUrl} className="w-full h-full object-cover" /> : <span className="text-[9px] text-zinc-600">No Asset</span>}
+              </div>
+              <div className="col-span-7">
+                {thumbnailMode === "manual" ? (
+                  <label className="w-full py-2 bg-zinc-900 border border-dashed border-zinc-700 rounded flex items-center justify-center gap-1.5 text-[11px] cursor-pointer hover:text-white text-zinc-400">
+                    <Upload className="w-3 h-3" /> Upload File
+                    <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
+                  </label>
+                ) : (
+                  <div className="flex flex-col gap-1.5">
+                    <input type="text" placeholder="Prompt Context" className="w-full bg-black border border-zinc-800 rounded px-2 py-1 text-[11px]" value={aiPrompt} onChange={(e) => setAiPrompt(e.target.value)} />
+                    <button type="button" onClick={() => {
+                      const tid = toast.loading("Connecting Free AI Engine...");
+                      setTimeout(() => {
+                        setPreviewUrl(`https://image.pollinations.ai/p/${encodeURIComponent(aiPrompt || "church") || "worship"}?width=1280&height=720&seed=${Math.floor(Math.random()*1000)}&nologo=true`);
+                        toast.success("Free Asset Generated!", {id: tid});
+                      }, 1500);
+                    }} className="w-full py-1 bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-400 font-medium text-[11px] rounded border border-emerald-600/20 flex items-center justify-center gap-1">
+                      <Sparkles className="w-3 h-3" /> Free AI Create
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* 20 CAMERA SYSTEM INTERFACE */}
+          <div className="border-t border-zinc-800 pt-4 flex flex-col gap-3">
+            <div className="flex items-center gap-2 text-xs font-semibold text-zinc-300">
+              <Camera className="w-4 h-4 text-indigo-400" />
+              <span>Camera Sources Configuration</span>
+            </div>
+
+            <div className="grid grid-cols-4 gap-2 max-h-[160px] overflow-y-auto pr-1">
+              {Array.from({ length: 20 }, (_, i) => {
+                const camId = i + 1;
+                const isSelected = selectedCamera === camId;
+                return (
+                  <button
+                    key={camId}
+                    type="button"
+                    onClick={() => {
+                      setSelectedCamera(camId);
+                      setShowQrModal(true);
+                    }}
+                    className={`p-2 rounded-lg border text-center transition flex flex-col items-center justify-center gap-0.5 ${
+                      isSelected
+                        ? "bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-600/20"
+                        : "bg-zinc-900 border-zinc-800/80 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
+                    }`}
+                  >
+                    <span className="text-[9px] font-mono uppercase text-zinc-500 block">Cam</span>
+                    <span className="text-sm font-bold font-mono tracking-tight">{camId}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <button className="w-full mt-2 py-3 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 rounded-xl text-xs font-bold text-white transition flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/10">
+            <Radio className="w-4 h-4" /> Go Live Now
+          </button>
+        </div>
+      </div>
+
+      {/* OVERLAY SYSTEM PANEL */}
+      {showQrModal && selectedCamera && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-6 max-w-sm w-full shadow-2xl flex flex-col items-center text-center gap-4 relative">
+            <div className="flex flex-col items-center gap-1">
+              <div className="w-8 h-8 rounded-full bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-1">
+                <Camera className="w-4 h-4 text-indigo-400" />
+              </div>
+              <h3 className="text-sm font-bold text-white">Camera {selectedCamera} Wireless Node Setup</h3>
+              <p className="text-[11px] text-zinc-400">Scan this matrix code with your mobile device to bridge hardware streams.</p>
+            </div>
+
+            <div className="bg-white p-3 rounded-lg shadow-inner flex items-center justify-center">
+              <SafeClientQRCode
+                value={`${typeof window !== "undefined" ? window.location.origin : ""}/mobile-cam?camId=${selectedCamera}&room=${safeRoomName}`}
+                size={160}
+              />
+            </div>
+
+            <div className="w-full flex flex-col gap-1.5 text-left">
+              <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider flex items-center gap-1 font-mono">
+                <ShieldCheck className="w-3 h-3 text-green-500" /> Hardware Sync Feed
+              </span>
+              <RemoteCameraStream camId={selectedCamera} />
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setShowQrModal(false);
+                setSelectedCamera(null);
+              }}
+              className="w-full py-2 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 font-medium text-xs rounded-lg transition"
+            >
+              Close Config Deck
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
