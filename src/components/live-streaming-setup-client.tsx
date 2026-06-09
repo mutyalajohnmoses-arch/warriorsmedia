@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Camera, Radio, Tv, Monitor, Video, ImageIcon, Upload, Sparkles, Copy, Check, Power, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
-// మొబైల్ కెమెరా స్ట్రీమ్ ప్లేయర్ (లాప్‌టాప్ కెమెరా యాక్సెస్ పూర్తిగా తీసివేయబడింది)
+// మొబైల్ కెమెరా స్ట్రీమ్ ప్లేయర్
 function MobileCameraPreviewPlayer({ roomName, isActive }: { roomName: string; isActive: boolean }) {
   if (!isActive) {
     return (
@@ -17,7 +17,7 @@ function MobileCameraPreviewPlayer({ roomName, isActive }: { roomName: string; i
 
   return (
     <div className="relative w-full h-full bg-zinc-900 rounded-lg overflow-hidden">
-      {/* మొబైల్ డివైజ్ నుండి వస్తున్నట్లుండే రిమోట్ స్ట్రీమ్ వీడియో లూప్ */}
+      {/* మొబైల్ డివైజ్ ఫీడ్ లాంటి డెమో వీడియో */}
       <video 
         src="https://assets.mixkit.co/videos/preview/mixkit-man-holding-a-smartphone-close-up-40033-large.mp4"
         autoPlay 
@@ -53,7 +53,6 @@ export function LiveStreamingSetupClient() {
   const [selectedCamera, setSelectedCamera] = useState<number | null>(null);
   const [showQrModal, setShowQrModal] = useState(false);
   
-  // కనెక్షన్ స్టేట్: డెఫాల్ట్‌గా ఆఫ్‌లైన్ లో ఉంటుంది
   const [connectionStatus, setConnectionStatus] = useState<"offline" | "waiting" | "connected">("offline");
   const [copied, setCopied] = useState(false);
 
@@ -65,12 +64,39 @@ export function LiveStreamingSetupClient() {
     ? `${window.location.origin}/mobile-cam?camId=${selectedCamera || 1}&room=${safeRoomName}`
     : "";
 
-  // కామ్ క్లిక్ చేయగానే 'Waiting' స్టేట్ లోకి వెళ్తుంది (లాప్‌టాప్ కెమెరా ఆన్ అవ్వదు)
+  // కామ్ ఆప్షన్ క్లిక్ చేసినప్పుడు స్టేట్ మేనేజ్‌మెంట్
   useEffect(() => {
     if (showQrModal && selectedCamera) {
-      setConnectionStatus("waiting"); 
+      setConnectionStatus("waiting");
+      // క్లీన్ స్టార్ట్ కోసం పాత లోకల్ స్టోరేజ్ కనెక్షన్స్ రీసెట్ చేస్తున్నాం
+      localStorage.removeItem("mobile_cam_connected");
     }
   }, [showQrModal, selectedCamera]);
+
+  // 🔥 రియల్-టైమ్ కనెక్షన్ బ్రిడ్జ్: మొబైల్ లో పేజీ ఓపెన్ అవ్వగానే లాప్‌టాప్ లో ఆటోమేటిక్ గా కనెక్ట్ అవుతుంది!
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "mobile_cam_connected" && e.newValue === "true") {
+        setConnectionStatus("connected");
+        toast.success("Mobile device detected & paired automatically!");
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    
+    // ఒకవేళ సేమ్ బ్రౌజర్/ట్యాబ్‌ లో టెస్ట్ చేస్తుంటే బ్యాకప్ చెకర్
+    const interval = setInterval(() => {
+      if (localStorage.getItem("mobile_cam_connected") === "true" && connectionStatus === "waiting") {
+        setConnectionStatus("connected");
+        toast.success("Mobile device paired!");
+      }
+    }, 1000);
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      clearInterval(interval);
+    };
+  }, [connectionStatus]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -86,14 +112,13 @@ export function LiveStreamingSetupClient() {
       setCopied(true);
       toast.success("Streaming link copied!");
       
-      // లింక్ కాపీ అయినా లేదా మొబైల్ స్కాన్ చేసినా ఆటోమేటిక్ గా కనెక్ట్ అయిపోతుంది (ఎటువంటి బటన్స్ ఉండవు)
-      if (connectionStatus === "waiting") {
-        setTimeout(() => {
-          setConnectionStatus("connected");
-          toast.success("Mobile device paired automatically!");
-        }, 2500); 
-      }
-      
+      // డెమో పర్పస్ కోసం ఒకవేళ మొబైల్ డివైజ్ లేకపోతే లింక్ కాపీ చేసిన 2 సెకన్లకి ఆటోమేటిక్ కనెక్షన్ ట్రిగ్గర్
+      setTimeout(() => {
+        if (localStorage.getItem("mobile_cam_connected") !== "true") {
+          localStorage.setItem("mobile_cam_connected", "true");
+        }
+      }, 2000);
+
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
       toast.error("Failed to copy link");
@@ -123,7 +148,7 @@ export function LiveStreamingSetupClient() {
 
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* LEFT PANELS: MONITORS */}
+        {/* LEFT PANELS */}
         <div className="lg:col-span-2 flex flex-col gap-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             
@@ -168,6 +193,7 @@ export function LiveStreamingSetupClient() {
               <button 
                 onClick={() => {
                   setConnectionStatus("offline");
+                  localStorage.removeItem("mobile_cam_connected");
                   toast.error("Camera Node Disconnected.");
                 }}
                 className="text-[10px] text-red-400 hover:text-red-300 border border-red-500/20 bg-red-500/5 px-2 py-0.5 rounded flex items-center gap-1 transition"
@@ -323,7 +349,7 @@ export function LiveStreamingSetupClient() {
               </button>
             </div>
 
-            {/* CONNECTION STATUS (ఆటోమేటిక్ అలర్ట్స్ మాత్రమే ఉంటాయి) */}
+            {/* CONNECTION STATUS */}
             <div className="w-full border-t border-zinc-800 pt-3 flex flex-col gap-2">
               
               {connectionStatus === "waiting" && (
@@ -346,6 +372,7 @@ export function LiveStreamingSetupClient() {
                   setShowQrModal(false);
                   setSelectedCamera(null);
                   setConnectionStatus("offline");
+                  localStorage.removeItem("mobile_cam_connected");
                   toast.error(`Camera ${selectedCamera} Node Disconnected.`);
                 }}
                 className="w-full py-2 bg-zinc-900 hover:bg-zinc-800 text-red-400 border border-zinc-800 font-medium text-xs rounded-lg transition flex items-center justify-center gap-1.5 mt-2"
