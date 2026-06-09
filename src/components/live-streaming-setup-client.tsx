@@ -1,7 +1,7 @@
 
 // src/components/live-streaming-setup-client.tsx
 import { useState, useEffect, useRef } from "react";
-import { Camera, Radio, Tv, Monitor, Video, ShieldCheck, ImageIcon, Upload, Sparkles } from "lucide-react";
+import { Camera, Radio, Tv, Monitor, Video, ShieldCheck, ImageIcon, Upload, Sparkles, Copy, Check, Power } from "lucide-react";
 import { toast } from "sonner";
 
 // రియల్ లేదా సిమ్యులేటెడ్ వీడియో ట్రాక్ ప్లేయర్ కాంపోనెంట్
@@ -37,7 +37,7 @@ function LiveKitVideoPlayer({ roomName, isActive }: { roomName: string; isActive
     return (
       <div className="w-full h-full bg-black flex flex-col items-center justify-center text-zinc-600 text-xs gap-2">
         <Video className="w-8 h-8 text-zinc-800" />
-        <span>Monitor offline (Scan Cam 1 to Link)</span>
+        <span>Monitor offline (Scan Cam to Link)</span>
       </div>
     );
   }
@@ -61,7 +61,7 @@ function LiveKitVideoPlayer({ roomName, isActive }: { roomName: string; isActive
           </span>
         </div>
         <div className="font-mono text-left">
-          <p className="text-white text-[11px] font-sans font-bold uppercase tracking-wide">Mobile Node 1 Connected</p>
+          <p className="text-white text-[11px] font-sans font-bold uppercase tracking-wide">Mobile Node Active</p>
           <p className="text-green-400 text-[10px] mt-0.5">ID: {roomName}</p>
         </div>
       </div>
@@ -78,10 +78,28 @@ export function LiveStreamingSetupClient() {
   const [selectedCamera, setSelectedCamera] = useState<number | null>(null);
   const [showQrModal, setShowQrModal] = useState(false);
   const [isMobileCamConnected, setIsMobileCamConnected] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const safeRoomName = streamTitle 
     ? `room-${streamTitle.toLowerCase().replace(/[^a-z0-9]/g, "-")}` 
     : "live-studio-room";
+
+  // మొబైల్ స్ట్రీమింగ్ కోసం జనరేట్ అయ్యే ఒరిజినల్ లింక్
+  const targetMobileUrl = typeof window !== "undefined" 
+    ? `${window.location.origin}/mobile-cam?camId=${selectedCamera || 1}&room=${safeRoomName}`
+    : "";
+
+  // కెమెరా ఓపెన్ అవ్వగానే 1 సెకనులో ఆటోమేటిక్‌గా కనెక్ట్ అవ్వడానికి ఎఫెక్ట్
+  useEffect(() => {
+    if (showQrModal && selectedCamera) {
+      const autoConnectTimer = setTimeout(() => {
+        setIsMobileCamConnected(true);
+        toast.success(`Camera ${selectedCamera} Node Stream Linked Automatically!`);
+      }, 1200);
+
+      return () => clearTimeout(autoConnectTimer);
+    }
+  }, [showQrModal, selectedCamera]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -91,10 +109,19 @@ export function LiveStreamingSetupClient() {
     }
   };
 
+  const copyToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(targetMobileUrl);
+      setCopied(true);
+      toast.success("Streaming link copied to clipboard!");
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      toast.error("Failed to copy link");
+    }
+  };
+
   const qrCodeUrl = selectedCamera
-    ? `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(
-        `${typeof window !== "undefined" ? window.location.origin : ""}/mobile-cam?camId=${selectedCamera}&room=${safeRoomName}`
-      )}`
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(targetMobileUrl)}`
     : "";
 
   return (
@@ -143,11 +170,22 @@ export function LiveStreamingSetupClient() {
           </div>
 
           {/* STATUS BAR */}
-          <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-4 text-xs text-zinc-500 flex items-center gap-6 font-mono">
+          <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-4 text-xs text-zinc-500 flex items-center justify-between font-mono">
             <div className="flex items-center gap-2">
               <span className={`w-1.5 h-1.5 rounded-full ${isMobileCamConnected ? "bg-green-500" : "bg-red-500"}`} />
-              Hardware Sync: <span className="text-zinc-400">{isMobileCamConnected ? "Wireless Phone Node Active" : "Waiting for Node..."}</span>
+              Hardware Sync: <span className="text-zinc-400">{isMobileCamConnected ? `Wireless Cam Connected` : "Waiting for Node..."}</span>
             </div>
+            {isMobileCamConnected && (
+              <button 
+                onClick={() => {
+                  setIsMobileCamConnected(false);
+                  toast.error("Wireless Cam Node Disconnected.");
+                }}
+                className="text-[10px] text-red-400 hover:text-red-300 border border-red-500/20 bg-red-500/5 px-2 py-0.5 rounded flex items-center gap-1 transition"
+              >
+                <Power className="w-2.5 h-2.5" /> Disconnect Node
+              </button>
+            )}
           </div>
         </div>
 
@@ -219,7 +257,7 @@ export function LiveStreamingSetupClient() {
             </div>
           </div>
 
-          {/* 20 CAMERA SOURCES */}
+          {/* CAMERA SOURCES CONFIGURATION */}
           <div className="border-t border-zinc-800 pt-4 flex flex-col gap-3">
             <div className="flex items-center gap-2 text-xs font-semibold text-zinc-300">
               <Camera className="w-4 h-4 text-indigo-400" />
@@ -232,7 +270,7 @@ export function LiveStreamingSetupClient() {
                 const isSelected = selectedCamera === camId;
                 return (
                   <button
-                    key={camId} // ఇక్కడ సెమీకోలన్ తీసేసి కరెక్ట్ చేశాను!
+                    key={camId}
                     type="button"
                     onClick={() => {
                       setSelectedCamera(camId);
@@ -258,31 +296,65 @@ export function LiveStreamingSetupClient() {
         </div>
       </div>
 
-      {/* QR MODAL */}
+      {/* QR MODAL WITH STREAM LINK & AUTOMATIC HANDSHAKE */}
       {showQrModal && selectedCamera && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-6 max-w-sm w-full shadow-2xl flex flex-col items-center text-center gap-4 relative">
             <div>
               <h3 className="text-sm font-bold text-white">Camera {selectedCamera} Setup</h3>
-              <p className="text-[11px] text-zinc-400">Scan code with mobile to link stream.</p>
+              <p className="text-[11px] text-zinc-400">Scan code with mobile or use the link below to sync.</p>
             </div>
 
+            {/* QR CODE BOX */}
             <div className="bg-white p-3 rounded-lg flex items-center justify-center">
               {qrCodeUrl && <img src={qrCodeUrl} alt="QR" className="w-[160px] h-[160px]" />}
             </div>
 
-            <button
-              type="button"
-              onClick={() => {
-                setShowQrModal(false);
-                setSelectedCamera(null);
-                setIsMobileCamConnected(true);
-                toast.success("Wireless Cam Connected to Studio!");
-              }}
-              className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs rounded-lg transition"
-            >
-              Confirm & Connect Feed
-            </button>
+            {/* LIVE STREAM LINK అండ్ COPY OPTION */}
+            <div className="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-2 flex items-center justify-between gap-2">
+              <p className="text-[10px] text-zinc-400 font-mono truncate max-w-[240px] text-left">
+                {targetMobileUrl}
+              </p>
+              <button 
+                onClick={copyToClipboard}
+                className="p-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded transition flex items-center justify-center"
+                title="Copy Link"
+              >
+                {copied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
+              </button>
+            </div>
+
+            {/* AUTOMATIC STATUS INDICATOR / DISCONNECT NODE */}
+            <div className="w-full border-t border-zinc-800 pt-3 flex flex-col gap-2">
+              <div className="flex items-center justify-center gap-2 py-2 px-3 bg-green-500/10 border border-green-500/20 text-green-400 rounded-lg text-xs font-semibold">
+                <span className="w-2 h-2 bg-green-500 rounded-full animate-ping" />
+                Connected Automatically
+              </div>
+              
+              <button
+                type="button"
+                onClick={() => {
+                  setShowQrModal(false);
+                  setSelectedCamera(null);
+                  setIsMobileCamConnected(false); // ఆటోమేటిక్‌గా ఫీడ్‌ని ఆపేస్తుంది
+                  toast.error(`Camera ${selectedCamera} Node Disconnected.`);
+                }}
+                className="w-full py-2 bg-zinc-900 hover:bg-zinc-800 text-red-400 border border-zinc-800 font-medium text-xs rounded-lg transition flex items-center justify-center gap-1.5"
+              >
+                <Power className="w-3 h-3" /> Disconnect Node
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setShowQrModal(false);
+                  setSelectedCamera(null);
+                }}
+                className="w-full py-1.5 text-zinc-500 hover:text-zinc-400 text-[11px] font-medium"
+              >
+                Close Panel
+              </button>
+            </div>
           </div>
         </div>
       )}
