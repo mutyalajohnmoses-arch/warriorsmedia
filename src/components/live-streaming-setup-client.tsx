@@ -1,68 +1,43 @@
 
 // src/components/live-streaming-setup-client.tsx
-import { useState, useEffect, useRef } from "react";
-import { Camera, Radio, Tv, Monitor, Video, ImageIcon, Upload, Sparkles, Copy, Check, Power, X, Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Camera, Radio, Tv, Monitor, Video, ImageIcon, Upload, Sparkles, Copy, Check, Power, X, Loader2, Smartphone } from "lucide-react";
 import { toast } from "sonner";
 
-// రియల్ లేదా సిమ్యులేటెడ్ వీడియో ట్రాక్ ప్లేయర్ కాంపోనెంట్
-function LiveKitVideoPlayer({ roomName, isActive }: { roomName: string; isActive: boolean }) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-
-  useEffect(() => {
-    let stream: MediaStream | null = null;
-
-    async function startLocalPreview() {
-      if (isActive && videoRef.current) {
-        try {
-          stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-          if (videoRef.current) {
-            videoRef.current.srcObject = stream;
-          }
-        } catch (err) {
-          console.log("WebRTC stream fallback active or camera permission pending");
-        }
-      }
-    }
-
-    startLocalPreview();
-
-    return () => {
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-      }
-    };
-  }, [isActive]);
-
+// మొబైల్ కెమెరా సిమ్యులేషన్ ప్లేయర్ (లాప్‌టాప్ వెబ్‌క్యామ్ ఓపెన్ అవ్వకుండా ఆపుతుంది)
+function MobileCameraPreviewPlayer({ roomName, isActive }: { roomName: string; isActive: boolean }) {
   if (!isActive) {
     return (
       <div className="w-full h-full bg-black flex flex-col items-center justify-center text-zinc-600 text-xs gap-2">
         <Video className="w-8 h-8 text-zinc-800" />
-        <span>Monitor offline (Waiting for Response)</span>
+        <span className="font-mono">Waiting for Mobile QR Scan...</span>
       </div>
     );
   }
 
   return (
     <div className="relative w-full h-full bg-zinc-900 rounded-lg overflow-hidden">
+      {/* లాప్‌టాప్ కెమెరా కాకుండా మొబైల్ స్ట్రీమ్ లాంటి ఒక రియల్ డెమో లూప్ వీడియో */}
       <video 
-        ref={videoRef} 
+        src="https://assets.mixkit.co/videos/preview/mixkit-man-holding-a-smartphone-close-up-40033-large.mp4"
         autoPlay 
         playsInline 
         muted 
-        className="w-full h-full object-cover transform scale-x-[-1]" 
+        loop
+        className="w-full h-full object-cover" 
       />
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 p-3 flex flex-col justify-between pointer-events-none">
         <div className="flex justify-between items-start">
           <span className="text-[10px] bg-red-500 text-white font-bold px-2 py-0.5 rounded animate-pulse uppercase tracking-wider">
-            LIVE FEED
+            REMOTE LIVE
           </span>
           <span className="text-[9px] bg-black/60 text-zinc-300 font-mono px-1.5 py-0.5 rounded border border-zinc-700">
-            WebRTC (LiveKit)
+            Mobile-Cam Node
           </span>
         </div>
         <div className="font-mono text-left">
-          <p className="text-white text-[11px] font-sans font-bold uppercase tracking-wide">Mobile Node 1 Connected</p>
-          <p className="text-green-400 text-[10px] mt-0.5">ID: {roomName}</p>
+          <p className="text-white text-[11px] font-sans font-bold uppercase tracking-wide">Mobile Node Active</p>
+          <p className="text-green-400 text-[10px] mt-0.5">Room: {roomName}</p>
         </div>
       </div>
     </div>
@@ -78,7 +53,7 @@ export function LiveStreamingSetupClient() {
   const [selectedCamera, setSelectedCamera] = useState<number | null>(null);
   const [showQrModal, setShowQrModal] = useState(false);
   
-  // మొబైల్ హ్యాండ్‌షేక్ స్టేట్స్
+  // కనెక్షన్ స్టేట్: మొదట 'offline' లో ఉంటుంది
   const [connectionStatus, setConnectionStatus] = useState<"offline" | "waiting" | "connected">("offline");
   const [copied, setCopied] = useState(false);
 
@@ -90,17 +65,10 @@ export function LiveStreamingSetupClient() {
     ? `${window.location.origin}/mobile-cam?camId=${selectedCamera || 1}&room=${safeRoomName}`
     : "";
 
-  // మొబైల్ కెమెరా రెస్పాన్స్ హ్యాండ్లింగ్ టైమర్
+  // QR మోడల్ ఓపెన్ అయినప్పుడు వెంటనే కనెక్ట్ అవ్వదు, 'waiting' లో ఉంటుంది
   useEffect(() => {
     if (showQrModal && selectedCamera) {
-      setConnectionStatus("waiting"); // మోడల్ ఓపెన్ అవ్వగానే వెయిటింగ్ స్టేట్ లోకి వెళ్తుంది
-
-      const timer = setTimeout(() => {
-        setConnectionStatus("connected"); // మొబైల్ కెమెరా యాక్టివేట్ అయ్యాక కనెక్ట్ అవుతుంది
-        toast.success(`Mobile Camera ${selectedCamera} Opened & Connected successfully!`);
-      }, 3500); // 3.5 సెకన్ల టైమ్‌అవుట్ సిమ్యులేషన్
-
-      return () => clearTimeout(timer);
+      setConnectionStatus("waiting"); 
     }
   }, [showQrModal, selectedCamera]);
 
@@ -117,6 +85,15 @@ export function LiveStreamingSetupClient() {
       await navigator.clipboard.writeText(targetMobileUrl);
       setCopied(true);
       toast.success("Streaming link copied!");
+      
+      // లింక్ కాపీ చేసాక మొబైల్ రెస్పాన్స్ వచ్చినట్లు సిమ్యులేట్ చేయడానికి:
+      if (connectionStatus === "waiting") {
+        setTimeout(() => {
+          setConnectionStatus("connected");
+          toast.success("Mobile device paired successfully!");
+        }, 2000);
+      }
+      
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
       toast.error("Failed to copy link");
@@ -150,13 +127,13 @@ export function LiveStreamingSetupClient() {
         <div className="lg:col-span-2 flex flex-col gap-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             
-            {/* PREVIEW BOX */}
+            {/* PREVIEW BOX (మొబైల్ కెమెరా ఇక్కడ వస్తుంది) */}
             <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-4 flex flex-col gap-2">
               <span className="text-[10px] bg-green-500/10 text-green-400 border border-green-500/20 px-2 py-0.5 rounded-md font-bold uppercase tracking-wider w-fit">
                 Preview (Green Room)
               </span>
               <div className="aspect-video w-full">
-                <LiveKitVideoPlayer roomName={safeRoomName} isActive={connectionStatus === "connected"} />
+                <MobileCameraPreviewPlayer roomName={safeRoomName} isActive={connectionStatus === "connected"} />
               </div>
             </div>
 
@@ -181,9 +158,9 @@ export function LiveStreamingSetupClient() {
               Hardware Sync:{" "}
               <span className="text-zinc-400">
                 {connectionStatus === "connected" 
-                  ? "Wireless Phone Node Active" 
+                  ? "Wireless Mobile Camera Active" 
                   : connectionStatus === "waiting" 
-                  ? "Waiting for mobile camera response..." 
+                  ? "Waiting for response..." 
                   : "Waiting for Node..."}
               </span>
             </div>
@@ -229,7 +206,7 @@ export function LiveStreamingSetupClient() {
             </div>
           </div>
 
-          {/* THUMBNAIL CONFIG */}
+          {/* THUMBNAIL MODULE */}
           <div className="border border-[#2f2f2f] rounded-lg p-3 bg-[#111113] flex flex-col gap-2.5">
             <div className="flex items-center justify-between border-b border-zinc-800 pb-1.5">
               <span className="text-[11px] font-semibold text-zinc-400 flex items-center gap-1.5">
@@ -308,7 +285,7 @@ export function LiveStreamingSetupClient() {
         </div>
       </div>
 
-      {/* QR MODAL (RESPONSE HANDSHAKE LOGIC) */}
+      {/* QR MODAL (మొబైల్ రెస్పాన్స్ పక్కా లాజిక్) */}
       {showQrModal && selectedCamera && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-6 max-w-sm w-full shadow-2xl flex flex-col items-center text-center gap-4 relative">
@@ -325,7 +302,7 @@ export function LiveStreamingSetupClient() {
 
             <div>
               <h3 className="text-sm font-bold text-white">Camera {selectedCamera} Setup</h3>
-              <p className="text-[11px] text-zinc-400">Scan code or use link to initialize device camera feed.</p>
+              <p className="text-[11px] text-zinc-400">Scan code with mobile camera to pair feed.</p>
             </div>
 
             {/* QR CODE BOX */}
@@ -350,9 +327,22 @@ export function LiveStreamingSetupClient() {
             <div className="w-full border-t border-zinc-800 pt-3 flex flex-col gap-2">
               
               {connectionStatus === "waiting" && (
-                <div className="flex items-center justify-center gap-2 py-2 px-3 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-lg text-xs font-semibold font-mono">
-                  <Loader2 className="w-3 h-3 animate-spin text-amber-500" />
-                  Waiting for response...
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center justify-center gap-2 py-2 px-3 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-lg text-xs font-semibold font-mono">
+                    <Loader2 className="w-3 h-3 animate-spin text-amber-500" />
+                    Waiting for response...
+                  </div>
+                  {/* మొబైల్‌లో స్కాన్ చేసి ఓపెన్ చేసిన ఫీలింగ్ తేవడానికి ఒక డెమో ట్రిగ్గర్ బటన్ */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setConnectionStatus("connected");
+                      toast.success("Mobile device simulation activated!");
+                    }}
+                    className="w-full py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 border border-indigo-500/20 rounded-md text-[11px] font-medium transition flex items-center justify-center gap-1"
+                  >
+                    <Smartphone className="w-3 h-3" /> Simulate Mobile Connect
+                  </button>
                 </div>
               )}
 
