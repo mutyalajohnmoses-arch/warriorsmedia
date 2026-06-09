@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useLiveKitRoom } from "@/hooks/useLiveKitRoom";
 import { RoomEvent } from "livekit-client";
 import { toast } from "sonner";
+import { QRCodeSVG } from "qrcode.react"; // Added lightweight QR library
 import {
   Video,
   Mic,
@@ -23,7 +24,8 @@ import {
   Upload,
   Sparkles,
   Wand2,
-  Layers
+  Layers,
+  Camera // Added Camera icon for sources section
 } from "lucide-react";
 
 import {
@@ -57,6 +59,10 @@ function LiveStreamingSetupPage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [aiPrompt, setAiPrompt] = useState("");
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+
+  // New Camera Sources Configuration States
+  const [selectedCamera, setSelectedCamera] = useState<number | null>(null);
+  const [showQrCode, setShowQrCode] = useState<boolean>(false);
 
   // Connection Pipelines
   const [isConnecting, setIsConnecting] = useState(false);
@@ -533,6 +539,41 @@ function LiveStreamingSetupPage() {
           </select>
         </div>
 
+        {/* --- CAMERA SOURCES CONFIGURATION MODULE (Directly below Privacy Visibility) --- */}
+        <div className="border border-[#2f2f2f] rounded-lg p-4 bg-[#161616] flex flex-col gap-3">
+          <div className="flex items-center gap-2 text-xs font-semibold text-gray-300 border-b border-[#2f2f2f] pb-2">
+            <Camera className="w-4 h-4 text-red-500" />
+            <span>Camera Sources Configuration</span>
+          </div>
+
+          {/* 20 Camera Channels Grid */}
+          <div className="grid grid-cols-4 sm:grid-cols-5 gap-2 max-h-[160px] overflow-y-auto pr-1">
+            {Array.from({ length: 20 }, (_, i) => {
+              const camId = i + 1;
+              const isActive = selectedCamera === camId;
+              return (
+                <button
+                  key={camId}
+                  type="button"
+                  onClick={() => {
+                    setSelectedCamera(camId);
+                    setShowQrCode(true);
+                    toast.info(`Opening setup dashboard for Camera ${camId}`);
+                  }}
+                  className={`py-2 px-1 text-[11px] font-mono font-medium rounded-md border transition text-center ${
+                    isActive
+                      ? "bg-red-600 border-red-500 text-white shadow-md"
+                      : "bg-[#121212] border-zinc-800 text-gray-400 hover:border-zinc-700 hover:text-white"
+                  }`}
+                >
+                  Cam {camId}
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-[10px] text-zinc-500">Select a camera channel slot to sync a mobile source via QR scanner.</p>
+        </div>
+
         {generatedRtmpUrl && (
           <div className="p-3 bg-zinc-900 border border-zinc-800 rounded-lg">
             <p className="text-[10px] text-gray-500 font-bold uppercase mb-1">Auto-Generated Endpoints</p>
@@ -573,6 +614,22 @@ function LiveStreamingSetupPage() {
             </div>
           )}
         </div>
+
+        {/* Dynamic Camera Receiver Stream Status Block (Renders below main video track when active) */}
+        {isConnected && selectedCamera && (
+          <div className="p-3 bg-zinc-900/60 border border-zinc-800 rounded-lg text-xs flex flex-col gap-1.5">
+            <div className="flex items-center justify-between">
+              <span className="font-semibold text-gray-300 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-indigo-500 animate-ping"></span>
+                Subscribed Camera Feed: Slot {selectedCamera}
+              </span>
+              <span className="text-[10px] bg-zinc-800 px-2 py-0.5 rounded text-zinc-400 font-mono">LiveKit Node</span>
+            </div>
+            <p className="text-[11px] text-zinc-500">
+              Listening to stream track attachments on room token context matching identifier <span className="text-indigo-400 font-mono">studio-cam-{selectedCamera}</span>.
+            </p>
+          </div>
+        )}
 
         <div className="flex justify-center gap-4">
           <button
@@ -623,6 +680,56 @@ function LiveStreamingSetupPage() {
           </div>
         )}
       </div>
+
+      {/* --- QR CODE DIALOG MODAL PORTAL --- */}
+      {showQrCode && selectedCamera && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-[#1f1f1f] border border-[#2f2f2f] rounded-xl p-6 max-w-sm w-full shadow-2xl flex flex-col items-center text-center gap-4 relative">
+            
+            <div>
+              <h3 className="text-sm font-bold text-white flex items-center justify-center gap-1.5">
+                <Camera className="w-4 h-4 text-red-500" /> Sync External Camera {selectedCamera}
+              </h3>
+              <p className="text-xs text-gray-400 mt-1">Scan this QR code with your mobile device to establish a secondary camera connection node.</p>
+            </div>
+
+            {/* QR Code Container Asset */}
+            <div className="bg-white p-4 rounded-lg shadow-md flex items-center justify-center">
+              <QRCodeSVG
+                value={`${typeof window !== "undefined" ? window.location.origin : ""}/mobile-cam?camId=${selectedCamera}&room=studio-cam-${selectedCamera}&token=${liveKitToken || "session-token"}`}
+                size={180}
+                level="M"
+                includeMargin={false}
+              />
+            </div>
+
+            {/* Configured Handshake Link Preview */}
+            <div className="w-full bg-[#121212] p-2 rounded border border-zinc-800 text-left">
+              <p className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider">Target Node Endpoint</p>
+              <p className="text-[10px] text-zinc-400 font-mono truncate">
+                {`${typeof window !== "undefined" ? window.location.origin : ""}/mobile-cam?camId=${selectedCamera}&room=studio-cam-${selectedCamera}`}
+              </p>
+            </div>
+
+            {/* Action Triggers */}
+            <div className="w-full flex flex-col gap-2 mt-1">
+              <div className="text-[11px] text-amber-400 bg-amber-500/5 border border-amber-500/10 py-1.5 px-2 rounded flex items-center gap-1.5 justify-center">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                Awaiting remote pipeline device connection...
+              </div>
+              
+              <button
+                type="button"
+                onClick={() => setShowQrCode(false)}
+                className="w-full py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-medium text-xs rounded-lg transition"
+              >
+                Close Connection Panel
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
 
     </div>
   );
